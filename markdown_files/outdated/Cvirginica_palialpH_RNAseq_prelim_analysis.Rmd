@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 library(knitr)
 knitr::opts_chunk$set(tidy=TRUE, echo = TRUE)
+knitr::opts_knit$set(root.dir="~/Desktop/2017OAExp_Oysters/")
 ```
 
 ## Preliminary Analysis of RNAseq count data
@@ -17,6 +18,13 @@ This code uses the raw count data and the filtered SNP data from RNAseq to ident
 Start by loading libraries required for the preliminary analysis. If the libraries do not properly load, make sure they are installed.
 ```{r}
 source("http://bioconductor.org/biocLite.R")
+if(!require("edgeR")) biocLite("edgeR")
+if(!require("limma")) biocLite("limma")
+
+if(!require("pacman")) install.packages("pacman")
+library(pacman)
+#pacman::p_boot("statmod")
+
 library("edgeR")
 library("limma")
 library("statmod")
@@ -24,13 +32,14 @@ library("ggplot2")
 ```
 Set the working directory:
 ```{r}
-setwd("/Users/brettford/Desktop/Northeastern/lab_work/20180119_RNAseq_proj")
+#setwd("~/Desktop/2017OAExp_Oysters/")
 ```
 
 Read in the counts data table and the metadata table and view each
 ```{r}
-GeneCounts <- read.delim("C_virginica_gene_count_final.txt", header=TRUE, sep="", row.names=1)
-model<-read.delim("metadata_cvirginica_rna_meta.txt", header=TRUE)
+setwd("~/Desktop/2017OAExp_Oysters/")
+GeneCounts <- read.delim("results/C_virginica_gene_count_final.txt", header=TRUE, sep="", row.names=1)
+model<-read.delim("input_files/metadata_cvirginica_rna_meta.txt", header=TRUE)
 head(GeneCounts)
 head(model)
 ```

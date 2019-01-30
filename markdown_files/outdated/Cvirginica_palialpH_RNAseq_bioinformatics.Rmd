@@ -1,0 +1,70 @@
+---
+title: "Reading in reference genome and transcriptomes"
+author: "Alan Downey-Wall"
+date: "8/11/2018"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+```
+
+### Downloading Genomes from NCBI
+
+In cases where the study organism has a reference genome (or transcriptome). Many alignment programs can use this to facilitate the alignment of the raw reads from the sequencer. The first challenge when using a reference genome is downloading it from the online data repository where it is likely sotred (i.e. NCBI). Here is an example of the bash code you could use to download the reference to your local computer (your current working directory):  
+```{bash, eval=FALSE}
+wget --recursive -e robots=off --reject "index.html" --no-host-directories --no-parent https://ftp.ncbi.nih.gov/genomes/Crassostrea_virginica/ 
+```
+#### Description of wget and features  
+```wget``` stands for "web get". It is a command utility that is used for downloading files over a network.
+```--recrusive```: Turn on recursive retrieving.
+```-e```: Execute command as if it were a part of the file .wgetrc. A command thus invoked will be executed after the commands in .wgetrc, thus taking precedence over them. In this case it is needed to allow us to specify our robots command (below) on the command line.
+```-e robots = [on / off ]```: Specify whether the norobots convention is respected by Wget, “on” by default. This switch controls both the /robots.txt and the ‘nofollow’ aspect of the spec. More about this at: https://www.gnu.org/software/wget/manual/wget.html#Robot-Exclusion  
+```--reject [regex]```: This is used to specify a regular expression to accept or reject the complete URL. In this case we wish to reject files with ```index.html``` in the name.
+```--no-host-directories```: Disable generation of host-prefixed directories. By default, invoking wget with -r http://fly.srk.fer.hr/ will create a structure of directories beginning with fly.srk.fer.hr/. This option disables such behavior.  
+```--no-parent```: Do not ever ascend to the parent directory when retrieving recursively. This option is a useful option, since it guarantees that only the files below a certain hierarchy will be downloaded.  
+
+If you would like to specify the destination directory you can use:
+```-P /pathway/to/directory```  
+```-P```: Set directory prefix to prefix. The directory prefix is the directory where all other files and subdirectories will be saved to, i.e. the top of the retrieval tree. The default is "." (the current directory). 
+
+
+Move the Crassostrea_viriginica directory to the project directory and rename to Genome to follow Jon\???s code
+
+**For a more complete look at ```wget``` and it's different features see: https://www.gnu.org/software/wget/manual/wget.html**
+
+
+```{bash, eval=FALSE}
+mv genomes/Crassostrea_virginica
+## /shared_lab/20180226_RNAseq_2017OAExp
+cd /shared_lab/20180226_RNAseq_2017OAExp
+mv Crassostrea_virginica Genome
+rm -rf genomes
+```
+Change to the directory containing sequencing information for all chromosomes
+```{bash, eval=FALSE}
+cd /shared_lab/20180226_RNAseq_2017OAExp/Genome/Assembled_chromosomes/seq
+```
+Assemble full reference genome from all chromosomes
+```{bash, eval=FALSE}
+zcat 6565_ref_C_virginica-3.0_chrMT.fa.gz 6565_ref_C_virginica-3.0_chr[0-9]*.fa.gz | 
+sed 's/ref|//g' | sed 's/| Crass/  Crass/g' > genome.fasta
+```
+Create a genome file to use with bedtools sorting
+```{bash, eval=FALSE}
+samtools faidx genome.fasta
+mawk -v OFS='\t' {'print $1,$2'} genome.fasta.fai > genome.file
+```
+Change to the genome features file (GFF) directory and set up link to genome file
+```{bash, eval=FALSE}
+cd /shared_lab/20180226_RNAseq_2017OAExp/Genome/GFF
+ln -s /shared_lab/20180226_RNAseq_2017OAExp/Genome/Assembled_chromosomes/seq/genome.file .
+```
+
+
+Displays the percent of bases covered for each region type by your reads
+We see that coding sequences, exons, and UTRs have the greatest percentage of bases that are covered by reads, and that as depth increases (depth here meaning the number of positions you are looking at) increases, there are a lower percentage of bases covering them.
+
+
+
