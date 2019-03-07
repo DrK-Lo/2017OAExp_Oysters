@@ -1,0 +1,584 @@
+---
+title: "Data Normalization and Global Methylation Visualization"
+author: "Alan Downey-Wall"
+date: "5/30/2018"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+library(knitr)
+#knitr::opts_knit$set(root.dir="~/Desktop/2017OAExp_Oysters")
+```
+
+## Preliminary Analysis of RNAseq count data
+
+### Load libraries and import data  
+This code uses the raw count data and the filtered SNP data from RNAseq to identify preliminary patterns in the data.
+Start by loading libraries required for the preliminary analysis. If the libraries do not properly load, make sure they are installed.  
+  
+```{r include=FALSE}
+source("http://bioconductor.org/biocLite.R")
+if(!require("edgeR")) biocLite("edgeR")
+if(!require("limma")) biocLite("limma")
+
+if(!require("pacman")) install.packages("pacman")
+library(pacman)
+```
+  
+#### **Necessary Packages**:  
+```{r}
+library("edgeR")
+library("limma")
+library("statmod")
+library("ggplot2")
+```
+**Note**: ```edgeR``` and ```limma``` are both available through **bioconductor** rather than **CRAN**. To install these packages for the first time you will need to use ```biocLite()``` function (e.g. ```biocLite("limma")```). If you **do not** have bioconductor install, first run ```source("http://bioconductor.org/biocLite.R")``` for the latest first of ```biocLite```.
+
+#### **Count Matrix and oyster metadata table**
+```{r echo=TRUE}
+# RNA count Matrix
+GeneCounts <- read.delim("~/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
+exons <- read.delim("~/Github/2017OAExp_Oysters/input_files/exon_count2.txt",header=TRUE,sep="",col.names = c("Locus","Gene","Count"))  
+
+genes <- as.character(exons$Gene)
+gene_split <- matrix(unlist(strsplit(genes,split = "-")),ncol=1)
+# Oyster meta data
+model<-read.delim("~/Github/2017OAExp_Oysters/input_files/metadata_cvirginica_rna_meta.txt", header=TRUE)
+head(model)
+```
+
+### Additional Loci Filtering  
+
+Now we want to filter out sequences with very low expression. Therefore, we will **only keep** sequences with more than **0.5 counts per million mapped reads across all 24 samples**. To do this we calculate the counts per million (CPM) per gene per indivdual. Then, if all individuals have a CPM greater than 0.5 for the gene, it is retained.  
+  
+```{r echo=TRUE}
+
+### Looking at lane specific effects
+# Isolate samples by lane
+GC_lane1 <- GeneCounts[,model$lane == 1]
+GC_lane2 <- GeneCounts[,model$lane == 2]
+# Sum counts for each lane at each locus
+GC_lane1_sum <- rowSums(GC_lane1)
+GC_lane2_sum <- rowSums(GC_lane2)
+# Difference between counts in lane1 vs. lane2 scaled by total locus reads
+GC_diff <- c(abs(GC_lane1_sum - GC_lane2_sum)+0.0001)/ c(GC_lane1_sum + GC_lane2_sum+0.0001)
+plot(GC_diff~c(1:length(GC_diff)),main="Lane Count Diff by Locus Distance",xlab="Locus Distance",ylab="Difference in Lane counts at each locus scaled by total locus counts")
+plot(GC_diff~c(GC_lane1_sum+GC_lane2_sum),xlim=c(0,1000))
+abline(h = 0.99,col="red") + abline(v = 30,col="red")
+hist(GC_diff,breaks=100000)
+account_forLane <- subset(GeneCounts,GC_diff<0.99) # Remove loci that only appear in one of the lanes of seq
+account_forCount <- subset(account_forLane, rowSums(account_forLane) > 30) # Remove loci with fewer total counts than 50
+paste0(nrow(account_forCount)/nrow(GeneCounts)*100,"% of the loci remaining after adjusting for lane bias and removing loci with low read counts") 
+```
+
+### CPM
+```{r}
+## Function CPM in package edgeR, takes countMatrix and normalizes it as counts per million
+# Without removing exceptionally high read loci
+perMilReads <- cpm(GeneCounts)
+head(perMilReads)
+
+# Example of how cpm calculates the number of reads per million bases
+GeneCounts$RNA17019[1]/sum(GeneCounts$RNA17019)*1*10^{6} # Manually calculate read per million at first locus in sample RNA17019
+perMilReads[1,dimnames(perMilReads)[[2]] == "RNA17019"] # Calculate read per million at first locus in sample RNA17019 using cpm
+
+## Only keep a locus if it was at least 0.5 million reads for all 24 individuals
+keep <- rowSums(perMilReads>0.5) >=24 
+
+
+# Counts per million on pre filtered dataset (considering lane bias)
+perMilReads_alt <- cpm(account_forCount) # cpm on pre filtered dataset
+
+## Quantile normalization, this looks much like cpm but also adjusts for the number of reads at each locus
+rowSum <- rowSums(account_forCount)
+perMilReads_alt_quantile <- cpm(account_forCount)/rowSum # quantile on pre-filtered dataset
+perMilReads_quantile <- cpm(GeneCounts)/rowSum # quantile adjustment
+
+## Simple summary of the different filtering and normalization approaches
+# Average perMillion read (across individuals) at each locus - vector of averages for all loci
+avg_perMilRead_perlocus <- rowMeans(perMilReads)
+avg_perMilRead_alt_perlocus <- rowMeans(perMilReads_alt)
+avg_perMilRead_quantile_perlocus <- rowMeans(perMilReads_quantile)
+avg_perMilRead_alt_quantile_perlocus <- rowMeans(perMilReads_alt_quantile)
+
+# Standard Deviation of perMillion read (across individuals) at each locus - vector of averages for all loci
+sd_perMilRead_perlocus <- apply(perMilReads,1,function(x){sd(x)})
+sd_perMilRead_alt_perlocus <- apply(perMilReads_alt,1,function(x){sd(x)})
+sd_perMilRead_quantile_perlocus <- apply(perMilReads_quantile,1,function(x){sd(x)})
+sd_perMilRead_alt_quantile_perlocus <- apply(perMilReads_alt_quantile,1,function(x){sd(x)})
+
+# Combining 
+perMil_sum <- cbind(name="perMil",avgRead=avg_perMilRead_perlocus,sd=sd_perMilRead_perlocus)
+perMil_q_sum <- cbind(name="perMil_q",avgRead=avg_perMilRead_alt_perlocus,sd=sd_perMilRead_alt_perlocus)
+perMil_alt_sum <- cbind(name="perMil_alt",avgRead=avg_perMilRead_quantile_perlocus,sd=sd_perMilRead_quantile_perlocus)
+perMil_alt_q_sum <- cbind(name="perMil_alt_q",avgRead=avg_perMilRead_alt_quantile_perlocus,sd=sd_perMilRead_alt_quantile_perlocus)
+
+filter_table_summary <-  data.frame(rbind(perMil_sum,perMil_q_sum,perMil_alt_sum,perMil_alt_q_sum))
+
+library(ggplot2)
+
+#p <- ggplot(filter_table_summary,aes(x=name,y=as.numeric(avgRead)) + geom_boxplot()
+boxplot(as.numeric(as.character(avgRead))~name,data=filter_table_summary,ylim=c(0,50))
+
+## Old script
+#sub_perMilRead_meta <-  perMilRead_meta[perMilRead_meta$minThres == TRUE,]
+#sub2_perMilRead_meta <-  perMilRead_meta[perMilRead_meta$avgRead >= 5,]
+#test <- perMilRead_meta[perMilRead_meta$avgRead >= 10,]
+#sum(perMilRead_meta$minThres == TRUE) / nrow(GeneCounts)*100
+#nrow(sub2_perMilRead_meta) / nrow(GeneCounts) * 100
+```
+
+Save subset in new dataframe and log transform counts.  
+```{r}
+# Without log transformation
+y<- account_forCount+0.01 #GeneCounts[keep,]
+hist(rowMeans(y),breaks = 100,xlab = "Mean Count", main = "Histogram of mean counts for each locus") 
+
+# With log transformation
+yLog<- log(y)
+hist(rowMeans(yLog),breaks=100,xlab= "Mean log Count",main = "Histogram of log transformed mean counts for each locus")
+```
+  
+**Note**: *The log transformed data shown illustrates how transforming data in this way helps will the heavily skewed RNA expression data. However, we will actually be log transforming the cpm values at a later step using the package ```limm```, so we will proceed with the untransformed values for the time being.*  
+  
+**Number of remaining loci after filtering:**  
+```{r}
+# Number of total loci
+nrow(y)
+percent_retained <- nrow(y)/nrow(GeneCounts)*100
+print(paste("Percent retained:", percent_retained))
+```
+  
+** Notes on filtering**: The percent retained (~11%) is much lower than the Wong paper received (~48%). May need to assess and compare methods to get count matrix.  
+
+### Preparing metadata for use in RNA analysis  
+
+Sorting metadata table by individual to correspond with the count matrix:
+```{r}
+model <- model[order(model$sample_name), ]
+# Needed to make sure the factor level (below) gets assigned properly to each individual
+```
+
+Create a factor that represents the treatments in the data. In this case that is the two different pCO2 levels at the two timepoints:  
+```{r}
+f <- paste(paste0("CO2_", model$treatment), paste0("T_",model$timepoint),sep=".")
+f <- factor(f)
+trt <- factor(model$treatment)
+time <- factor(model$timepoint)
+```
+
+Create a model matrix of samples x treatment:  
+```{r}
+design <-model.matrix(~0+f)
+colnames(design) <- levels(f)
+model$trt_factor <- factor(model$treatment)
+model$tp_factor <- factor(model$timepoint)
+design2 <- model.matrix(~ 0 + trt_factor + tp_factor, data=model, 
+    contrasts.arg=list(trt_factor=diag(nlevels(model$trt_factor)), 
+            tp_factor=diag(nlevels(model$tp_factor))))
+```
+  
+### Create DGE Object and estimate the normalization factor  
+  
+**Turn count Matrix into a DGEList object **   
+```{r}
+dge <- DGEList(counts=y, group=f)
+```
+**```DGElist()```**: a function in edgeR that creates a ```edgeR``` specific ````DGELIST``` object that is a list with two elments.  The first element is your count Matrix (labeled ```counts```) and the second is a metadata dataframe for each sample (labeled ```samples```). You should be able to access each item either using standard list notation (i.e. ```dge[[1]]``` for count Matrix) or the the labeled element notation (i.e. dge$counts for count Matrix). The first item should always be the count Matrix and the second will be the dataframe of your metadata.  
+
+  1) ```$counts```: count Matrix  
+  
+  2) ```$samples```: dataframe containing a row for each sample in you data and columns for the sample and three columns:  
+  
+    i) ```group```: the group ID : based on number of factor levels determined above from the metadata  
+    ii) ```lib.size```: library size  
+    iii) ```norm.factors```: normalization factor  
+  
+  
+**Normalizing data for between sample comparison - TMM normalization**  
+Yet another way we need to consider normalizing our data is to account for between sample variability in library size. One strategy for this is the **trimmed mean of M value method (TMM)** by Robinson and Oshlack (2010). 
+  
+Here we can implement this normalization through the package ```edgeR``` using the function ```calcNormFactors``` with ```method=c("TMM")```:  
+```{r}
+dgeNorm<- calcNormFactors(dge,method=("TMM"))
+```
+  
+This will estimate a new normalization factor, ```norm.factors``` in your ```samples``` dataframe, which it attempts to adjust mean read count This updated our normalization factor for each sample based on it's library size. **Notice that the count matrix itself has not changed**, this will happen in the next section using the packaged ```limma```.
+  
+To see a full description of this method please reference the original paper. [(Robinson and Oshlack 2010)](http://evowiki.haifa.ac.il/images/f/f5/A_scaling_normalization_method_for_differential_expression_%28TMM%29.pdf)  
+  
+### Final count matrix Transformations  
+
+#### Using ```Voom``` in the ```limma``` package to transform data yet again.  
+Voom transform the count data using voomWithQualityWeights function. Voom transformation log normalizes the cpm data. Given that we a passing the DGEList that has already computed the normalization factors we can specify the ```lib.size``` and specify the ```normalization.method = "none"```  
+
+```{r}
+v1 <- voomWithQualityWeights(dgeNorm, design=design, lib.size=dgeNorm$samples$lib.size, normalize.method="none", plot = TRUE)
+```
+  
+### Including blocking variable in count matrix transformation  
+  
+**Problem**: Our original meta data contains additional information about difference between samples that is not currently being utilized. This included at least one additional fixed fixed  factor (population), as well as random and blocking factors (the tank each oyster was sampled from). This latter can be accounted for in voom tranformation by inputting the blocking variable within the the function ```voomWithQualityWeights``` by using the arguement ```block=model$blockVariable```. In addition, the degreee of correlation between you blocking variable and your fixed factors (your design from above) should be inputted into the function. This can be estimated using ```duplicateCorrelation```.  
+The benefit of incorporating the blocking variable is that it allows for there to be different variance between biological replicates, rather than calculating variance on a per-individual basis. In the Wong paper they considered samples taken from the same pCO2 vessel as a biological replicate. Here we consider any oyster taken from the same tank (tankID from unique shelf and tank combo) as biological replicates.  
+  
+**Step 1:** run ```duplicateCorrelation``` using your original ```voom``` object, your fixed factor ```design```, and a vector with your blocking variable IDs. This function attempts to find the correlation between each locus in your count matrix and the block factor provided. It will output a list contain a vector of all correaltions - ```atanh.correlations``` -  for each locus, and a mean correlation across all loci, ```consensus```. The ```consensus``` scalar is what we will need to include when we perform the transformation again.  
+  
+**Step 2:** rerun ```voomWithQualityWeights``` but also include the blocking variable and mean blocking correalation.  
+  
+```{r}
+# This is not quite a linear regression with only block as a predictor for each locus *** Figure out with this is doing (some sort of linear mixed model)
+corfit <- duplicateCorrelation(v1,design,block=model$tankID)
+
+v2 <- voomWithQualityWeights(dgeNorm,design,plot=TRUE,lib.size=dge$samples$lib.size,block=model$tankID,normalize.method="none",correlation=corfit$consensus)
+```
+  
+### Visualizing Global RNA count data  
+
+#### MDS (multi-dimensional scaling) plots  
+Similar to PCAs. It will help visualize the expression profiles of each values in 2D space. Points closer together have more similar expression profiles than those further apart.  
+
+**Original untransformed count matrix**  
+```{r}
+# Specify colors you would like to use for the four treatments
+colors <- rainbow(length(levels(f)),alpha = 1)  
+
+# The plot parameters below are specific to this data, will likely need to change if working
+# with other RNAseq data
+plotMDS(dgeNorm, labels=rownames(dgeNorm$samples),cex=0.8, col=colors[f], xlim=c(-0.8, 0.8), ylim=c(-0.8, 0.8))
+legend("bottomleft", legend = c(levels(dgeNorm$samples$group)), cex=0.8, col = colors, lty = c(1, 1, 1, 1))
+```
+  
+**Transformed count matrix - using voom**  
+```{r}
+plotMDS(v1, labels=rownames(v1$targets),cex=0.8, col=colors[f], xlim=c(-2, 1.8), ylim=c(-1.5, 1.5))
+legend("bottomleft", legend = c(levels(v1$targets$group)), cex=0.8, col = colors, lty = c(1, 1, 1, 1))
+```
+  
+**Transformed count matrix - using voom and tankID as blocking factor**  
+```{r}
+plotMDS(v2, labels=rownames(v2$targets),cex=0.8, col=colors[f], xlim=c(-2, 1.5), ylim=c(-1.5, 1.5))
+legend("bottomleft", legend = c(levels(v2$targets$group)), cex=0.8, col = colors, lty = c(1, 1, 1, 1))
+```
+  
+**PCA Plot - using voom and tankID as blocking factor**  
+```{r}
+# Perform PCA on normalized data that considered tank as a blocking variable
+pcavoom<-y # prcomp(t(na.omit(v2$E)))
+summary(pcavoom)
+pca <- as.data.frame(prcomp(t(na.omit(v2$E)))$x)
+pca$f<-f
+
+color_pop <- rainbow(length(unique(model$population))) # colors for population 
+color_treat <- rainbow(length(unique(model$treatment))) # colors for treatment
+color_time <- rainbow(length(unique(model$timepoint))) # colors for time
+
+
+shapes <- c(as.character(model$treatment)) # Setting shapes of points based on treatment
+
+# PCA with colors for population
+pcaplot <- qplot(x=PC1, y=PC2, data=pca,colour=as.factor(model$population), size=I(4), shape=shapes)
+pcaplot <- pcaplot + scale_colour_manual(values=color_pop) #$color as.character(color_pca$color)c("red","blue","green")
+pcaplot <- pcaplot + theme_bw()
+pcaplot + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title=element_text(size=14),legend.text=element_text(size=14),
+                panel.background = element_blank(), axis.line = element_line(color = "black"), axis.text.y = element_text(angle = 90), legend.key = element_blank())
+
+# PCA with colors for time
+pcaplot <- qplot(x=PC1, y=PC2, data=pca,colour=as.factor(model$timepoint), size=I(4), shape=shapes)
+pcaplot <- pcaplot + scale_colour_manual(values=color_time) #$color as.character(color_pca$color)c("red","blue","green")
+pcaplot <- pcaplot + theme_bw()
+pcaplot + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title=element_text(size=14),legend.text=element_text(size=14),
+                panel.background = element_blank(), axis.line = element_line(color = "black"), axis.text.y = element_text(angle = 90), legend.key = element_blank())
+
+```
+
+**Scree Plot of PCA**
+```{r}
+out <- summary(pcavoom)
+#plot(out$importance[2,]~c(1:length(out$importance[2,])))
+```
+Looks a little suspicious, not clear drop in explained variance as the number of pc's increases.  
+
+#### Using limma tools along with DGEList objects to perform association tests
+```{r}
+library(fdrtool)
+
+## Voom 
+v <- voom(dgeNorm,design)
+## Fit a linear model using normalized data and design matrix
+fit <- lmFit(v,design)
+fit2 <- lmFit(v2,design)
+#Correct with eBayes
+fit <- eBayes(fit)
+fit2 <- eBayes(fit2)
+# 
+# dim(fit2$p.value)
+# fit2$lods
+# 
+# 
+# fdr_out <- fdrtool(fit2$F.p.value,statistic = c("normal"),verbose = F,plot = T)
+# 
+# gif <- median(fit2$F.p.value^2)/0.456
+# pcal <- pchisq(fit2$F.p.value^2/gif , df = 1, low = F)
+# plot(density(pcal))
+# 
+# volcanoplot(fit,coef=2,highlight=2)
+# volcanoplot(fit2,coef=2,highlight=2)
+```
+
+### Cate Test
+
+#### Single Time / Treatment variable
+```{r}
+library(cate)
+library(fdrtool)
+thres <-  0.05
+# Convert y log expression data into matrix
+#Y <- matrix(unlist(yLog),ncol=ncol(yLog))
+Y <- matrix(unlist(y),ncol=ncol(y))
+colnames(Y) <- colnames(yLog)
+row.names(Y) <- row.names(yLog)
+
+#### Running example is with include time and treatment together
+## sum treatment and time into single variable
+sumLevels <- design[,1] + design[,2]*2 + design[,3]*3 + design[,4]*4
+#create new dataframe with trt/time as predictor and pop and shelf as covariates
+design_config <- data.frame(X = sumLevels,pop=model$population,block=model$shelf)
+# Estimate number of latent factors
+#factor.num <- est.confounder.num(~ X | . - X + 0,
+#                                 design_config, t(Y),
+#                                 method = "bcv", bcv.plot = FALSE,
+#                                 rmax = 30, nRepeat = 20)
+#factor.num$r #huh, only 1
+
+# Manually changed it to 2 based on earlier PCA
+cate.results <- cate(~ X | . - X + 0,
+                     design_config, 
+                     t(Y), 
+                     r = 2,
+                     adj.method = "rr")
+## GLM including latent factors from cate in the model
+p <- NULL
+z <- NULL
+for (l in 1:nrow(Y)){
+  scores<-glm(t(Y)[,l] ~ design_config$X + design_config$pop + design_config$block + cate.results$Z)
+  p[l] <- summary(scores)$coeff[2,4]
+  z[l] <- summary(scores)$coeff[2,3] 
+}
+#Genomic Inflation Factor
+gif <- median(z^2)/0.456
+gif
+## FDR tools used to correct for multiple hyps.
+fdr.adj<-fdrtool(z,statistic = c("normal"))
+qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(qvals) <- row.names(yLog)
+plot(c(1-qvals[,1])~c(1:nrow(Y)))
+abline(h = 0.95,col="red")
+
+plot(c(1-qvals[,1])~c(1:nrow(Y)))
+abline(h = 0.95,col="red")
+diff_genes <- cbind(Test="Trt_Time",Gene_ID = names(qvals[,1])[which(qvals[,1]<thres)],Qval = qvals[,1][which(qvals[,1]<thres)],lfdr = qvals[,2][which(qvals[,1]<thres)])
+
+```
+
+#### Single Time / Treatment variable (using normalized data from voom)
+```{r}
+library(cate)
+library(fdrtool)
+thres <-  0.05
+
+#### Running example is with include time and treatment together
+## sum treatment and time into single variable
+sumLevels <- design[,1] + design[,2]*2 + design[,3]*3 + design[,4]*4
+#create new dataframe with trt/time as predictor and pop and shelf as covariates
+design_config <- data.frame(X = sumLevels,pop=model$population,block=model$shelf)
+# Estimate number of latent factors
+factor.num <- est.confounder.num(~ X | . - X + 0,
+                                 design_config, t(v2$E),
+                                 method = "bcv", bcv.plot = FALSE,
+                                 rmax = 30, nRepeat = 20)
+factor.num$r #huh, only 1
+
+# Manually changed it to 2 based on earlier PCA
+cate.results <- cate(~ X | . - X + 0,
+                     design_config, 
+                     t(v2$E), 
+                     r = 2,
+                     adj.method = "rr")
+## GLM including latent factors from cate in the model
+p <- NULL
+z <- NULL
+for (l in 1:nrow(v2$E)){
+  scores<-glm(t(v2$E)[,l] ~ design_config$X + design_config$pop + design_config$block + cate.results$Z)
+  p[l] <- summary(scores)$coeff[2,4]
+  z[l] <- summary(scores)$coeff[2,3] 
+}
+#Genomic Inflation Factor
+gif <- median(z^2)/0.456
+gif
+## FDR tools used to correct for multiple hyps.
+fdr.adj<-fdrtool(z,statistic = c("normal"))
+qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(qvals) <- row.names(yLog)
+plot(c(1-qvals[,1])~c(1:nrow(Y)))
+abline(h = 0.95,col="red")
+
+plot(c(1-qvals[,1])~c(1:nrow(Y)))
+abline(h = 0.95,col="red")
+
+diff_voom_genes <- cbind(Test="Trt_Time_Voom",Gene_ID = names(qvals[,1])[which(qvals[,1]<thres)],Qval = qvals[,1][which(qvals[,1]<thres)],lfdr = qvals[,2][which(qvals[,1]<thres)])
+```
+
+#### Differences by treatment
+```{r}
+#### Running example is with include time and treatment together
+## sum treatment and time into single variable
+trt <- design[,1] + design[,2] # 1 for all samples with 2800 trt and 0 for 400
+time <-  design[,2] + design[,4]# 1 for time 6 adn 0 for tp 3
+design_config <- data.frame(trt=trt,time=time,pop=model$population,block=model$shelf)
+
+# Estimate number of latent factors
+factor.num <- est.confounder.num(~ trt | . - trt + 0,
+                                 design_config, t(Y),
+                                 method = "bcv", bcv.plot = FALSE,
+                                 rmax = 30, nRepeat = 20)
+#Numbers of factors
+factor.num$r 
+
+# Manually changed it to 2 based on earlier PCA
+cate.results <- cate(~ trt | . - trt + 0,
+                     design_config, 
+                     t(Y), 
+                     r = 2,
+                     adj.method = "rr")
+
+## GLM including latent factors from cate in the model
+p <- NULL
+z <- NULL
+for (l in 1:nrow(Y)){
+  scores<-glm(t(Y)[,l] ~ design_config$trt + design_config$pop + design_config$block + cate.results$Z)
+  p[l] <- summary(scores)$coeff[2,4]
+  z[l] <- summary(scores)$coeff[2,3] 
+}
+
+#Genomic Inflation Factor
+(gif <- median(z^2)/0.456)
+gif
+
+## FDR tools used to correct for multiple hyps.
+fdr.adj<-fdrtool(z,statistic = c("normal"))
+
+qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(qvals) <- row.names(yLog)
+plot(c(1-qvals[,1])~c(1:nrow(Y)))
+abline(h = 0.95,col="red")
+if(length(which(qvals[,1]<thres)) > 0){
+  diff_trt_genes <- cbind(Test="Trt",Gene_ID = names(qvals[,1])[which(qvals[,1]<thres)],Qval = qvals[,1][which(qvals[,1]<thres)],lfdr = qvals[,2][which(qvals[,1]<thres)])
+}
+
+```
+
+#### Differences by time
+```{r}
+# Estimate number of latent factors
+factor.num <- est.confounder.num(~ time | . - time + 0,
+                                 design_config, t(Y),
+                                 method = "bcv", bcv.plot = FALSE,
+                                 rmax = 30, nRepeat = 20)
+# Number of factors
+factor.num$r
+
+# Manually changed it to 2 based on earlier PCA
+cate.results <- cate(~ time | . - time + 0,
+                     design_config, 
+                     t(Y), 
+                     r = 2,
+                     adj.method = "rr")
+
+## GLM including latent factors from cate in the model
+p <- NULL
+z <- NULL
+for (l in 1:nrow(Y)){
+  scores<-glm(t(Y)[,l] ~ design_config$time + design_config$pop + design_config$block + cate.results$Z)
+  p[l] <- summary(scores)$coeff[2,4]
+  z[l] <- summary(scores)$coeff[2,3] 
+}
+
+#Genomic Inflation Factor
+gif <- median(z^2)/0.456
+gif
+
+## FDR tools used to correct for multiple hyps.
+fdr.adj<-fdrtool(z,statistic = c("normal"))
+
+qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(qvals) <- row.names(yLog)
+plot(c(1-qvals[,1])~c(1:nrow(Y)))
+abline(h = 0.95,col="red")
+
+diff_time_genes <- cbind(Test="Time",Gene_ID = names(qvals[,1])[which(qvals[,1]<thres)],Qval = qvals[,1][which(qvals[,1]<thres)],lfdr = qvals[,2][which(qvals[,1]<thres)])
+```
+
+```{r}
+significant_genes <- data.frame(rbind(diff_genes,diff_voom_genes,diff_time_genes,diff_trt_genes))
+significant_genes$Qval <- as.numeric(as.character(significant_genes$Qval))  
+significant_genes$lfdr <- as.numeric(as.character(significant_genes$lfdr))  
+significant_order <- significant_genes[order(significant_genes$Qval),]
+significant_order$Q_Rank <- c(1:nrow(significant_genes))
+
+library(dplyr)
+
+#Diagnistic plots
+
+#Plots qvals (those already below the threshold mark of 0.05) in ranked order
+ggplot(significant_order,aes(x=Q_Rank,y=log(Qval),color=Test)) + geom_point()
+#Plots comparison between qval estimate and lfdr from FDRtools
+ggplot(significant_genes,aes(x=Qval,y=lfdr)) + geom_point()
+
+significant_sub <- subset(significant_order,log(significant_order$Qval)<c(-25))
+
+subReadDat <- log(Y)[which(row.names(diff_trt_genes)==row.names(Y)),]
+
+
+```
+
+
+#### Venn diagram of genes associated with predictor variables
+```{r}
+
+qqplot(design_config$trt~design_config$time)
+# library(VennDiagram)
+# grid.newpage()
+# draw.triple.venn(area1 = length(trt_loci), area2 = length(time_loci), area3 = length(trtTimeCombine_loci),
+#                  n12 = length(trt_loci[!is.na(match(trt_loci,time_loci))]),
+#                  n23 = length(trt_loci[!is.na(match(time_loci,trtTimeCombine_loci))]), 
+#                  n13 = length(trt_loci[!is.na(match(trt_loci,trtTimeCombine_loci))]),
+#                  n123 = length(trt_loci[!is.na(match(trt_loci,time_loci))]),
+#                  category = c("Treatment", "Time", "Treatment and Time Combined"), lty = "blank", 
+#                  fill = c("skyblue", "pink1", "mediumorchid"))
+```
+
+#### Venn diagram cate + glm vs voom comparison (with Treatment + Time combination variable)
+```{r}
+# method_overlap <- length(trt_loci[!is.na(match(trtTimeCombine_loci,trtTimeCombine_voom_loci))])
+# just_cate <- length(trtTimeCombine_loci) - method_overlap 
+# just_voom <- length(trtTimeCombine_voom_loci) - method_overlap 
+# 
+# 
+# if(just_cate == 0 | just_voom == 0){
+#   print("No Venn diagram possible...")
+#   if(just_cate == 0 & just_voom == 0){
+#     print(paste("All ",method_overlap," genes were found to overlap between methods",sep=""))
+#   }else{
+#     if(just_cate == 0){
+#       print(paste(length(trtTimeCombine_voom_loci), " genes were siginificant with voom normalization methods. Of these, ", method_overlap," genes found with voom normalization were found to overlap between methods",sep=""))
+#     }else{
+#       print(paste(length(trtTimeCombine_loci), " genes were siginificant with cate (latent factor) methods. Of these, ", method_overlap," genes found with voom normalization were found to overlap between methods",sep=""))
+#     }
+#   }
+# }else{
+#   # draw.triple.venn(just_cate,just_voom,
+#   #                length(trt_loci[!is.na(match(trtTimeCombine_loci,trtTimeCombine_voom_loci))]),
+#   #                category = c("Treatment and Time Combined", "Treatment and Time Combined (voom)"), lty = "blank", 
+#   #                fill = c("skyblue", "mediumorchid"))
+# }
+```

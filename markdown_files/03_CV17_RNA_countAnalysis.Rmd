@@ -41,6 +41,9 @@ library("psych")
 ```{r echo=TRUE}
 # RNA count Matrix
 GeneCounts <- read.delim("~/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
+sum2 <- sapply(GeneCounts,sum)
+sum(sum)
+
 exons <- read.delim("~/Github/2017OAExp_Oysters/input_files/exon_count2.txt",header=TRUE,sep="",col.names = c("Locus","Gene","Count"))  
 genes <- as.character(exons$Gene)
 gene_split <- matrix(unlist(strsplit(genes,split = "-")),ncol=1)
@@ -96,6 +99,7 @@ perMilReads[1,dimnames(perMilReads)[[2]] == "RNA17019"] # Calculate read per mil
 ## Only keep a locus if it was at least 0.5 million reads for all 24 individuals
 keep <- perMilReads[rowSums(perMilReads>0.5) >=24,] 
 
+
 # Counts per million on pre filtered dataset (considering lane bias)
 perMilReads_alt <- cpm(account_forCount) # cpm on pre filtered dataset
 keep2 <- rowSums(perMilReads_alt>0.5) >=24
@@ -129,7 +133,7 @@ filter_table_summary <-  data.frame(rbind(perMil_sum,perMil_q_sum,perMil_alt_sum
 #boxplot(as.numeric(as.character(avgRead))~name,data=filter_table_summary,ylim=c(0,50))
 
 # This is the final filtered gene count matrix
-GeneReduce2 <- account_forCount[keep2,]
+GeneReduce2 <- account_forCount[keep,]
 ```
 
 Save subset in new dataframe and log transform counts.  
