@@ -1,0 +1,137 @@
+---
+title: "Brief Summary of OA2018 RNASeq Read and Gene Count Data"
+date: "March 27, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+### Overview
+This script provided a brief run down of the reads data from our RNAseq dataset, and looks at how many reads, alignments, and gene counts are produced using our current bioinformatics pipeline. The reason for this is to troubleshoot the reason for the substantial loss of data as we progress to our final gene count matrix.
+
+## Bioinformatics Steps
+```{r, echo = FALSE}
+library(kableExtra)
+Step <- c("Trimming Raw Reads",
+          "Mapping Reads",
+          "Filtering",
+          "Create Count Matrix",
+          "Filter Reads with low frequency",
+          "Statistical Analysis")
+Program <- c("Trimmomatic (implimented in dDocent)",
+             "STAR",
+             "SamTools",
+             "HT-Seq",
+             "R",
+             "Edgr and Voom (implemented in R)")
+Link <- c("https://github.com/DrK-Lo/2017OAExp_Oysters/blob/master/markdown_files/01B_CV17_RNA_Alignment_trimming.Rmd",
+          "https://github.com/DrK-Lo/2017OAExp_Oysters/blob/master/markdown_files/01C_CV17_RNA_Alignment_ReadMapping.Rmd",
+          "https://github.com/DrK-Lo/2017OAExp_Oysters/blob/master/markdown_files/01D_CV17_RNA_Alignment_Filtering.Rmd",
+          "https://github.com/DrK-Lo/2017OAExp_Oysters/blob/master/markdown_files/02_CV17_RNA_createCountMatrix.Rmd",
+          "https://github.com/DrK-Lo/2017OAExp_Oysters/blob/master/markdown_files/03_CV17_RNA_countAnalysis.Rmd",
+          "https://github.com/DrK-Lo/2017OAExp_Oysters/blob/master/markdown_files/03_CV17_RNA_countAnalysis.Rmd")
+
+tab <- data.frame(cbind(Step,Program,Link))
+(kable(tab) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) -> s_table)
+```
+  
+```{r}
+## Raw Data
+#Raw Reads from GENEWIZ
+setwd(dir = "/home/downeyam/Github/2017OAExp_Oysters/")
+rawRead<-read.delim(file = "input_files/RNASeq_RawReadInfo_spaceDelim.txt",sep = " ",header = TRUE)
+rawRead_sub<-subset(rawRead,select=c("Sample_ID","RawRead","meanQualityScore"))
+```
+  
+```{r, echo = FALSE}
+## Adapter Removal and Initial QC
+# READ Info from STAR Aligner
+library(stringr)
+setwd(dir = "/home/downeyam/Github/2017OAExp_Oysters/input_files/STAR_metadata/temp/")
+name<-NULL
+inp<-NULL
+ua<-NULL
+pa<-NULL
+for(i in 1:length(list.files())){
+out<-readLines(con = list.files()[i])
+#name
+temp_lab<-str_split(list.files()[i],pattern = "_")
+temp_sub<-substr(temp_lab,7,11)
+name<-append(name,temp_sub)
+# input read number
+inp <- append(inp,str_split(out[6],pattern = "\t")[[1]][2])
+# unique alignment reads
+ua <- append(ua,str_split(out[9],pattern = "\t")[[1]][2])
+# percent unique alignment reads
+pa <- append(pa,str_split(out[10],pattern = "\t")[[1]][2])
+}
+
+star_readInfo <- data.frame(Sample_ID=name,InputRead=inp,uniqAlign=ua,perAlign=pa)
+
+merged<-merge(rawRead_sub,star_readInfo,by="Sample_ID")
+```
+  
+```{r,echo=FALSE}
+## Gene Count Matrix
+##Created with HTSEQ script
+
+#setwd(dir = "/home/downeyam/Github/2017OAExp_Oysters/")
+geneCount<-read.delim(file = "/home/downeyam/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",sep = " ")
+colnames(geneCount)<-substr(colnames(geneCount),start = 4,stop = 9)
+env<-read.delim(file = "/home/downeyam/Github/2017OAExp_Oysters/results/trait_wc.csv",sep = ",")
+
+env_sub<-env[match(as.numeric(colnames(geneCount)),env$bivalve_ID),]
+
+gene_control<-geneCount[,env_sub$treatment == 400]
+gene_exposed<-geneCount[,env_sub$treatment == 2800]
+```
+  
+**Complete Summary Table**
+```{r,echo=FALSE}
+merged<-merged[with(merged, order(Sample_ID)), ]
+
+rawCounts<- data.frame(counts=rowSums(t(geneCount)))
+merged_ReadInfo <- data.frame(merged,geneCounts = rawCounts$counts)
+
+kable(merged_ReadInfo) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+**Numbers of genes identified**
+```{r, echo=FALSE}
+length(geneCount$`17005`)
+```
+
+**Histogram of Counts for each Gene (max total number of counts set to 500)**
+```{r}
+hist(rowSums(geneCount),breaks = 1000000,xlim = c(5,500))
+```
+
+
+```{r}
+min(rowSums(geneCount))
+max(rowSums(geneCount))
+
+
+sum_c<-rowSums(gene_control)
+sum_e<-rowSums(gene_exposed)
+
+plot(sum_e~sum_c,ylim=c(0,500),xlim=c(0,500))
+
+plot(sum_e~sum_c,ylim=c(0,10),xlim=c(0,500))
+
+plot(sum_e~sum_c,ylim=c(0,5000),xlim=c(0,10))
+```
+
+#### To target a particular gene that is expressed much more in exposed vs. trt
+```{r}
+gene_3<-gene_control[sum_c == 3,]
+gene_3_e<-gene_exposed[sum_c == 3,]
+gene_3_e[rowSums(gene_3_e)>1000,]
+#appears to be an artefact since it only appears in one individual
+
+gene_control[rowSums(gene_control) > 100000,]
+
+433436/sum(geneCount)
+```
