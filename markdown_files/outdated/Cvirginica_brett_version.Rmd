@@ -179,7 +179,7 @@ The first pass of STAR finds splice junction loci and the second pass aligns spl
 ### Filter Reads that Poorly Mapped to Genome
 To filter reads that poorly mapped, you can either run the following code each individual:
 ```{bash, eval=F}
-samtools view -@64 -q4 -h -F 0x100 -F 0x400 RNA17005_m3Aligned.sortedByCoord.out.bam| mawk '$6 !~/[8-9].[SH]/ && $6 !~ /[1-9][0-9].[SH]/' | samtools view -b > RNA17005.q4.bam 2> RNA17005.q4_error.log
+samtools view -@64 -q4 -h -F 0x100 -F 0x400 RNA17005_m3Aligned.sortedByCoord.out.bam | mawk '$6 !~/[8-9].[SH]/ && $6 !~ /[1-9][0-9].[SH]/' | samtools view -b > RNA17005.q4.bam 2> RNA17005.q4_error.log
 ```
 
 ... replacing the individual name, OR use the following bash script:

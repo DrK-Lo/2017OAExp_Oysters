@@ -40,13 +40,16 @@ epf_cal$pCO2_fac <-  as.factor(epf_cal$pCO2)
 wc <-  read.csv(file="~/Github/2017OAExp_Oysters/input_files/WC/AE17_pHSalinity_20180305.csv")
 ```
 
-## Analyzing EPF Data (values with Complete Carbonate Chemistry) 
+### Analyzing EPF Data (values with Complete Carbonate Chemistry)  
+
 **Days : Day 0 (pre exposure), Day 9, Day 80**
 
 ```r
 # Select specific columns and only keep rows with complete carbonate chemistry
 col_select <- c("ID","shelf","tank","pCO2_fac","DIC","TA","pCO2_calc","Calcite","pH_meas","sample_date","timepoint","timepoint_fac","EPF_pH","EPF_DIC_Start","EPF_Ca_Start")
 epf_cal %>% select(col_select) %>% filter(!is.na(EPF_Ca_Start)) -> epf_s
+epf_s$timepoint_fac <-  factor(epf_s$timepoint_fac)
+levels(epf_s$timepoint_fac)  <-  c("Pre-Exposure","Day 9","Day 80")
 
 # Aggregating WC for experiment
 epf_s %>% filter(timepoint > 0) %>% group_by(pCO2_fac) %>%
@@ -81,7 +84,8 @@ ggplot(epf_s,aes(x=timepoint_fac,y=EPF_DIC_Start,group=interaction(pCO2_fac,time
 ```
 
 ![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-1-3.png)<!-- -->
-
+**Figure Notes**: Horizontal lines represent the mean environment value for each the the treatment levels.
+  
 **Subsetting data for stats**
 
 ```r
@@ -90,7 +94,7 @@ epf_s_Exp <- epf_s[epf_s$timepoint > 2,]
 # Only two treatment levels we have molecular data for (~400,~2800)
 epf_s_Exp <- epf_s_Exp[!epf_s_Exp$pCO2_fac==900,]
 ```
-
+  
 #### **Statistical Analysis**
 
 **Overview**  
@@ -287,7 +291,7 @@ summary(aov_1)
 # :( close but not significant (might be limited power here)
 ```
 
-## Analyzing EPF pH total data (all exposure time points and 900 treatment
+### Analyzing EPF pH total data (all exposure time points and 900 treatment)
 
 **Filtering out NAs (one entry) and including only timepoints from the exposure (not acclimation)**
 
@@ -348,17 +352,7 @@ Test: 2-way ANCOVA -
 * Continuous covariate: Time (timepoint)
 * Tested for normality and variance assumptions  
 
-## EPF pH total data - treatment as factor and time as continuous variable
-
-```r
-epf_exp <- epf_cal[!is.na(epf_cal$EPF_pH),]
-epf_exp <- epf_exp[as.numeric(epf_exp$timepoint) > 0,]
-#epf_exp <- epf_exp[!epf_exp$pCO2_fac == 900,]
-
-ggplot(epf_exp,aes(y=EPF_pH,x=timepoint_fac,colour=pCO2_fac)) + geom_boxplot()
-```
-
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+### EPF pH total data - treatment as factor and time as continuous variable
 
 ```r
 mod_1 <- lm(EPF_pH~timepoint*pCO2_fac,data=epf_exp)
@@ -367,7 +361,7 @@ qqnorm(mod_1$residuals)
 qqline(mod_1$residuals)
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
 ```r
 summary(mod_1)
@@ -431,7 +425,7 @@ tukey_1 <- TukeyHSD(aov_1,which="pCO2_fac")
 plot(tukey_1)
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-3.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
 
 
 

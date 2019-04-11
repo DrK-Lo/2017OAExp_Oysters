@@ -1,0 +1,281 @@
+---
+title: "Gene Count Matrix Filtering and Exploration"
+author: "adowneywall"
+date: "April 9, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
+library(ggplot2)
+```
+
+#### ** GeneCount matrix and oyster metadata table**
+```{r echo=TRUE}
+# RNA count Matrix
+GeneCounts <- read.delim("~/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
+
+# Top of Gene count matrix
+head(GeneCounts)
+
+# Total gene counts in data set
+sum(GeneCounts)
+
+# Number of total counts per individual
+(sum2 <- sapply(GeneCounts,sum))
+
+
+exons <- read.delim("~/Github/2017OAExp_Oysters/input_files/RNA/exon_count2.txt",header=TRUE,sep="",col.names = c("Locus","Gene","Count"))  
+genes <- as.character(exons$Gene)
+gene_split <- matrix(unlist(strsplit(genes,split = "-")),ncol=1)
+```
+
+#### **Oyster MetaData**  
+```{r echo=TRUE}
+# Oyster meta data
+model<-read.delim("~/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt",sep = ",",header=TRUE)
+head(model)
+```
+
+**Count Matrix Visualization**
+```{r,echo=FALSE}
+# Histograms of all Counts
+hist(unlist(GeneCounts),breaks=1000000,xlim=c(0,100),main="Histogram of All Counts (0-100 counts)",xlab="Count")
+# Hard to see distribution of counts for all genes due to a handful of genes with high counts
+hist(exons$Count,breaks = 100000,main="Histogram will all Genes")
+# Hist. for genes with counts between 1-1000
+hist(exons$Count,xlim = c(0,1000),breaks=100000,main="Genes with counts between 1-1000")
+# Still a little hard so lets look at it closer still (1-100)
+hist(exons$Count,xlim = c(1,100),breaks=1000000,main="Genes with counts between 1-100")
+
+# Lots of genes with small counts
+# Table to look at proportion of reads in different size classes
+count_classes <- c(0,1,2,5,10,25,50,100,200,250,500,1000,5000,10000,20000)
+equal_greater_prob <- NULL
+diff_prob <- NULL
+for (i in 1:length(count_classes)) {
+  equal_greater_prob[i] <-length(exons$Count[exons$Count >= count_classes[i] ])/length(exons$Count)
+  if(i > 1){diff_prob[i] <- equal_greater_prob[c(i-1)] - equal_greater_prob[i]}
+  else{diff_prob[i] <- 0}
+}
+
+count_class_df <- data.frame (Max_Count = count_classes,
+                              Prob_Gene_less=equal_greater_prob,
+                              Prob_Gene_greater=1-equal_greater_prob,
+                              Prob_Change=diff_prob)
+
+kable(count_class_df)
+```
+
+### Additional Loci Filtering  
+
+**Examining Lane Bias and low read count**  
+Samples are spread across two lanes, to account for any potential lane bias, **genes with reads that appear disproportionally in one lane are removed**.  
+```{r echo=TRUE}
+
+### Looking at lane specific effects
+# Isolate samples by lane
+GC_lane1 <- GeneCounts[,model$lane == 1]
+GC_lane2 <- GeneCounts[,model$lane == 2]
+# Sum counts for each lane at each locus
+GC_lane1_sum <- rowSums(GC_lane1)
+GC_lane2_sum <- rowSums(GC_lane2)
+# Ratio of the difference in read count between lanes for each gene feature 
+GC_diff <- c(abs(GC_lane1_sum - GC_lane2_sum)+0.0001)/ c(GC_lane1_sum + GC_lane2_sum+0.0001)
+hist(GC_diff)
+
+GC_lane1_mean <- apply(GC_lane1,1,median)
+GC_lane2_mean <- apply(GC_lane2,1,median)
+plot(log10(GC_lane1_mean+1)~log10(GC_lane2_mean+1))
+```
+
+Determine proportion of counts explained by a single individual
+```{r}
+## Propotion of Reads due to a single individual  
+# Determining the largest number of reads per gene for a single individual
+GC_max <- apply(GeneCounts,1,max)
+prop_single_ind_v2 <- GC_max/rowSums(GeneCounts) 
+hist(prop_single_ind_v2)
+
+## Number of Samples with counts per gene
+prop_with_count <- apply(GeneCounts, 1, function(c)sum(c!=0))
+hist(prop_with_count/24,breaks=24,probability = TRUE)
+
+## Variance of read counts (a measure of count spread cross all individuals)
+# Theoritical max variance for each gene based on total counts per gene
+max_var_mat <- matrix(ncol=24,nrow=length(GeneCounts$RNA17005),0)
+max_var_mat[,1] <- c(GC_lane1_sum+GC_lane2_sum)
+max_var <- apply(max_var_mat,1,var)
+#Actual variance for each gene
+gene_var <- apply(GeneCounts,1,var)
+# Per gene variance scaled by theoritical maximum
+Count_Variance <- gene_var/max_var
+hist(Count_Variance,main="Histogram Standardize Count Variance")
+plot(ecdf(Count_Variance),main="CDF Standardize Count Variance")
+
+count_data_df <- data.frame(name = row.names(GeneCounts),
+                            Total_Reads =rowSums(GeneCounts),
+                            Difference_Ratio = GC_diff,
+                            Prop_Single_Ind = prop_single_ind,
+                            Prop_with_Count = prop_with_count,
+                            Gene_Count_Variance = Count_Variance)
+
+ggplot(count_data_df,aes(x = Prop_with_Count,y = Gene_Count_Variance)) + geom_point() + geom_smooth(method="auto")
+
+ggplot(count_data_df,aes(x = Prop_Single_Ind,y = Gene_Count_Variance)) + geom_point() + geom_smooth(method="auto")
+
+ggplot(count_data_df,aes(x = Prop_Single_Ind,y = Prop_with_Count)) + geom_point() + geom_smooth(method="auto")
+```
+
+Plot looking at each gene based on number of reads and difference in reads ratio between sequencing lanes. A ratio of **1** indicates all reads are in a single lane, while a ratio of 0 indicates an equal number of reads from each lane of sequencing. The read lines indicate the critical read count and lane bias values used as thresholds for filtering. The bottom right box represent gene features retained after filtering.
+```{r echo=TRUE}
+plot(GC_diff~c(GC_lane1_sum+GC_lane2_sum),xlim=c(0,1000),
+     main="Read count vs. Ratio of the difference in read count between lanes (per gene)",
+     xlab="Total Reads",
+     ylab="Difference Ratio")
+abline(h = 0.80,col="red") + abline(v = 20,col="red") 
+
+library(ggplot2)
+ggplot(count_data_df,aes(x=Total_Reads,y=Difference_Ratio,colour=Prop_Single_Ind)) + geom_point() + 
+  labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
+       x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
+  xlim(0,1000)
+
+ggplot(count_data_df,aes(x=Total_Reads,y=Difference_Ratio,colour=Gene_Count_Variance)) + geom_point() + 
+  labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
+       x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
+  xlim(0,1000)
+``` 
+  
+###  Visualizing differential expression by treatment and time
+```{r echo=TRUE}
+### Isolate samples by treatment ###
+GC_400 <- GeneCounts[,model$treatment == 400]
+GC_2800 <- GeneCounts[,model$treatment == 2800]
+# Sum counts for each treatment at each locus
+GC_400_sum <- rowSums(GC_400)
+GC_2800_sum <- rowSums(GC_2800)
+# Ratio of the difference in read count between treatment for each gene feature 
+GC_trt_diff <- c(abs(GC_400_sum - GC_2800_sum)+0.0001)/ c(GC_400_sum + GC_2800_sum+0.0001)
+hist(GC_trt_diff,breaks=100)
+count_data_df$Difference_Trt <-  GC_trt_diff
+
+### Isolate samples by Timepoint ###
+GC_early <- GeneCounts[,model$timepoint == 3]
+GC_late <- GeneCounts[,model$timepoint == 6]
+# Sum counts for each treatment at each locus
+GC_early_sum <- rowSums(GC_early)
+GC_late_sum <- rowSums(GC_late)
+# Ratio of the difference in read count between treatment for each gene feature 
+GC_time_diff <- c(abs(GC_early_sum - GC_late_sum)+0.0001)/ c(GC_early_sum + GC_late_sum+0.0001)
+hist(GC_time_diff,breaks =100)
+count_data_df$Difference_Time <-  GC_time_diff
+
+## Visualization
+data_plot <- subset(count_data_df, count_data_df$Total_Reads < 100 & count_data_df$Total_Reads > 20)
+ggplot(data_plot,aes(x=Gene_Count_Variance,y=Difference_Trt,colour=Total_Reads)) + geom_point()
+
+ggplot(data_plot,aes(x=Difference_Time,y=Difference_Trt,colour=Gene_Count_Variance)) + geom_point()
+
+GeneCounts[,model$treatment == 400]
+
+# Design balanced
+table(model$treatment,model$lane,model$timepoint)
+
+```
+
+### Filter
+```{r,eval=FALSE}
+## Filter thresholds
+account_forLane <- subset(GeneCounts,GC_diff<0.80) # Remove loci that only appear in one of the lanes of seq
+```
+
+Next, genes with **less than 10 reads** across all individuals are also removed.  
+```{r,eval=FALSE}
+account_forCount <- subset(account_forLane, rowSums(account_forLane) > 20) # Remove loci with fewer total counts than 50
+paste0(nrow(account_forCount)/nrow(GeneCounts)*100,"% of the genes remaining after adjusting for lane bias and removing genes with low read counts") 
+paste0(sum(account_forCount)/sum(GeneCounts)*100,"% of the gene counts remaining after adjusting for lane bias and removing genes with low read counts")
+```
+
+### Using CPM to further filter genes with low coverage
+
+One final filtering step, we want to filter out sequences with very low expression. Therefore, we will **only keep** sequences with more than **0.5 counts per million mapped reads across all 24 samples**. To do this we calculate the counts per million (CPM) per gene per indivdual. Then, if all individuals have a CPM greater than 0.5 for the gene, it is retained.   
+```{r,eval=FALSE}
+## Function CPM in package edgeR, takes countMatrix and normalizes it as counts per million
+# Without removing exceptionally high read loci
+perMilReads <- cpm(GeneCounts)
+
+# Example of how cpm calculates the number of reads per million bases
+GeneCounts$RNA17019[1]/sum(GeneCounts$RNA17019)*1*10^{6} # Manually calculate read per million at first locus in sample RNA17019
+perMilReads[1,dimnames(perMilReads)[[2]] == "RNA17019"] # Calculate read per million at first locus in sample RNA17019 using cpm
+
+## Only keep a locus if it was at least 0.5 million reads for all 24 individuals
+keep <- row.names(perMilReads[rowSums(perMilReads>0.5) >=24,])
+
+
+# Counts per million on pre filtered dataset (considering lane bias)
+perMilReads_alt <- cpm(account_forCount) # cpm on pre filtered dataset
+keep2 <- rowSums(perMilReads_alt>0.5) >=24
+
+## Quantile normalization, this looks much like cpm but also adjusts for the number of reads at each locus
+rowSum <- rowSums(account_forCount)
+perMilReads_alt_quantile <- cpm(account_forCount)/rowSum # quantile on pre-filtered dataset
+perMilReads_quantile <- cpm(GeneCounts)/rowSum # quantile adjustment
+
+## Simple summary of the different filtering and normalization approaches
+# Average perMillion read (across individuals) at each locus - vector of averages for all loci
+avg_perMilRead_perlocus <- rowMeans(perMilReads)
+avg_perMilRead_alt_perlocus <- rowMeans(perMilReads_alt)
+avg_perMilRead_quantile_perlocus <- rowMeans(perMilReads_quantile)
+avg_perMilRead_alt_quantile_perlocus <- rowMeans(perMilReads_alt_quantile)
+
+# Standard Deviation of perMillion read (across individuals) at each locus - vector of averages for all loci
+sd_perMilRead_perlocus <- apply(perMilReads,1,function(x){sd(x)})
+sd_perMilRead_alt_perlocus <- apply(perMilReads_alt,1,function(x){sd(x)})
+sd_perMilRead_quantile_perlocus <- apply(perMilReads_quantile,1,function(x){sd(x)})
+sd_perMilRead_alt_quantile_perlocus <- apply(perMilReads_alt_quantile,1,function(x){sd(x)})
+
+# Combining 
+perMil_sum <- cbind(name="perMil",avgRead=avg_perMilRead_perlocus,sd=sd_perMilRead_perlocus)
+perMil_q_sum <- cbind(name="perMil_q",avgRead=avg_perMilRead_alt_perlocus,sd=sd_perMilRead_alt_perlocus)
+perMil_alt_sum <- cbind(name="perMil_alt",avgRead=avg_perMilRead_quantile_perlocus,sd=sd_perMilRead_quantile_perlocus)
+perMil_alt_q_sum <- cbind(name="perMil_alt_q",avgRead=avg_perMilRead_alt_quantile_perlocus,sd=sd_perMilRead_alt_quantile_perlocus)
+
+filter_table_summary <-  data.frame(rbind(perMil_sum,perMil_q_sum,perMil_alt_sum,perMil_alt_q_sum))
+
+#boxplot(as.numeric(as.character(avgRead))~name,data=filter_table_summary,ylim=c(0,50)))
+
+# This is the final filtered gene count matrix
+GeneReduce2 <- account_forCount[row.names(account_forCount) == keep,]
+```
+
+Save subset in new dataframe and log transform counts.  
+```{r,eval=FALSE}
+# Without log transformation
+y <- GeneReduce2
+#y<- account_forCount+0.01 #GeneCounts[keep,]
+hist(rowMeans(y),breaks = 100,xlab = "Mean Count", main = "Histogram of mean counts for each locus") 
+
+# With log2 transformation
+yLog<- log2(y)
+hist(rowMeans(yLog),breaks=100,xlab= "Mean log Count",main = "Histogram of log transformed mean counts for each locus")
+pairs.panels(yLog[,1:6])
+pairs.panels(yLog[,7:12])
+pairs.panels(yLog[,13:18])
+pairs.panels(yLog[,19:24])
+```
+  
+**Note**: *The log transformed data shown illustrates how transforming data in this way helps will the heavily skewed RNA expression data. However, we will actually be log transforming the untransformed values at a later step using the package ```limm```, so we will proceed with the untransformed values for the time being.*  
+  
+**Number of remaining loci after filtering:**  
+```{r,eval=FALSE}
+# Number of total loci
+nrow(y)
+percent_retained <- nrow(y)/nrow(GeneCounts)*100
+print(paste("Percent retained:", percent_retained))
+```
+  
+** Notes on filtering**: The percent retained (~11%) is much lower than the Wong paper received (~48%). May need to assess and compare methods to get count matrix.  
