@@ -9,7 +9,7 @@
 - ```HTSEQ``` to determine the the count for each gene for each individual based on aligned reads   
 - ```EdgR and LIMMA``` to help with final filtering of gene count matrix, normalize the expression data, and to determine differential expression.  
   
-**```HISAT_pipeline/```**:  This folder contains scripts for a pipeline to look at differential expression in RNA seq data using a work flow that utilizes:  
+**```HISAT_pipeline/```**:  This folder contains scripts based on Erin Roberts Expression Pipeline and utilizes:  
 - ```BBtools```  
 - ```HISAT2```  
 - ```StringTie```  
