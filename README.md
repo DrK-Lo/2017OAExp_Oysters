@@ -1,5 +1,10 @@
-# Manuscript
+# Working Repository for 2017 Oyster OA exposure and differential gene expression and methylation study
+
+## Manuscript
 [Manuscript](https://docs.google.com/document/d/1UTjTN_KC_exGVlf0I0UpntO7woBzGoJ3CKZel8WXobc/edit?ts=5bbf8c38)
+
+## Analysis
+
 
 ## RNASeq Data Analysis Directory
 
