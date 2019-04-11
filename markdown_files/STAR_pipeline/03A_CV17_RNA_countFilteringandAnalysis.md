@@ -11,14 +11,16 @@ editor_options:
 
 
 
-#### ** GeneCount matrix and oyster metadata table**
+#### **GeneCount matrix and oyster metadata table**  
 
 ```r
 # RNA count Matrix
 GeneCounts <- read.delim("~/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
 ```
 
-Top of Gene count matrix
+
+
+**Top of Gene count matrix**  
 <div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:900px; "><table class="table" style="margin-left: auto; margin-right: auto;">
  <thead>
   <tr>
@@ -215,20 +217,81 @@ Top of Gene count matrix
 </tbody>
 </table></div>
 
-```
-## [1] 4742788
-```
+Total gene counts in data set  
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<tbody>
+  <tr>
+   <td style="text-align:left;"> Total Counts in Gene Count Matrix </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 4742788 </td>
+  </tr>
+</tbody>
+</table>
 
-```
-## RNA17005 RNA17007 RNA17013 RNA17019 RNA17069 RNA17070 RNA17072 RNA17079 
-##   185575   212677   215799   207748   250191   202828   186061   197786 
-## RNA17090 RNA17094 RNA17099 RNA17108 RNA17122 RNA17130 RNA17142 RNA17145 
-##   205831   184038   206474   183555   216649   189667   170509   173338 
-## RNA17162 RNA17174 RNA17176 RNA17178 RNA17181 RNA17203 RNA17211 RNA17213 
-##   184528   262110   196390   156620   156228   192130   186060   219996
-```
+Number of total counts per individual  
+<div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:900px; "><table class="table" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;">   </th>
+   <th style="text-align:right;"> RNA17005 </th>
+   <th style="text-align:right;"> RNA17007 </th>
+   <th style="text-align:right;"> RNA17013 </th>
+   <th style="text-align:right;"> RNA17019 </th>
+   <th style="text-align:right;"> RNA17069 </th>
+   <th style="text-align:right;"> RNA17070 </th>
+   <th style="text-align:right;"> RNA17072 </th>
+   <th style="text-align:right;"> RNA17079 </th>
+   <th style="text-align:right;"> RNA17090 </th>
+   <th style="text-align:right;"> RNA17094 </th>
+   <th style="text-align:right;"> RNA17099 </th>
+   <th style="text-align:right;"> RNA17108 </th>
+   <th style="text-align:right;"> RNA17122 </th>
+   <th style="text-align:right;"> RNA17130 </th>
+   <th style="text-align:right;"> RNA17142 </th>
+   <th style="text-align:right;"> RNA17145 </th>
+   <th style="text-align:right;"> RNA17162 </th>
+   <th style="text-align:right;"> RNA17174 </th>
+   <th style="text-align:right;"> RNA17176 </th>
+   <th style="text-align:right;"> RNA17178 </th>
+   <th style="text-align:right;"> RNA17181 </th>
+   <th style="text-align:right;"> RNA17203 </th>
+   <th style="text-align:right;"> RNA17211 </th>
+   <th style="text-align:right;"> RNA17213 </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> sum2 </td>
+   <td style="text-align:right;"> 185575 </td>
+   <td style="text-align:right;"> 212677 </td>
+   <td style="text-align:right;"> 215799 </td>
+   <td style="text-align:right;"> 207748 </td>
+   <td style="text-align:right;"> 250191 </td>
+   <td style="text-align:right;"> 202828 </td>
+   <td style="text-align:right;"> 186061 </td>
+   <td style="text-align:right;"> 197786 </td>
+   <td style="text-align:right;"> 205831 </td>
+   <td style="text-align:right;"> 184038 </td>
+   <td style="text-align:right;"> 206474 </td>
+   <td style="text-align:right;"> 183555 </td>
+   <td style="text-align:right;"> 216649 </td>
+   <td style="text-align:right;"> 189667 </td>
+   <td style="text-align:right;"> 170509 </td>
+   <td style="text-align:right;"> 173338 </td>
+   <td style="text-align:right;"> 184528 </td>
+   <td style="text-align:right;"> 262110 </td>
+   <td style="text-align:right;"> 196390 </td>
+   <td style="text-align:right;"> 156620 </td>
+   <td style="text-align:right;"> 156228 </td>
+   <td style="text-align:right;"> 192130 </td>
+   <td style="text-align:right;"> 186060 </td>
+   <td style="text-align:right;"> 219996 </td>
+  </tr>
+</tbody>
+</table></div>
 
-#### **Oyster MetaData**  
+#### **2017 Experiment MetaData**  
 
 ```r
 # Oyster meta data
@@ -745,13 +808,113 @@ kable(model) %>%
 </tbody>
 </table></div>
 
-**Count Matrix Visualization**
-![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-4-1.png)<!-- -->![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
+####**Count Matrix Visualization**  
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-7-1.png)<!-- -->![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-7-2.png)<!-- -->![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-7-3.png)<!-- --><div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:900px; "><table class="table" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:right;"> Max_Count </th>
+   <th style="text-align:right;"> Prob_Gene_less </th>
+   <th style="text-align:right;"> Prob_Gene_greater </th>
+   <th style="text-align:right;"> Prob_Change </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 0 </td>
+   <td style="text-align:right;"> 1.0000000 </td>
+   <td style="text-align:right;"> 0.0000000 </td>
+   <td style="text-align:right;"> 0.0000000 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 0.9060425 </td>
+   <td style="text-align:right;"> 0.0939575 </td>
+   <td style="text-align:right;"> 0.0939575 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0.8484375 </td>
+   <td style="text-align:right;"> 0.1515625 </td>
+   <td style="text-align:right;"> 0.0576050 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 0.7382008 </td>
+   <td style="text-align:right;"> 0.2617992 </td>
+   <td style="text-align:right;"> 0.1102366 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 0.6235291 </td>
+   <td style="text-align:right;"> 0.3764709 </td>
+   <td style="text-align:right;"> 0.1146717 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 25 </td>
+   <td style="text-align:right;"> 0.4471761 </td>
+   <td style="text-align:right;"> 0.5528239 </td>
+   <td style="text-align:right;"> 0.1763530 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 50 </td>
+   <td style="text-align:right;"> 0.3063809 </td>
+   <td style="text-align:right;"> 0.6936191 </td>
+   <td style="text-align:right;"> 0.1407952 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 100 </td>
+   <td style="text-align:right;"> 0.1843515 </td>
+   <td style="text-align:right;"> 0.8156485 </td>
+   <td style="text-align:right;"> 0.1220294 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 200 </td>
+   <td style="text-align:right;"> 0.0966493 </td>
+   <td style="text-align:right;"> 0.9033507 </td>
+   <td style="text-align:right;"> 0.0877022 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 250 </td>
+   <td style="text-align:right;"> 0.0768324 </td>
+   <td style="text-align:right;"> 0.9231676 </td>
+   <td style="text-align:right;"> 0.0198170 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 500 </td>
+   <td style="text-align:right;"> 0.0353783 </td>
+   <td style="text-align:right;"> 0.9646217 </td>
+   <td style="text-align:right;"> 0.0414541 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 1000 </td>
+   <td style="text-align:right;"> 0.0154588 </td>
+   <td style="text-align:right;"> 0.9845412 </td>
+   <td style="text-align:right;"> 0.0199195 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 5000 </td>
+   <td style="text-align:right;"> 0.0018458 </td>
+   <td style="text-align:right;"> 0.9981542 </td>
+   <td style="text-align:right;"> 0.0136129 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 10000 </td>
+   <td style="text-align:right;"> 0.0007947 </td>
+   <td style="text-align:right;"> 0.9992053 </td>
+   <td style="text-align:right;"> 0.0010511 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 20000 </td>
+   <td style="text-align:right;"> 0.0003845 </td>
+   <td style="text-align:right;"> 0.9996155 </td>
+   <td style="text-align:right;"> 0.0004102 </td>
+  </tr>
+</tbody>
+</table></div>
 
-### Data Exploration
+### **Data Exploration - Complete Gene Count Matrix**
 
-**Examining Lane Bias and low read count**  
-Samples are spread across two lanes, to account for any potential lane bias, **genes with reads that appear disproportionally in one lane are removed**.  
+**Examining low read count and potential lane bias**  
 
 ```r
 # Balanced Design - equal number of individuals from each treatment*time combination are in each lane
@@ -784,12 +947,20 @@ GC_lane1_sum <- rowSums(GC_lane1)
 GC_lane2_sum <- rowSums(GC_lane2)
 # Ratio of the difference in read count between lanes for each gene feature 
 GC_diff <- c(abs(GC_lane1_sum - GC_lane2_sum)+0.0001)/ c(GC_lane1_sum + GC_lane2_sum+0.0001)
-#hist(GC_diff)
+hist(GC_diff,main="Lane Bias (0 = low lane bias, 1 = complete lane bias")
+```
 
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+```r
 GC_lane1_mean <- apply(GC_lane1,1,median)
 GC_lane2_mean <- apply(GC_lane2,1,median)
-#plot(log10(GC_lane1_mean+1)~log10(GC_lane2_mean+1))
+plot(log10(GC_lane1_mean+1)~log10(GC_lane2_mean+1),main="Median Lane Count")
+```
 
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
+
+```r
 gene_diagnostics$Difference_Ratio <- GC_diff
 ```
 
@@ -799,7 +970,12 @@ gene_diagnostics$Difference_Ratio <- GC_diff
 # Determining the largest number of reads per gene for a single individual
 GC_max <- apply(GeneCounts,1,max)
 prop_single_ind <- GC_max/rowSums(GeneCounts) 
-#hist(prop_single_ind)
+hist(prop_single_ind,main="Max proportion of total gene count in a single individual")
+```
+
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+```r
 gene_diagnostics$Prop_Single_Ind <- prop_single_ind
 ```
 
@@ -807,7 +983,12 @@ gene_diagnostics$Prop_Single_Ind <- prop_single_ind
 
 ```r
 prop_with_count <- apply(GeneCounts, 1, function(c)sum(c!=0))
-#hist(prop_with_count/24,breaks=24,probability = TRUE)
+hist(prop_with_count/24,breaks=24,xlab="Prop_with_count",main="Proportion of individuals with at least one count of a gene")
+```
+
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+```r
 gene_diagnostics$Prop_with_Count <- prop_with_count
 ```
 
@@ -827,37 +1008,17 @@ Count_Variance <- gene_var/max_var
 gene_diagnostics$Gene_Count_Variance = Count_Variance
 ```
 
-**PLots**
+**Plots**
 
-```r
-#ggplot(gene_diagnostics,aes(x = Prop_with_Count,y = Gene_Count_Variance)) + geom_point() + geom_smooth(method="auto")
-
-#ggplot(gene_diagnostics,aes(x = Prop_Single_Ind,y = Gene_Count_Variance)) + geom_point() + geom_smooth(method="auto")
-
-#ggplot(gene_diagnostics,aes(x = Prop_Single_Ind,y = Prop_with_Count)) + geom_point() + geom_smooth(method="auto")
+```
+## Warning: Removed 598 rows containing missing values (geom_point).
 ```
 
-Plot looking at each gene based on number of reads and difference in reads ratio between sequencing lanes. A ratio of **1** indicates all reads are in a single lane, while a ratio of 0 indicates an equal number of reads from each lane of sequencing. The read lines indicate the critical read count and lane bias values used as thresholds for filtering. The bottom right box represent gene features retained after filtering.
-
-```r
-#plot(GC_diff~c(GC_lane1_sum+GC_lane2_sum),xlim=c(0,1000),
-#     main="Read count vs. Ratio of the difference in read count between lanes (per gene)",
-#     xlab="Total Reads",
-#     ylab="Difference Ratio")
-#abline(h = 0.80,col="red") + abline(v = 20,col="red") 
-
-#ggplot(gene_diagnostics,aes(x=Total_Reads,y=Difference_Ratio,colour=Prop_Single_Ind)) + geom_point() + 
-#  labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
-#       x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
-#  xlim(0,1000)
-
-#ggplot(gene_diagnostics,aes(x=Total_Reads,y=Difference_Ratio,colour=Gene_Count_Variance)) + geom_point() + 
-#  labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
-#       x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
-#  xlim(0,1000)
-```
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
   
-###  Visualizing differential expression by treatment and time
+###  Visualizing differential expression by treatment and time  
+
+**Treatment**
 
 ```r
 ### Isolate samples by treatment ###
@@ -871,11 +1032,15 @@ GC_trt_diff <- c(abs(GC_400_sum - GC_2800_sum)+0.0001)/ c(GC_400_sum + GC_2800_s
 hist(GC_trt_diff,breaks=100)
 ```
 
-![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 ```r
 gene_diagnostics$Difference_Trt <-  GC_trt_diff
+```
 
+**Time**
+
+```r
 ### Isolate samples by Timepoint ###
 GC_early <- GeneCounts[,model$timepoint == 3]
 GC_late <- GeneCounts[,model$timepoint == 6]
@@ -887,18 +1052,41 @@ GC_time_diff <- c(abs(GC_early_sum - GC_late_sum)+0.0001)/ c(GC_early_sum + GC_l
 hist(GC_time_diff,breaks =100)
 ```
 
-![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-11-2.png)<!-- -->
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 ```r
 gene_diagnostics$Difference_Time <-  GC_time_diff
-
-## Visualization
-data_plot <- subset(gene_diagnostics, gene_diagnostics$Total_Reads < 100 & gene_diagnostics$Total_Reads > 20)
-#ggplot(data_plot,aes(x=Gene_Count_Variance,y=Difference_Trt,colour=Total_Reads)) + geom_point()
-
-#ggplot(data_plot,aes(x=Difference_Time,y=Difference_Trt,colour=Gene_Count_Variance)) + geom_point()
 ```
 
+**Treatment & Time**
+
+```r
+### Isolate samples by Timepoint ###
+t9_400 <- c(model$timepoint == 3 & model$treatment == 400)
+t9_2800 <- c(model$timepoint == 3 & model$treatment == 2800)
+t80_400 <- c(model$timepoint == 80 & model$treatment == 400)
+t80_2800 <- c(model$timepoint == 80 & model$treatment == 2800)
+
+GC_1 <- GeneCounts[,t9_400]
+GC_2 <- GeneCounts[,t9_2800]
+GC_3 <- GeneCounts[,t80_400]
+GC_4 <- GeneCounts[,t80_2800]
+
+# Median for each treatment at each locus
+GC_1_median <-  apply(GC_1,1,median)
+GC_2_median <-  apply(GC_2,1,median)
+GC_3_median <-  apply(GC_3,1,median)
+GC_4_median <-  apply(GC_4,1,median)
+
+# Means
+# Sum counts for each treatment at each locus
+GC_1_mean <-  apply(GC_1,1,mean)
+GC_2_mean <-  apply(GC_2,1,mean)
+GC_3_mean <-  apply(GC_3,1,mean)
+GC_4_mean <-  apply(GC_4,1,mean)
+```
+
+**Gene Table with summary statistics**  
 
 ```r
 kable(count_class_df)
@@ -1009,22 +1197,52 @@ kable(count_class_df)
 
 ### Filtering  
 
+**Criteria**
+
+```r
+# Count Threshold
+CT <-  10
+PMAX <-  0.8
+```
 
 
 ```r
-## Filter thresholds
-account_forLane <- subset(GeneCounts,GC_diff<0.80) # Remove loci that only appear in one of the lanes of seq
+### Updates Dataframe with T/F based on specific filtering criterion
+
+# Counts
+gene_diagnostics$CT <- c(gene_diagnostics$Total_Reads < 10)
+# Single Ind Max
+gene_diagnostics$PMAX <- c(gene_diagnostics$Prop_Single_Ind < 0.8)
 ```
 
-Next, genes with **less than 10 reads** across all individuals are also removed.  
+#### **Filtering Scenarios**  
+**Scenario 1**: CT and PMAX  
 
 ```r
-account_forCount <- subset(account_forLane, rowSums(account_forLane) > 20) # Remove loci with fewer total counts than 50
-paste0(nrow(account_forCount)/nrow(GeneCounts)*100,"% of the genes remaining after adjusting for lane bias and removing genes with low read counts") 
-paste0(sum(account_forCount)/sum(GeneCounts)*100,"% of the gene counts remaining after adjusting for lane bias and removing genes with low read counts")
+scenario1_crit <- c(CT,PMAX)
+scenario1 <-GeneCounts[c(gene_diagnostics$CT & gene_diagnostics$PMAX),]
 ```
 
-### Using CPM to further filter genes with low coverage
+**Filtering Summary**
+
+```r
+# filter_sum <- data.frame(Name="Original",
+#                          CT=0,
+#                          PMAX=0,
+#                          Genes=nrow(GeneCounts),
+#                          Gene_Per=100,
+#                          Counts=sum(GeneCounts),
+#                          Counts_Per=100)
+# (s1_gene <- nrow(scenario1)/nrow(GeneCounts)*100)
+# (s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100)
+# (s1_count <- sum(scenario1))
+# (s1_count_per <- sum(scenario1)/sum(GeneCounts)*100)
+
+#s1 <- rbind(filter_sum,cbind("Scenario1",CT,PMAX,s1_gene,s1_gene_per,s1_count,s1_count_per))
+```
+
+
+### OUTDATED: Using CPM to further filter genes with low coverage
 
 One final filtering step, we want to filter out sequences with very low expression. Therefore, we will **only keep** sequences with more than **0.5 counts per million mapped reads across all 24 samples**. To do this we calculate the counts per million (CPM) per gene per indivdual. Then, if all individuals have a CPM greater than 0.5 for the gene, it is retained.   
 
@@ -1044,65 +1262,9 @@ keep <- row.names(perMilReads[rowSums(perMilReads>0.5) >=24,])
 # Counts per million on pre filtered dataset (considering lane bias)
 perMilReads_alt <- cpm(account_forCount) # cpm on pre filtered dataset
 keep2 <- rowSums(perMilReads_alt>0.5) >=24
-
-## Quantile normalization, this looks much like cpm but also adjusts for the number of reads at each locus
-rowSum <- rowSums(account_forCount)
-perMilReads_alt_quantile <- cpm(account_forCount)/rowSum # quantile on pre-filtered dataset
-perMilReads_quantile <- cpm(GeneCounts)/rowSum # quantile adjustment
-
-## Simple summary of the different filtering and normalization approaches
-# Average perMillion read (across individuals) at each locus - vector of averages for all loci
-avg_perMilRead_perlocus <- rowMeans(perMilReads)
-avg_perMilRead_alt_perlocus <- rowMeans(perMilReads_alt)
-avg_perMilRead_quantile_perlocus <- rowMeans(perMilReads_quantile)
-avg_perMilRead_alt_quantile_perlocus <- rowMeans(perMilReads_alt_quantile)
-
-# Standard Deviation of perMillion read (across individuals) at each locus - vector of averages for all loci
-sd_perMilRead_perlocus <- apply(perMilReads,1,function(x){sd(x)})
-sd_perMilRead_alt_perlocus <- apply(perMilReads_alt,1,function(x){sd(x)})
-sd_perMilRead_quantile_perlocus <- apply(perMilReads_quantile,1,function(x){sd(x)})
-sd_perMilRead_alt_quantile_perlocus <- apply(perMilReads_alt_quantile,1,function(x){sd(x)})
-
-# Combining 
-perMil_sum <- cbind(name="perMil",avgRead=avg_perMilRead_perlocus,sd=sd_perMilRead_perlocus)
-perMil_q_sum <- cbind(name="perMil_q",avgRead=avg_perMilRead_alt_perlocus,sd=sd_perMilRead_alt_perlocus)
-perMil_alt_sum <- cbind(name="perMil_alt",avgRead=avg_perMilRead_quantile_perlocus,sd=sd_perMilRead_quantile_perlocus)
-perMil_alt_q_sum <- cbind(name="perMil_alt_q",avgRead=avg_perMilRead_alt_quantile_perlocus,sd=sd_perMilRead_alt_quantile_perlocus)
-
-filter_table_summary <-  data.frame(rbind(perMil_sum,perMil_q_sum,perMil_alt_sum,perMil_alt_q_sum))
-
-#boxplot(as.numeric(as.character(avgRead))~name,data=filter_table_summary,ylim=c(0,50)))
-
-# This is the final filtered gene count matrix
-GeneReduce2 <- account_forCount[row.names(account_forCount) == keep,]
 ```
 
-Save subset in new dataframe and log transform counts.  
 
-```r
-# Without log transformation
-y <- GeneReduce2
-#y<- account_forCount+0.01 #GeneCounts[keep,]
-hist(rowMeans(y),breaks = 100,xlab = "Mean Count", main = "Histogram of mean counts for each locus") 
 
-# With log2 transformation
-yLog<- log2(y)
-hist(rowMeans(yLog),breaks=100,xlab= "Mean log Count",main = "Histogram of log transformed mean counts for each locus")
-pairs.panels(yLog[,1:6])
-pairs.panels(yLog[,7:12])
-pairs.panels(yLog[,13:18])
-pairs.panels(yLog[,19:24])
-```
-  
-**Note**: *The log transformed data shown illustrates how transforming data in this way helps will the heavily skewed RNA expression data. However, we will actually be log transforming the untransformed values at a later step using the package ```limm```, so we will proceed with the untransformed values for the time being.*  
-  
-**Number of remaining loci after filtering:**  
 
-```r
-# Number of total loci
-nrow(y)
-percent_retained <- nrow(y)/nrow(GeneCounts)*100
-print(paste("Percent retained:", percent_retained))
-```
   
-** Notes on filtering**: The percent retained (~11%) is much lower than the Wong paper received (~48%). May need to assess and compare methods to get count matrix.  
