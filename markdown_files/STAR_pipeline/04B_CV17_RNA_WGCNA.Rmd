@@ -1,0 +1,122 @@
+---
+title: "CV17_RNA_WGCNA"
+author: "adowneywall"
+date: "December 16, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(WGCNA)
+knitr::opts_knit$set(root.dir = "/home/downeyam/Github/2017OAExp_Oysters/")
+# The following setting is important, do not omit.
+options(stringsAsFactors = FALSE)
+enableWGCNAThreads()
+```
+
+```{r data_read, include=TRUE}
+matData <- read.csv("results/finalNormalizedExpMatrix.csv")
+matRowNames <- matData$X
+matData <- matData[,c(2:25)]
+row.names(matData) <- matRowNames
+matData_T <- t(matData)
+```
+
+Check normalized and scaled gene data to confirm no major missing values
+```{r gene_test}
+gsg <-  goodSamplesGenes(matData_T, verbose = 3);
+gsg$allOK
+```
+
+Next we cluster the samples (in contrast to clustering genes that will come later) to see if there are any obvious outliers.
+```{r}
+sampleTree <-  hclust(dist(matData_T), method = "average");
+# Plot the sample tree: Open a graphic output window of size 12 by 9 inches
+# The user should change the dimensions if the window is too large or too small.
+sizeGrWindow(12,9)
+#pdf(file = "Plots/sampleClustering.pdf", width = 12, height = 9);
+par(cex = 0.6);
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "Sample clustering to detect outliers", sub="", xlab="", cex.lab = 1.5, 
+     cex.axis = 1.5, cex.main = 2)
+
+```
+
+No evidence of outliers.
+
+## Trait Data
+
+We now read in the trait data and match the samples for which they were measured to the expression samples.
+```{r}
+traitData <-   read.table("input_files/metadata_cvirginica_rna_meta.txt",header = T)
+dim(traitData)
+names(traitData)
+
+# remove columns that hold information we do not need.
+allTraits <- subset(traitData,select=c("sample_name","sample_index","treatment","timepoint","shelf","tank","population","lane","dry_wgtcorr","epf_pH"))
+
+Sample_ID <-  rownames(matData_T)
+traitRows <-  match(Sample_ID, allTraits$sample_name)
+datTraits <-  allTraits[traitRows, -1]
+rownames(datTraits) <-  allTraits[traitRows, 1]
+
+collectGarbage()
+```
+
+
+```{r}
+# Re-cluster samples
+sampleTree2 <-  hclust(dist(matData_T), method = "average")
+# Convert traits to a color representation: white means low, red means high, grey means missing entry
+traitColors <-  numbers2colors(datTraits, signed = FALSE);
+# Plot the sample dendrogram and the colors underneath.
+plotDendroAndColors(sampleTree2, traitColors,
+                    groupLabels = names(datTraits), 
+                    main = "Sample dendrogram and trait heatmap")
+```
+
+**STEPS LEFT OVER FROM TUTORIAL EDIT** 
+```{r}
+save(matData_T, datTraits, file = "/home/downeyam/Github/2017OAExp_Oysters/results/WGCNAdataInput.RData")
+```
+
+```{r}
+# Load the data saved in the first part
+lnames = load(file = "/home/downeyam/Github/2017OAExp_Oysters/results/WGCNAdataInput.RData");
+#The variable lnames contains the names of loaded variables.
+lnames
+```
+
+### Step-by-step network construction and module detection  
+
+#### Choosing the soft-thresholding power: analysis of network topology  
+Constructing a weighted gene network entails the choice of the soft thresholding power β to which co-expression similarity is raised to calculate adjacency. The authors of have proposed to choose the soft thresholding power based on the criterion of approximate scale-free topology. We refer the reader to that work for more details; here we illustrate the use of the function pickSoftThreshold that performs the analysis of network topology and aids the user in choosing a proper soft-thresholding power. The user chooses a set of candidate powers (the function provides suitable default values), and the function returns a set of network indices that should be inspected, for example as follows:  
+
+```{r}
+# Choose a set of soft-thresholding powers
+powers = c(c(1:10), seq(from = 12, to=20, by=2))
+# Call the network topology analysis function
+sft = pickSoftThreshold(matData_T, powerVector = powers, verbose = 5)
+# Plot the results:
+sizeGrWindow(9, 5)
+par(mfrow = c(1,2));
+cex1 = 0.9;
+# Scale-free topology fit index as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n",
+     main = paste("Scale independence"));
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     labels=powers,cex=cex1,col="red");
+# this line corresponds to using an R^2 cut-off of h
+abline(h=0.90,col="red")
+# Mean connectivity as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], sft$fitIndices[,5],
+     xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+     main = paste("Mean connectivity"))
+text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+```
+
+
+
+
+
