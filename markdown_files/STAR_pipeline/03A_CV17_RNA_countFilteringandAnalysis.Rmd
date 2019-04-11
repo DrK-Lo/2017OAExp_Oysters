@@ -2,7 +2,9 @@
 title: "Gene Count Matrix Filtering and Exploration"
 author: "adowneywall"
 date: "April 9, 2019"
-output: html_document
+output: 
+  html_document: 
+    keep_md: true
 editor_options: 
   chunk_output_type: console
 ---
@@ -17,9 +19,13 @@ library(ggplot2)
 ```{r echo=TRUE}
 # RNA count Matrix
 GeneCounts <- read.delim("~/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
+```
 
-# Top of Gene count matrix
-head(GeneCounts)
+Top of Gene count matrix
+```{r echo=FALSE}
+kable(head(GeneCounts)) %>%
+  kable_styling() %>% 
+  scroll_box(width = "900px")
 
 # Total gene counts in data set
 sum(GeneCounts)
@@ -27,17 +33,18 @@ sum(GeneCounts)
 # Number of total counts per individual
 (sum2 <- sapply(GeneCounts,sum))
 
-
 exons <- read.delim("~/Github/2017OAExp_Oysters/input_files/RNA/exon_count2.txt",header=TRUE,sep="",col.names = c("Locus","Gene","Count"))  
 genes <- as.character(exons$Gene)
 gene_split <- matrix(unlist(strsplit(genes,split = "-")),ncol=1)
 ```
 
 #### **Oyster MetaData**  
-```{r echo=TRUE}
+```{r}
 # Oyster meta data
 model<-read.delim("~/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt",sep = ",",header=TRUE)
-head(model)
+kable(model) %>%
+  kable_styling() %>% 
+  scroll_box(width = "900px", height = "400px")
 ```
 
 **Count Matrix Visualization**
@@ -45,9 +52,9 @@ head(model)
 # Histograms of all Counts
 hist(unlist(GeneCounts),breaks=1000000,xlim=c(0,100),main="Histogram of All Counts (0-100 counts)",xlab="Count")
 # Hard to see distribution of counts for all genes due to a handful of genes with high counts
-hist(exons$Count,breaks = 100000,main="Histogram will all Genes")
+#hist(exons$Count,breaks = 100000,main="Histogram will all Genes")
 # Hist. for genes with counts between 1-1000
-hist(exons$Count,xlim = c(0,1000),breaks=100000,main="Genes with counts between 1-1000")
+#hist(exons$Count,xlim = c(0,1000),breaks=100000,main="Genes with counts between 1-1000")
 # Still a little hard so lets look at it closer still (1-100)
 hist(exons$Count,xlim = c(1,100),breaks=1000000,main="Genes with counts between 1-100")
 
@@ -67,14 +74,17 @@ count_class_df <- data.frame (Max_Count = count_classes,
                               Prob_Gene_greater=1-equal_greater_prob,
                               Prob_Change=diff_prob)
 
-kable(count_class_df)
+gene_diagnostics <- data.frame(name = row.names(GeneCounts),
+                            Total_Reads =rowSums(GeneCounts))
 ```
 
-### Additional Loci Filtering  
+### Data Exploration
 
 **Examining Lane Bias and low read count**  
 Samples are spread across two lanes, to account for any potential lane bias, **genes with reads that appear disproportionally in one lane are removed**.  
 ```{r echo=TRUE}
+# Balanced Design - equal number of individuals from each treatment*time combination are in each lane
+table(model$treatment,model$lane,model$timepoint)
 
 ### Looking at lane specific effects
 # Isolate samples by lane
@@ -85,26 +95,33 @@ GC_lane1_sum <- rowSums(GC_lane1)
 GC_lane2_sum <- rowSums(GC_lane2)
 # Ratio of the difference in read count between lanes for each gene feature 
 GC_diff <- c(abs(GC_lane1_sum - GC_lane2_sum)+0.0001)/ c(GC_lane1_sum + GC_lane2_sum+0.0001)
-hist(GC_diff)
+#hist(GC_diff)
 
 GC_lane1_mean <- apply(GC_lane1,1,median)
 GC_lane2_mean <- apply(GC_lane2,1,median)
-plot(log10(GC_lane1_mean+1)~log10(GC_lane2_mean+1))
+#plot(log10(GC_lane1_mean+1)~log10(GC_lane2_mean+1))
+
+gene_diagnostics$Difference_Ratio <- GC_diff
 ```
 
-Determine proportion of counts explained by a single individual
+**Proportion of counts explained by a single individual**
 ```{r}
-## Propotion of Reads due to a single individual  
 # Determining the largest number of reads per gene for a single individual
 GC_max <- apply(GeneCounts,1,max)
-prop_single_ind_v2 <- GC_max/rowSums(GeneCounts) 
-hist(prop_single_ind_v2)
+prop_single_ind <- GC_max/rowSums(GeneCounts) 
+#hist(prop_single_ind)
+gene_diagnostics$Prop_Single_Ind <- prop_single_ind
+```
 
-## Number of Samples with counts per gene
+**Number of Samples with counts per gene**
+```{r}
 prop_with_count <- apply(GeneCounts, 1, function(c)sum(c!=0))
-hist(prop_with_count/24,breaks=24,probability = TRUE)
+#hist(prop_with_count/24,breaks=24,probability = TRUE)
+gene_diagnostics$Prop_with_Count <- prop_with_count
+```
 
-## Variance of read counts (a measure of count spread cross all individuals)
+**Variance of read counts (a measure of count spread cross all individuals)**
+```{r}
 # Theoritical max variance for each gene based on total counts per gene
 max_var_mat <- matrix(ncol=24,nrow=length(GeneCounts$RNA17005),0)
 max_var_mat[,1] <- c(GC_lane1_sum+GC_lane2_sum)
@@ -113,41 +130,37 @@ max_var <- apply(max_var_mat,1,var)
 gene_var <- apply(GeneCounts,1,var)
 # Per gene variance scaled by theoritical maximum
 Count_Variance <- gene_var/max_var
-hist(Count_Variance,main="Histogram Standardize Count Variance")
-plot(ecdf(Count_Variance),main="CDF Standardize Count Variance")
+#hist(Count_Variance,main="Histogram Standardize Count Variance")
+#plot(ecdf(Count_Variance),main="CDF Standardize Count Variance")
+gene_diagnostics$Gene_Count_Variance = Count_Variance
+```
 
-count_data_df <- data.frame(name = row.names(GeneCounts),
-                            Total_Reads =rowSums(GeneCounts),
-                            Difference_Ratio = GC_diff,
-                            Prop_Single_Ind = prop_single_ind,
-                            Prop_with_Count = prop_with_count,
-                            Gene_Count_Variance = Count_Variance)
+**PLots**
+```{r}
+#ggplot(gene_diagnostics,aes(x = Prop_with_Count,y = Gene_Count_Variance)) + geom_point() + geom_smooth(method="auto")
 
-ggplot(count_data_df,aes(x = Prop_with_Count,y = Gene_Count_Variance)) + geom_point() + geom_smooth(method="auto")
+#ggplot(gene_diagnostics,aes(x = Prop_Single_Ind,y = Gene_Count_Variance)) + geom_point() + geom_smooth(method="auto")
 
-ggplot(count_data_df,aes(x = Prop_Single_Ind,y = Gene_Count_Variance)) + geom_point() + geom_smooth(method="auto")
-
-ggplot(count_data_df,aes(x = Prop_Single_Ind,y = Prop_with_Count)) + geom_point() + geom_smooth(method="auto")
+#ggplot(gene_diagnostics,aes(x = Prop_Single_Ind,y = Prop_with_Count)) + geom_point() + geom_smooth(method="auto")
 ```
 
 Plot looking at each gene based on number of reads and difference in reads ratio between sequencing lanes. A ratio of **1** indicates all reads are in a single lane, while a ratio of 0 indicates an equal number of reads from each lane of sequencing. The read lines indicate the critical read count and lane bias values used as thresholds for filtering. The bottom right box represent gene features retained after filtering.
 ```{r echo=TRUE}
-plot(GC_diff~c(GC_lane1_sum+GC_lane2_sum),xlim=c(0,1000),
-     main="Read count vs. Ratio of the difference in read count between lanes (per gene)",
-     xlab="Total Reads",
-     ylab="Difference Ratio")
-abline(h = 0.80,col="red") + abline(v = 20,col="red") 
+#plot(GC_diff~c(GC_lane1_sum+GC_lane2_sum),xlim=c(0,1000),
+#     main="Read count vs. Ratio of the difference in read count between lanes (per gene)",
+#     xlab="Total Reads",
+#     ylab="Difference Ratio")
+#abline(h = 0.80,col="red") + abline(v = 20,col="red") 
 
-library(ggplot2)
-ggplot(count_data_df,aes(x=Total_Reads,y=Difference_Ratio,colour=Prop_Single_Ind)) + geom_point() + 
-  labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
-       x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
-  xlim(0,1000)
+#ggplot(gene_diagnostics,aes(x=Total_Reads,y=Difference_Ratio,colour=Prop_Single_Ind)) + geom_point() + 
+#  labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
+#       x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
+#  xlim(0,1000)
 
-ggplot(count_data_df,aes(x=Total_Reads,y=Difference_Ratio,colour=Gene_Count_Variance)) + geom_point() + 
-  labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
-       x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
-  xlim(0,1000)
+#ggplot(gene_diagnostics,aes(x=Total_Reads,y=Difference_Ratio,colour=Gene_Count_Variance)) + geom_point() + 
+#  labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
+#       x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
+#  xlim(0,1000)
 ``` 
   
 ###  Visualizing differential expression by treatment and time
@@ -161,7 +174,7 @@ GC_2800_sum <- rowSums(GC_2800)
 # Ratio of the difference in read count between treatment for each gene feature 
 GC_trt_diff <- c(abs(GC_400_sum - GC_2800_sum)+0.0001)/ c(GC_400_sum + GC_2800_sum+0.0001)
 hist(GC_trt_diff,breaks=100)
-count_data_df$Difference_Trt <-  GC_trt_diff
+gene_diagnostics$Difference_Trt <-  GC_trt_diff
 
 ### Isolate samples by Timepoint ###
 GC_early <- GeneCounts[,model$timepoint == 3]
@@ -172,22 +185,22 @@ GC_late_sum <- rowSums(GC_late)
 # Ratio of the difference in read count between treatment for each gene feature 
 GC_time_diff <- c(abs(GC_early_sum - GC_late_sum)+0.0001)/ c(GC_early_sum + GC_late_sum+0.0001)
 hist(GC_time_diff,breaks =100)
-count_data_df$Difference_Time <-  GC_time_diff
+gene_diagnostics$Difference_Time <-  GC_time_diff
 
 ## Visualization
-data_plot <- subset(count_data_df, count_data_df$Total_Reads < 100 & count_data_df$Total_Reads > 20)
-ggplot(data_plot,aes(x=Gene_Count_Variance,y=Difference_Trt,colour=Total_Reads)) + geom_point()
+data_plot <- subset(gene_diagnostics, gene_diagnostics$Total_Reads < 100 & gene_diagnostics$Total_Reads > 20)
+#ggplot(data_plot,aes(x=Gene_Count_Variance,y=Difference_Trt,colour=Total_Reads)) + geom_point()
 
-ggplot(data_plot,aes(x=Difference_Time,y=Difference_Trt,colour=Gene_Count_Variance)) + geom_point()
-
-GeneCounts[,model$treatment == 400]
-
-# Design balanced
-table(model$treatment,model$lane,model$timepoint)
-
+#ggplot(data_plot,aes(x=Difference_Time,y=Difference_Trt,colour=Gene_Count_Variance)) + geom_point()
 ```
 
-### Filter
+```{r}
+kable(count_class_df)
+```
+
+### Filtering  
+
+
 ```{r,eval=FALSE}
 ## Filter thresholds
 account_forLane <- subset(GeneCounts,GC_diff<0.80) # Remove loci that only appear in one of the lanes of seq
