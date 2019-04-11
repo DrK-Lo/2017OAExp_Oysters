@@ -1,10 +1,25 @@
 # Markdown files for analyzing oyster RNA data  
 
 ## Folders  
-**```outdated\/```**:  This Folder contains previous versions of the bioinformatics pipeline and preliminary analysis. The bioinformatics script has since been broken into several scripts (listed below) to improve clarity and allow for great pipeline flexibility.  
+**```outdated\/```**:  This folder contains previous versions of the bioinformatics pipeline and preliminary analysis. The bioinformatics script has since been broken in to several scripts (listed below) to improve clarity and allow for great pipeline flexibility.  
+**```STAR_pipeline\/```**:  This folder contains scripts for a pipeline to look at differential expression in RNA seq data using a work flow that utilizes:  
+- ```Trimmomatic``` implemented using ```dDocent``` to trim adapters and for quality control  
+- ```STAR``` to map reads to reference genome  
+- ```HTSEQ``` to determine the the count for each gene for each individual based on aligned reads   
+- ```EdgR and LIMMA``` to help with final filtering of gene count matrix, normalize the expression data, and to determine differential expression.  
+**```HISAT_pipeline\/```**:  This folder contains scripts for a pipeline to look at differential expression in RNA seq data using a work flow that utilizes:  
+- ```BBtools```  
+- ```HISAT2```  
+- ```StringTie```  
+- ```DESeq2```  
   
-## Files  
-**```CV17_RNA_trimmingAndAlignment.Rmd```**: File reads in raw RNA seq data and assembled reference genome and performs bot the trimming and quality control steps, as well align remaining reads to the reference. This is primarily accomplished with the alignment pipeline ```dDocent```.  
-**```CV17_RNA_refGenome.Rmd```**: Walks through downloading and assembling the oyster reference genome from NCBI.
-**```CV17_RNA_countMatrix.Rmd```**: Take the aligned reads generated from the **```CV17_RNA_trimmingAndAlignment.Rmd```** file converts it into a count matrix.  
-**```CV17_RNA_countAnalysis.Rmd```**: A brief work up of the count data (currently looks at global patterns of differential expression and individual loci significance).  
+## General File structure for the two pipelines  
+  
+** Note that only the file endings will be consistent between pipelines.**  
+  
+**```*_createRefGenome.Rmd```**: Walks through downloading and assembling the oyster reference genome from NCBI.  
+**```*_trimming.Rmd```**: Script that reads in raw RNA seq data and assembled reference genome and performs both the trimming and quality control steps.  
+**```*_ReadMapping.Rmd```**: Script that aligns trimmed reads to a reference genome.  
+**```*_Filtering.Rmd```**: Filtering step that removes aligned reads that fail a certain quality threshold (MAPQ level)  
+**```*_createcountMatrix.Rmd```**: Take the aligned reads that pass QC and generates a count matrix.  
+**```*_countAnalysis.Rmd```**: A brief work up of the count data (currently looks at global patterns of differential expression and individual loci significance).  
