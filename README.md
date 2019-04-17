@@ -6,10 +6,14 @@ This repository was created to keep track of the code and preliminary analyses f
 ### Manuscript (in progress)
 [Manuscript](https://docs.google.com/document/d/1UTjTN_KC_exGVlf0I0UpntO7woBzGoJ3CKZel8WXobc/edit?ts=5bbf8c38)
 
-### Analysis (in progress)
+### Main Analysis (in progress)
 
 - [Gene Matrix Filtering](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/03A_CV17_RNA_countFilteringandAnalysis.md)
 - [EPF Phenotype Analysis - In progress](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/AE17_epfPhenotype.md)
+
+### Extra 
+
+- [Read Count Break Down](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/readAnalysis.md): Summarized raw read, alignment, and final gene count data for each individual. This file also contains a preliminary look at the unfiltered ```geneCount``` matrix. Specifically, the proportion of counts that fall in the upper 10,5,and1% of genes and how the counts of those genes compare between treatments.
 
 ### RNASeq Data Analysis Directory
 
