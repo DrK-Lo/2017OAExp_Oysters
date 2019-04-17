@@ -8,6 +8,7 @@ This repository was created to keep track of the code and preliminary analyses f
 
 ### Analysis (in progress)
 
+- [Gene Matrix Filtering](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/03A_CV17_RNA_countFilteringandAnalysis.md)
 - [EPF Phenotype Analysis - In progress](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/AE17_epfPhenotype.md)
 
 ### RNASeq Data Analysis Directory
