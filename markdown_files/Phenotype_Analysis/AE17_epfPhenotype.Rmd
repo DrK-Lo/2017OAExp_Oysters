@@ -14,10 +14,11 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(dplyr)
 library(car)
+library(lme4)
 ```
 
 #### Data
-```{r#}
+```{r}
 ### EPF fluid ###
 epf_cal <- read.csv(file = "~/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_EPF_Calcification_20190403.csv")
 # Remove and NAs at end of dataframe
@@ -45,8 +46,9 @@ wc <-  read.csv(file="~/Github/2017OAExp_Oysters/input_files/WC/AE17_pHSalinity_
 ```
 
 ### Analyzing EPF Data (values with Complete Carbonate Chemistry)  
+This is data that we measured both the EPF pH and DIC of extract EPF Fluid in order to calculate the complete carbonate chemistry  
 
-**Days : Day 0 (pre exposure), Day 9, Day 80**
+**Days : Day 0 (pre exposure), Day 9, Day 80**  
 ```{r}
 # Select specific columns and only keep rows with complete carbonate chemistry
 col_select <- c("ID","shelf","tank","pCO2_fac","DIC","TA","pCO2_calc","Calcite","pH_meas","sample_date","timepoint","timepoint_fac","EPF_pH","EPF_DIC_Start","EPF_Ca_Start")
@@ -59,21 +61,37 @@ epf_s %>% filter(timepoint > 0) %>% group_by(pCO2_fac) %>%
   summarize(DIC=mean(DIC),TA=mean(TA),pH = mean(pH_meas),act_pCO2 = mean(pCO2_calc),Calcite = mean(Calcite)) -> sum_WC
   
 # Exploratory Plots
+
+#Color Scheme
+# Default orderL 400,900,2800
+trt_color <- c("deepskyblue3", "darkorange", "firebrick")
 #pH
+give.n <- function(x){
+   return(c(y = 7.9, label = length(x)))
+}
 ggplot(epf_s,aes(x=timepoint_fac,y=EPF_pH,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + 
-  geom_hline(yintercept= sum_WC$pH,col=c("red","green","blue")) + 
+  geom_hline(yintercept= sum_WC$pH,col=trt_color,size=1) + 
   geom_boxplot() + 
-  labs(title="EPF pH",x="Time",y="EPF pH")
+  scale_color_manual(values=trt_color) + 
+  theme_bw() +
+  stat_summary(fun.data = give.n,
+               geom = "text",
+               position = position_dodge(width = 0.9), vjust = -0.25) +
+  labs(title="EPF pH",x="Time",y="EPF pH",colour="pCO2")
 # Calcite
 ggplot(epf_s,aes(x=timepoint_fac,y=EPF_Ca_Start,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + 
-  geom_hline(yintercept= sum_WC$Calcite,col=c("red","green","blue")) + 
+  geom_hline(yintercept= sum_WC$Calcite,col=trt_color,size=1) + 
   geom_boxplot() + 
-  labs(title="EPF Calcite",x="Time",y="EPF Ca")
+  scale_color_manual(values=trt_color) + 
+  theme_bw() +
+  labs(title="EPF Calcite",x="Time",y="EPF Ca",colour="pCO2")
 # DIC
 ggplot(epf_s,aes(x=timepoint_fac,y=EPF_DIC_Start,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + 
-  geom_hline(yintercept= sum_WC$DIC,col=c("red","green","blue")) + 
+  geom_hline(yintercept= sum_WC$DIC,col=trt_color,size=1) + 
   geom_boxplot() + 
-  labs(title="EPF DIC",x="Time",y="EPF DIC")
+  scale_color_manual(values=trt_color) + 
+  theme_bw() +
+  labs(title="EPF DIC",x="Time",y="EPF DIC",colour="pCO2")
 ```
 **Figure Notes**: Horizontal lines represent the mean environment value for each the the treatment levels.
   
@@ -146,61 +164,99 @@ summary(aov_1)
 # :( close but not significant (might be limited power here)
 ```
 
-### Analyzing EPF pH total data (all exposure time points and 900 treatment)
-
-**Filtering out NAs (one entry) and including only timepoints from the exposure (not acclimation)**
-```{r}
+### Analyzing EPF pH total data (all exposure time points and 900 treatment)  
+  
+* Filtering out NAs (one entry) and including only timepoints from the exposure (not acclimation)
+```{r echo=FALSE}
 epf_exp <- epf_cal[!is.na(epf_cal$EPF_pH),]
 epf_exp <- epf_exp[as.numeric(epf_exp$timepoint) > 0,]
 #epf_exp <- epf_exp[!epf_exp$pCO2_fac == 900,]
 
 # Exploratory plot
-ggplot(epf_exp,aes(y=EPF_pH,x=timepoint_fac,colour=pCO2_fac)) + geom_boxplot()
-```
+n_sample <- epf_exp %>% group_by(pCO2_fac,timepoint_fac) %>% summarise(n=length(pCO2_fac),y.pos=quantile(pH_meas)[4])
 
-#### **Statistcal Analysis**
+give.n <- function(x){
+   return(c(y = 7.8, label = length(x)))
+}
 
-**Overview**  
-Test: 2-way ANOVA - 
-* Explainatory Factors: Treatment (pCO2_fac) and Time (timepoint_fac)
-* Tested for normality and variance assumptions - log transoformed EPF data
+ggplot(epf_exp,aes(y=EPF_pH,x=timepoint_fac,group=interaction(timepoint_fac,pCO2_fac),colour=pCO2_fac)) + 
+  geom_boxplot() +
+  scale_color_manual(values=trt_color) + 
+  theme_bw() +
+  stat_summary(fun.data = give.n,
+               geom = "text",
+               position = position_dodge(width = 0.9), vjust = -0.25) + 
+  labs(title="EPF pH",x="Time",y="EPF pH",colour="pCO2") 
 
-**pH**
-```{r}
-mod_1 <- lm(EPF_pH~timepoint_fac*pCO2_fac,data=epf_exp)
 
-qqnorm(mod_1$residuals)
-qqline(mod_1$residuals)
-
-aov_1 <- aov(mod_1)
-summary(aov_1)
-
-tukey_1 <- TukeyHSD(aov_1)
-plot(tukey_1)
 ```
   
+### **Statistcal Analysis**  
+  
+#### **EPF pH total data - time as factor**  
 **Overview**  
-Test: 2-way ANCOVA - 
-* Explainatory Factors: Treatment (pCO2_fac) 
-* Continuous covariate: Time (timepoint)
+Test: 2-way ANOVA - Fixed Factors Only   
+* Explainatory Factors: Treatment (pCO2_fac) and Time (timepoint_fac)  
+* Random Facotrs: No Random Factors  
 * Tested for normality and variance assumptions  
 
-### EPF pH total data - treatment as factor and time as continuous variable
 ```{r}
-mod_1 <- lm(EPF_pH~timepoint*pCO2_fac,data=epf_exp)
+mod_base <- lm(EPF_pH~timepoint_fac*pCO2_fac,data=epf_exp)
 
-qqnorm(mod_1$residuals)
-qqline(mod_1$residuals)
+qqnorm(mod_base$residuals)
+qqline(mod_base$residuals)
 
-summary(mod_1)
+aov_base <- aov(mod_base)
+summary(aov_base)
 
-aov_1 <- aov(mod_1)
-summary(aov_1)
-
-tukey_1 <- TukeyHSD(aov_1,which="pCO2_fac")
-plot(tukey_1)
+tukey_base <- TukeyHSD(aov_base)
+plot(tukey_base)
 ```
+  
+#### **EPF pH total data - treatment as factor and time as continuous variable**  
+**Overview**  
+Test: 2-way ANCOVA 
+* Explainatory Factors: Treatment (pCO2_fac)   
+* Continuous covariate: Time (timepoint)  
+* Random Facotrs: No Random Factors  
+* Tested for normality and variance assumptions  
+  
+```{r}
+mod_baseA <- lm(EPF_pH~timepoint*pCO2_fac,data=epf_exp)
 
+qqnorm(mod_baseA$residuals)
+qqline(mod_baseA$residuals)
+
+summary(mod_baseA)
+
+aov_baseA <- aov(mod_baseA)
+summary(aov_baseA)
+
+tukey_baseA <- TukeyHSD(aov_baseA,which="pCO2_fac")
+plot(tukey_baseA)
+```
+  
+#### **EPF pH total data - treatment as factor and time as continuous variable  + random effects**
+**Overview**  
+Test: 2-way ANCOVA with Random Factors  
+* Explainatory Factors: Treatment (pCO2_fac)  
+* Continuous covariate: Time (timepoint)  
+* Random Facotrs: shelf  
+* Method: lmer  
+* Tested for normality and variance assumptions  
+  
+```{r}
+mod_1_random <- lmer(EPF_pH~timepoint*pCO2_fac + (1|shelf),data=epf_exp)
+#mod_random <- lmer(EPF_pH ~ (1|shelf),data=epf_exp)
+summary(mod_1_random)
+# Tests significant of random effect in model
+lmerTest::ranova(mod_1_random)
+# Random effect not a significant improvement
+
+# Model Comparisons
+anova(mod_1_random,mod_baseA)
+# RE not a significant improvement
+```
 
 
 

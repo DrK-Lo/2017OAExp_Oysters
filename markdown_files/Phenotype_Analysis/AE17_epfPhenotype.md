@@ -41,8 +41,9 @@ wc <-  read.csv(file="~/Github/2017OAExp_Oysters/input_files/WC/AE17_pHSalinity_
 ```
 
 ### Analyzing EPF Data (values with Complete Carbonate Chemistry)  
+This is data that we measured both the EPF pH and DIC of extract EPF Fluid in order to calculate the complete carbonate chemistry  
 
-**Days : Day 0 (pre exposure), Day 9, Day 80**
+**Days : Day 0 (pre exposure), Day 9, Day 80**  
 
 ```r
 # Select specific columns and only keep rows with complete carbonate chemistry
@@ -56,34 +57,50 @@ epf_s %>% filter(timepoint > 0) %>% group_by(pCO2_fac) %>%
   summarize(DIC=mean(DIC),TA=mean(TA),pH = mean(pH_meas),act_pCO2 = mean(pCO2_calc),Calcite = mean(Calcite)) -> sum_WC
   
 # Exploratory Plots
+
+#Color Scheme
+# Default orderL 400,900,2800
+trt_color <- c("deepskyblue3", "darkorange", "firebrick")
 #pH
+give.n <- function(x){
+   return(c(y = 7.9, label = length(x)))
+}
 ggplot(epf_s,aes(x=timepoint_fac,y=EPF_pH,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + 
-  geom_hline(yintercept= sum_WC$pH,col=c("red","green","blue")) + 
+  geom_hline(yintercept= sum_WC$pH,col=trt_color,size=1) + 
   geom_boxplot() + 
-  labs(title="EPF pH",x="Time",y="EPF pH")
+  scale_color_manual(values=trt_color) + 
+  theme_bw() +
+  stat_summary(fun.data = give.n,
+               geom = "text",
+               position = position_dodge(width = 0.9), vjust = -0.25) +
+  labs(title="EPF pH",x="Time",y="EPF pH",colour="pCO2")
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
 
 ```r
 # Calcite
 ggplot(epf_s,aes(x=timepoint_fac,y=EPF_Ca_Start,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + 
-  geom_hline(yintercept= sum_WC$Calcite,col=c("red","green","blue")) + 
+  geom_hline(yintercept= sum_WC$Calcite,col=trt_color,size=1) + 
   geom_boxplot() + 
-  labs(title="EPF Calcite",x="Time",y="EPF Ca")
+  scale_color_manual(values=trt_color) + 
+  theme_bw() +
+  labs(title="EPF Calcite",x="Time",y="EPF Ca",colour="pCO2")
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-1-2.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-2-2.png)<!-- -->
 
 ```r
 # DIC
 ggplot(epf_s,aes(x=timepoint_fac,y=EPF_DIC_Start,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + 
-  geom_hline(yintercept= sum_WC$DIC,col=c("red","green","blue")) + 
+  geom_hline(yintercept= sum_WC$DIC,col=trt_color,size=1) + 
   geom_boxplot() + 
-  labs(title="EPF DIC",x="Time",y="EPF DIC")
+  scale_color_manual(values=trt_color) + 
+  theme_bw() +
+  labs(title="EPF DIC",x="Time",y="EPF DIC",colour="pCO2")
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-1-3.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-2-3.png)<!-- -->
 **Figure Notes**: Horizontal lines represent the mean environment value for each the the treatment levels.
   
 **Subsetting data for stats**
@@ -111,7 +128,7 @@ qqnorm(mod_1$residuals)
 qqline(mod_1$residuals)
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
 ```r
 # resids a little wonky trying a transformation
@@ -120,7 +137,7 @@ qqnorm(mod_2$residuals)
 qqline(mod_2$residuals)
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-3-2.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
 
 ```r
 #Slight improvement
@@ -182,7 +199,7 @@ qqnorm(mod_1$residuals)
 qqline(mod_1$residuals)
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 ```r
 leveneTest(log(epf_s_Exp$EPF_DIC_Start)~epf_s_Exp$pCO2_fac*epf_s_Exp$timepoint_fac)
@@ -240,7 +257,7 @@ qqnorm(mod_1$residuals)
 qqline(mod_1$residuals)
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 ```r
 leveneTest(log(epf_s_Exp$EPF_pH)~epf_s_Exp$pCO2_fac*epf_s_Exp$timepoint_fac)
@@ -291,42 +308,33 @@ summary(aov_1)
 # :( close but not significant (might be limited power here)
 ```
 
-### Analyzing EPF pH total data (all exposure time points and 900 treatment)
-
-**Filtering out NAs (one entry) and including only timepoints from the exposure (not acclimation)**
-
-```r
-epf_exp <- epf_cal[!is.na(epf_cal$EPF_pH),]
-epf_exp <- epf_exp[as.numeric(epf_exp$timepoint) > 0,]
-#epf_exp <- epf_exp[!epf_exp$pCO2_fac == 900,]
-
-# Exploratory plot
-ggplot(epf_exp,aes(y=EPF_pH,x=timepoint_fac,colour=pCO2_fac)) + geom_boxplot()
-```
-
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
-
-#### **Statistcal Analysis**
-
-**Overview**  
-Test: 2-way ANOVA - 
-* Explainatory Factors: Treatment (pCO2_fac) and Time (timepoint_fac)
-* Tested for normality and variance assumptions - log transoformed EPF data
-
-**pH**
-
-```r
-mod_1 <- lm(EPF_pH~timepoint_fac*pCO2_fac,data=epf_exp)
-
-qqnorm(mod_1$residuals)
-qqline(mod_1$residuals)
-```
-
+### Analyzing EPF pH total data (all exposure time points and 900 treatment)  
+  
+* Filtering out NAs (one entry) and including only timepoints from the exposure (not acclimation)
 ![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+  
+### **Statistcal Analysis**  
+  
+#### **EPF pH total data - time as factor**  
+**Overview**  
+Test: 2-way ANOVA - Fixed Factors Only   
+* Explainatory Factors: Treatment (pCO2_fac) and Time (timepoint_fac)  
+* Random Facotrs: No Random Factors  
+* Tested for normality and variance assumptions  
+
 
 ```r
-aov_1 <- aov(mod_1)
-summary(aov_1)
+mod_base <- lm(EPF_pH~timepoint_fac*pCO2_fac,data=epf_exp)
+
+qqnorm(mod_base$residuals)
+qqline(mod_base$residuals)
+```
+
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+```r
+aov_base <- aov(mod_base)
+summary(aov_base)
 ```
 
 ```
@@ -340,31 +348,32 @@ summary(aov_1)
 ```
 
 ```r
-tukey_1 <- TukeyHSD(aov_1)
-plot(tukey_1)
+tukey_base <- TukeyHSD(aov_base)
+plot(tukey_base)
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-7-2.png)<!-- -->![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-7-3.png)<!-- -->![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-7-4.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-2.png)<!-- -->![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-3.png)<!-- -->![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-4.png)<!-- -->
   
+#### **EPF pH total data - treatment as factor and time as continuous variable**  
 **Overview**  
-Test: 2-way ANCOVA - 
-* Explainatory Factors: Treatment (pCO2_fac) 
-* Continuous covariate: Time (timepoint)
+Test: 2-way ANCOVA 
+* Explainatory Factors: Treatment (pCO2_fac)   
+* Continuous covariate: Time (timepoint)  
+* Random Facotrs: No Random Factors  
 * Tested for normality and variance assumptions  
-
-### EPF pH total data - treatment as factor and time as continuous variable
+  
 
 ```r
-mod_1 <- lm(EPF_pH~timepoint*pCO2_fac,data=epf_exp)
+mod_baseA <- lm(EPF_pH~timepoint*pCO2_fac,data=epf_exp)
 
-qqnorm(mod_1$residuals)
-qqline(mod_1$residuals)
+qqnorm(mod_baseA$residuals)
+qqline(mod_baseA$residuals)
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 ```r
-summary(mod_1)
+summary(mod_baseA)
 ```
 
 ```
@@ -393,8 +402,8 @@ summary(mod_1)
 ```
 
 ```r
-aov_1 <- aov(mod_1)
-summary(aov_1)
+aov_baseA <- aov(mod_baseA)
+summary(aov_baseA)
 ```
 
 ```
@@ -408,7 +417,7 @@ summary(aov_1)
 ```
 
 ```r
-tukey_1 <- TukeyHSD(aov_1,which="pCO2_fac")
+tukey_baseA <- TukeyHSD(aov_baseA,which="pCO2_fac")
 ```
 
 ```
@@ -422,11 +431,101 @@ tukey_1 <- TukeyHSD(aov_1,which="pCO2_fac")
 ```
 
 ```r
-plot(tukey_1)
+plot(tukey_baseA)
 ```
 
-![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
+  
+#### **EPF pH total data - treatment as factor and time as continuous variable  + random effects**
+**Overview**  
+Test: 2-way ANCOVA with Random Factors  
+* Explainatory Factors: Treatment (pCO2_fac)  
+* Continuous covariate: Time (timepoint)  
+* Random Facotrs: shelf  
+* Method: lmer  
+* Tested for normality and variance assumptions  
+  
 
+```r
+mod_1_random <- lmer(EPF_pH~timepoint*pCO2_fac + (1|shelf),data=epf_exp)
+#mod_random <- lmer(EPF_pH ~ (1|shelf),data=epf_exp)
+summary(mod_1_random)
+```
+
+```
+## Linear mixed model fit by REML ['lmerMod']
+## Formula: EPF_pH ~ timepoint * pCO2_fac + (1 | shelf)
+##    Data: epf_exp
+## 
+## REML criterion at convergence: 80
+## 
+## Scaled residuals: 
+##      Min       1Q   Median       3Q      Max 
+## -2.73201 -0.60656  0.08005  0.66506  2.39839 
+## 
+## Random effects:
+##  Groups   Name        Variance Std.Dev.
+##  shelf    (Intercept) 0.005001 0.07072 
+##  Residual             0.079672 0.28226 
+## Number of obs: 119, groups:  shelf, 6
+## 
+## Fixed effects:
+##                          Estimate Std. Error t value
+## (Intercept)             7.4651445  0.0812428  91.887
+## timepoint              -0.0008403  0.0013761  -0.611
+## pCO2_fac900             0.0387270  0.1151153   0.336
+## pCO2_fac2800           -0.1415630  0.1149543  -1.231
+## timepoint:pCO2_fac900   0.0001591  0.0020415   0.078
+## timepoint:pCO2_fac2800 -0.0015912  0.0019723  -0.807
+## 
+## Correlation of Fixed Effects:
+##             (Intr) timpnt pCO2_9 pCO2_2 t:CO2_9
+## timepoint   -0.572                             
+## pCO2_fac900 -0.706  0.403                      
+## pCO2_fc2800 -0.707  0.404  0.499               
+## tmp:CO2_900  0.385 -0.674 -0.562 -0.272        
+## tm:CO2_2800  0.399 -0.698 -0.281 -0.569  0.470
+```
+
+```r
+# Tests significant of random effect in model
+lmerTest::ranova(mod_1_random)
+```
+
+```
+## ANOVA-like table for random-effects: Single term deletions
+## 
+## Model:
+## EPF_pH ~ timepoint + pCO2_fac + (1 | shelf) + timepoint:pCO2_fac
+##             npar  logLik    AIC  LRT Df Pr(>Chisq)
+## <none>         8 -39.989 95.978                   
+## (1 | shelf)    7 -40.604 95.208 1.23  1     0.2674
+```
+
+```r
+# Random effect not a significant improvement
+
+# Model Comparisons
+anova(mod_1_random,mod_baseA)
+```
+
+```
+## refitting model(s) with ML (instead of REML)
+```
+
+```
+## Data: epf_exp
+## Models:
+## mod_baseA: EPF_pH ~ timepoint * pCO2_fac
+## mod_1_random: EPF_pH ~ timepoint * pCO2_fac + (1 | shelf)
+##              Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)
+## mod_baseA     7 48.343 67.796 -17.171   34.343                         
+## mod_1_random  8 50.292 72.525 -17.146   34.292 0.0511      1     0.8212
+```
+
+```r
+# RE not a significant improvement
+```
 
 
 
