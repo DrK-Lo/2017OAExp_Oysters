@@ -41,6 +41,12 @@ library(kableExtra)
 **Note**: ```edgeR``` and ```limma``` are both available through **bioconductor** rather than **CRAN**. To install these packages for the first time you will need to use ```biocLite()``` function (e.g. ```biocLite("limma")```). If you **do not** have bioconductor install, first run ```source("http://bioconductor.org/biocLite.R")``` for the latest first of ```biocLite```.
 
 **FILTERED DATA HERE**
+####**Gene Count Matrix**
+```{r}
+g_mat <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/s1_CountMat.RData")
+
+```
+
 
 #### **Oyster MetaData**  
 ```{r echo=TRUE}
@@ -52,7 +58,7 @@ head(model)
 Save subset in new dataframe and log transform counts.  
 ```{r}
 # Without log transformation
-y <- GeneReduce2
+y <- g_mat
 #y<- account_forCount+0.01 #GeneCounts[keep,]
 hist(rowMeans(y),breaks = 100,xlab = "Mean Count", main = "Histogram of mean counts for each locus") 
 
@@ -67,16 +73,6 @@ pairs.panels(yLog[,19:24])
   
 **Note**: *The log transformed data shown illustrates how transforming data in this way helps will the heavily skewed RNA expression data. However, we will actually be log transforming the untransformed values at a later step using the package ```limm```, so we will proceed with the untransformed values for the time being.*  
   
-**Number of remaining loci after filtering:**  
-```{r}
-# Number of total loci
-nrow(y)
-percent_retained <- nrow(y)/nrow(GeneCounts)*100
-print(paste("Percent retained:", percent_retained))
-```
-  
-** Notes on filtering**: The percent retained (~11%) is much lower than the Wong paper received (~48%). May need to assess and compare methods to get count matrix.  
-
 ### Preparing metadata for use in RNA analysis  
 
 Sorting metadata table by individual to correspond with the count matrix:
@@ -97,7 +93,7 @@ Create a model matrix of samples x treatment:
 ```{r}
 design <-model.matrix(~0+f)
 colnames(design) <- levels(f)
-write.csv(design,"/home/downeyam/Github/2017OAExp_Oysters/results/model_design.csv")
+#write.csv(design,"/home/downeyam/Github/2017OAExp_Oysters/results/model_design.csv")
 
 model$Treatment <- factor(model$treatment)
 model$Time <- factor(model$timepoint)
@@ -179,20 +175,20 @@ corfit <- duplicateCorrelation(v1,design,block=model$tankID)
 
 v2 <- voomWithQualityWeights(dgeNorm,design,plot=TRUE,lib.size=dge$samples$lib.size,block=model$tankID,normalize.method="none",correlation=corfit$consensus)
 
-write.csv(v2$E,file = "/home/downeyam/Github/2017OAExp_Oysters/results/finalNormalizedExpMatrix.csv",row.names = T)
+#write.csv(v2$E,file = "/home/downeyam/Github/2017OAExp_Oysters/results/finalNormalizedExpMatrix.csv",row.names = T)
 ```
   
 ### Writing ```.csv``` and ```.Rdata``` files for normalized count matrices
 
 **Log transformed countMatrix**
 ```{r echo=TRUE}
-write.csv(yLog,file = "/home/downeyam/Github/2017OAExp_Oysters/results/logNormalizedCountMatrix.csv",row.names = T)  
+#write.csv(yLog,file = "/home/downeyam/Github/2017OAExp_Oysters/results/logNormalizedCountMatrix.csv",row.names = T)  
 ```
 
 **Sample normalized countMatrix using limma ``voomWithQualityWeights()`` function**  
 ```{r echo=TRUE}
-saveRDS(v1,"/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedObject.RData")
-write.csv(v1$E,file = "/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedCountMatrix.csv",row.names = T)  
+#saveRDS(v1,"/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedObject.RData")
+#write.csv(v1$E,file = "/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedCountMatrix.csv",row.names = T)  
 ```
   
 **Sample normalized countMatrix using limma ``voomWithQualityWeights()`` function w/ blocking variable**  

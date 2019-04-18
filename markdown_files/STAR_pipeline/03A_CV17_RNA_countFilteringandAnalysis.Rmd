@@ -246,7 +246,7 @@ kable(count_class_df)
 **Criteria**
 ```{r}
 # Count Threshold
-CT <-  10
+CT <-  50
 PMAX <-  0.8
 ```
 
@@ -254,7 +254,8 @@ PMAX <-  0.8
 ### Updates Dataframe with T/F based on specific filtering criterion
 
 # Counts
-gene_diagnostics$CT <- c(gene_diagnostics$Total_Reads < 10)
+gene_diagnostics$CT <- c(gene_diagnostics$Total_Reads > CT)
+
 # Single Ind Max
 gene_diagnostics$PMAX <- c(gene_diagnostics$Prop_Single_Ind < 0.8)
 ```
@@ -268,19 +269,37 @@ scenario1 <-GeneCounts[c(gene_diagnostics$CT & gene_diagnostics$PMAX),]
 
 **Filtering Summary**
 ```{r}
-# filter_sum <- data.frame(Name="Original",
-#                          CT=0,
-#                          PMAX=0,
-#                          Genes=nrow(GeneCounts),
-#                          Gene_Per=100,
-#                          Counts=sum(GeneCounts),
-#                          Counts_Per=100)
-# (s1_gene <- nrow(scenario1)/nrow(GeneCounts)*100)
-# (s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100)
-# (s1_count <- sum(scenario1))
-# (s1_count_per <- sum(scenario1)/sum(GeneCounts)*100)
+filter_sum <- data.frame(Name="Original",
+                         CT=0,
+                         PMAX=0,
+                         Genes=nrow(GeneCounts),
+                         Gene_Per=100,
+                         Counts=sum(GeneCounts),
+                         Counts_Per=100)
 
-#s1 <- rbind(filter_sum,cbind("Scenario1",CT,PMAX,s1_gene,s1_gene_per,s1_count,s1_count_per))
+
+#scenario 1
+s1_gene <- nrow(scenario1)
+s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100
+s1_count <- sum(scenario1)
+s1_count_per <- sum(scenario1)/sum(GeneCounts)*100
+s1 <- cbind(Name="Scenario 1",cbind(CT,
+                                   PMAX,
+                                   Genes=s1_gene,
+                                   Gene_Per=s1_gene_per,
+                                   Counts=s1_count,
+                                   Counts_Per=s1_count_per))
+
+filter_sum <- rbind(filter_sum,s1)
+
+
+```
+
+
+```{r}
+## Saving Data
+#saveRDS(scenario1,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/scenario1_GeneCount.RData")
+
 ```
 
 

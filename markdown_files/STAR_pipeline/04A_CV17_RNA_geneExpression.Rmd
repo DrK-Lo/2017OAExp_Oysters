@@ -20,7 +20,7 @@ library(kableExtra) # Fancy tables
 library(multcomp) # contrasts
 
 # Data frame of all variables (fixed and random) that could be used in models
-model<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/metadata_cvirginica_rna_meta.txt", header=TRUE)
+model<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt", header=TRUE)
 model$Treatment <- as.factor(model$treatment)
 model$Time <- as.character(model$timepoint)
 model$Time[model$Time == "3"] <- "09"
@@ -32,11 +32,11 @@ design <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/results/model_design
 
 # Count Data
 GeneCounts <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
-v1 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedObject.RData")
+#v1 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedObject.RData")
 v2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedwBlockObject.RData")
-yLog_mat <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/results/logNormalizedCountMatrix.csv",row.names = 1)
-v1_mat <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedCountMatrix.csv")
-v2_mat <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedwBlockCountMatrix.csv")
+#yLog_mat <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/results/logNormalizedCountMatrix.csv",row.names = 1)
+#v1_mat <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedCountMatrix.csv")
+#v2_mat <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedwBlockCountMatrix.csv")
 
 
 #Significance threshold for mixed model
@@ -68,6 +68,9 @@ single_config <- as.factor((timeLevels-1)*2+trtLevels)
 # 2 = Day 09 Treat 500
 # 3 = Day 80 Treat 2800
 # 4 = Day 80 Treat 500
+
+design_config <- data.frame(trt=trtLevels,time=timeLevels)
+design_config$timeFac <- as.factor(design_config$time)
 
 design_config$trtFac <- as.factor(design_config$trt)
 design_config$timeFac <- as.factor(design_config$time)

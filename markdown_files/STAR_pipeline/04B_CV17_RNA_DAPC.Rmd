@@ -1,0 +1,135 @@
+---
+title: "DAPC Analysis"
+author: "adowneywall"
+date: "April 18, 2019"
+output: 
+  html_document: 
+    keep_md: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(adegenet)
+library(ggplot2)
+```
+  
+**Data**
+```{r echo = FALSE}
+# This is the filtered count matrix
+counts <- readRDS(file = "/home/downeyam/Github/2017OAExp_Oysters/input_files/s1_CountMat.RData")
+# This is the complete count matrix
+count2 <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
+# Meta Data for the 24 samples
+meta <- read.csv(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt")
+```
+  
+## Performing a DAPC
+
+FYI :  Need to transpose count matrix to put it in the dapc() function. Individuals x Loci 
+
+### Cumulative Variance Plot
+```{r}
+out <- prcomp(t(counts))
+vars <- apply(out$x, 2, var)  
+props <- vars / sum(vars)
+cumsum(props)
+plot(cumsum(props)~c(1:24))
+```
+
+No clear choice for PC   
+  
+### Discriminant function for time  
+
+**PC 5**  
+```{r}
+
+# dapc_time<-dapc(t(counts),meta$timepoint)
+dapc_time_5<-dapc(t(counts),meta$timepoint,n.pca=5,n.da=2,pca.info=TRUE)
+meta$discrimant_time_5 <- dapc_time_5$ind.coord
+
+ggplot(meta,aes(discrimant_time_5,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + geom_density(alpha=0.2) + xlim(-5,5) + 
+  labs(title="Density plots of discriminant function values (PC 5)",
+       x="Discriminant function 1",
+       colour="Day.Treatment",
+       fill="Day.Treatment")
+```
+  
+**PC 10**  
+```{r}
+# FYI :  Need to transpose count matrix to put it in the dapc() function. Individuals x Loci 
+
+# dapc_time<-dapc(t(counts),meta$timepoint)
+dapc_time_10<-dapc(t(counts),meta$timepoint,n.pca=10,n.da=2,pca.info=TRUE)
+meta$discrimant_time_10 <- dapc_time_10$ind.coord
+
+ggplot(meta,aes(discrimant_time_10,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + geom_density(alpha=0.2) + xlim(-5,5) + 
+  labs(title="Density plots of discriminant function values (PC 10)",
+       x="Discriminant function 1",
+       colour="Day.Treatment",
+       fill="Day.Treatment")
+```
+  
+**PC 15**  
+```{r}
+# FYI :  Need to transpose count matrix to put it in the dapc() function. Individuals x Loci 
+
+# dapc_time<-dapc(t(counts),meta$timepoint)
+dapc_time_15<-dapc(t(counts),meta$timepoint,n.pca=15,n.da=2,pca.info=TRUE)
+meta$discrimant_time_15 <- dapc_time_15$ind.coord
+
+ggplot(meta,aes(discrimant_time_15,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + geom_density(alpha=0.2) + xlim(-5,5) + 
+  labs(title="Density plots of discriminant function values (PC 15)",
+       x="Discriminant function 1",
+       colour="Day.Treatment",
+       fill="Day.Treatment")
+```
+  
+### Discriminant functino for treatment  
+  
+**PC 5**
+```{r}
+dapc_treatment_5<-dapc(t(counts),meta$treatment,n.pca=5,n.da=2)
+meta$discriminant_treatment_5 <- dapc_treatment_5$ind.coord
+
+ggplot(meta,aes(discriminant_treatment_5,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+  geom_density(alpha=0.1) + xlim(-5,5) + 
+  labs(title="Density plots of discriminant function values (PC 5)",
+       x="Discriminant function 1",
+       colour="Time.Treatment",
+       fill="Time.Treatment")
+
+```
+  
+**PC 10**
+```{r}
+dapc_treatment_10<-dapc(t(counts),meta$treatment,n.pca=10,n.da=2)
+meta$discriminant_treatment_10 <- dapc_treatment_10$ind.coord
+
+ggplot(meta,aes(discriminant_treatment_10,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+  geom_density(alpha=0.1) + xlim(-5,5) + 
+  labs(title="Density plots of discriminant function values (PC 10)",
+       x="Discriminant function 1",
+       colour="Time.Treatment",
+       fill="Time.Treatment")
+
+```
+  
+**PC 15**
+```{r}
+
+dapc_treatment_15<-dapc(t(counts),meta$treatment,n.pca=15,n.da=2)
+# PCs = 5
+# clusters = 1
+meta$discriminant_treatment_15 <- dapc_treatment_15$ind.coord
+
+ggplot(meta,aes(discriminant_treatment_15,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+  geom_density(alpha=0.1) + xlim(-5,5) + 
+  labs(title="Density plots of discriminant function values (PC 15)",
+       x="Discriminant function 1",
+       colour="Time.Treatment",
+       fill="Time.Treatment")
+```
+  
