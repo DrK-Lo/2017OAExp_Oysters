@@ -1,8 +1,10 @@
 ---
-title: "Data Normalization and Global Methylation Visualization"
+title: "Gene Expression Normalization"
 author: "Alan Downey-Wall"
 date: "5/30/2018"
-output: html_document
+output: 
+  html_document: 
+    keep_md: true
 editor_options: 
   chunk_output_type: console
 ---
@@ -39,22 +41,33 @@ library(DESeq2)
 library(kableExtra)
 ```
 **Note**: ```edgeR``` and ```limma``` are both available through **bioconductor** rather than **CRAN**. To install these packages for the first time you will need to use ```biocLite()``` function (e.g. ```biocLite("limma")```). If you **do not** have bioconductor install, first run ```source("http://bioconductor.org/biocLite.R")``` for the latest first of ```biocLite```.
-
-**FILTERED DATA HERE**
-####**Gene Count Matrix**
+  
+####**Selecting Filtered Gene Count Scenario**  
 ```{r}
-g_mat <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/s1_CountMat.RData")
-
+scenario1 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Filter_CountMatrix/scenario1_GeneCount.RData")
+# Just the count matrix
+g_mat <- scenario1$countMatrix
 ```
-
-
+  
+**Summary of Filtering vs. Unfiltered Dataset**  
+```{r echo=FALSE}
+kable(scenario1$summary) %>%
+        kable_styling() %>%
+      scroll_box(width = "900px")
+```
+  
 #### **Oyster MetaData**  
 ```{r echo=TRUE}
 # Oyster meta data
 model<-read.delim("~/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt",sep = ",",header=TRUE)
-head(model)
 ```
-
+  
+```{r echo=FALSE}
+kable(model) %>%
+        kable_styling() %>%
+      scroll_box(width = "900px", height = "400px")
+```
+  
 Save subset in new dataframe and log transform counts.  
 ```{r}
 # Without log transformation
@@ -65,10 +78,10 @@ hist(rowMeans(y),breaks = 100,xlab = "Mean Count", main = "Histogram of mean cou
 # With log2 transformation
 yLog<- log2(y)
 hist(rowMeans(yLog),breaks=100,xlab= "Mean log Count",main = "Histogram of log transformed mean counts for each locus")
-pairs.panels(yLog[,1:6])
-pairs.panels(yLog[,7:12])
-pairs.panels(yLog[,13:18])
-pairs.panels(yLog[,19:24])
+#pairs.panels(yLog[,1:6])
+#pairs.panels(yLog[,7:12])
+#pairs.panels(yLog[,13:18])
+#pairs.panels(yLog[,19:24])
 ```
   
 **Note**: *The log transformed data shown illustrates how transforming data in this way helps will the heavily skewed RNA expression data. However, we will actually be log transforming the untransformed values at a later step using the package ```limm```, so we will proceed with the untransformed values for the time being.*  
@@ -80,7 +93,7 @@ Sorting metadata table by individual to correspond with the count matrix:
 model <- model[order(model$sample_name), ]
 # Needed to make sure the factor level (below) gets assigned properly to each individual
 ```
-
+  
 Create a factor that represents the treatments in the data. In this case that is the two different pCO2 levels at the two timepoints:  
 ```{r}
 f <- paste(paste0("CO2_", model$treatment), paste0("T_",model$timepoint),sep=".")
@@ -88,7 +101,7 @@ f <- factor(f)
 trt <- factor(model$treatment)
 time <- factor(model$timepoint)
 ```
-
+  
 Create a model matrix of samples x treatment:  
 ```{r}
 design <-model.matrix(~0+f)
@@ -102,6 +115,13 @@ model$Time <- factor(model$timepoint)
 # design2 <- model.matrix(~ 0 + trt_factor + tp_factor, data=model, 
 #     contrasts.arg=list(trt_factor=diag(nlevels(model$trt_factor)), 
 #             tp_factor=diag(nlevels(model$tp_factor))))
+```
+
+**Design Matrix**  
+```{r echo=FALSE}
+kable(design) %>%
+        kable_styling() %>%
+      scroll_box(width = "900px")
 ```
 
 #### Scatter Plot for visualizing correlation between environment (Treatment),time, and trait (EPF), as well as the four treatment x time combinations.
@@ -192,9 +212,9 @@ v2 <- voomWithQualityWeights(dgeNorm,design,plot=TRUE,lib.size=dge$samples$lib.s
 ```
   
 **Sample normalized countMatrix using limma ``voomWithQualityWeights()`` function w/ blocking variable**  
-```{r echo=TRUE}
-saveRDS(v2,"/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedwBlockObject.RData")
-write.csv(v2$E,file = "/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedwBlockCountMatrix.csv",row.names = T)  
+```{r eval=FALSE}
+saveRDS(v2,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Normalized_CountMatrix/Scenario1_normalizedVoom.RData")
+write.csv(v2$E,file = "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Normalized_CountMatrix/Scenario1_normalizedVoom.csv",row.names = T)  
 ```
   
   
@@ -258,10 +278,9 @@ pcaplot + theme(panel.grid.major = element_blank(),
                 axis.line = element_line(color = "black"), 
                 axis.text.y = element_text(angle = 90), 
                 legend.key = element_blank())
-ggsave("/home/downeyam/Github/2017OAExp_Oysters/figures/pca.png",width=30,height=18,unit="cm")
-
+#ggsave("/home/downeyam/Github/2017OAExp_Oysters/figures/pca.png",width=30,height=18,unit="cm")
 ```
-
+  
 **Scree Plot of PCA**
 ```{r}
 plot(pca_summary$importance[2,]~c(1:length(pca_summary$importance[2,])),xlab="PC",ylab="Variance explained by PC")
@@ -271,16 +290,11 @@ Looks a little suspicious, only the first two PCs explains that much more of the
 
 ### Script Outputs  
 
-The post filtered, normalize count Matrices were generated and saved in the ``results`` folder. 
+The post filtered, normalize count Matrices were generated and saved in the ``input_files/RNA/Normalized_CountMatrix`` folder. 
   
 These include three count matrices:  
-  1) A **log transformed countMatrix**: ``logNormalizedCountMatrix.csv``  
-  2) A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function**: ``voomNormalizedCountMatrix.csv``  
-  3) A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function w/ blocking variable**: ``voomNormalizedwBlockCountMatrix.csv``  
+  - A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function w/ blocking variable**: ``scenarioX_NormalizedVoom.csv`  
   
 Also saved are the objects generated by limma normalization as an ``.RData`` file:  
-  1) A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function**: ``voomNormalizedObject.RData``  
-  2) A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function w/ blocking variable**: ``voomNormalizedwBlockObject.RData``  
-
-**Next**: Analysis of individual gene associations with ``04A_CV17_RNA_geneExpression.Rmd``
+  - A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function w/ blocking variable**: ``scenarioX_NormalizedVoom.RData``  
 
