@@ -269,87 +269,34 @@ scenario1 <-GeneCounts[c(gene_diagnostics$CT & gene_diagnostics$PMAX),]
 
 **Filtering Summary**
 ```{r}
-filter_sum <- data.frame(Name="Original",
-                         CT=0,
-                         PMAX=0,
-                         Genes=nrow(GeneCounts),
-                         Gene_Per=100,
-                         Counts=sum(GeneCounts),
-                         Counts_Per=100)
-
-
-#scenario 1
-s1_gene <- nrow(scenario1)
-s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100
-s1_count <- sum(scenario1)
-s1_count_per <- sum(scenario1)/sum(GeneCounts)*100
-s1 <- cbind(Name="Scenario 1",cbind(CT,
-                                   PMAX,
-                                   Genes=s1_gene,
-                                   Gene_Per=s1_gene_per,
-                                   Counts=s1_count,
-                                   Counts_Per=s1_count_per))
-
-filter_sum <- rbind(filter_sum,s1)
+# filter_sum <- data.frame(Name="Original",
+#                          CT=0,
+#                          PMAX=0,
+#                          Genes=nrow(GeneCounts),
+#                          Gene_Per=100,
+#                          Counts=sum(GeneCounts),
+#                          Counts_Per=100)
+# 
+# #scenario 1
+# s1_gene <- nrow(scenario1)
+# s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100
+# s1_count <- sum(scenario1)
+# s1_count_per <- sum(scenario1)/sum(GeneCounts)*100
+# s1 <- cbind(Name="Scenario 1",cbind(CT,
+#                                    PMAX,
+#                                    Genes=s1_gene,
+#                                    Gene_Per=s1_gene_per,
+#                                    Counts=s1_count,
+#                                    Counts_Per=s1_count_per))
+# 
+# filter_sum <- rbind(filter_sum,s1)
 
 
 ```
-
-
+  
+**Saving Data**
 ```{r}
 ## Saving Data
 #saveRDS(scenario1,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/scenario1_GeneCount.RData")
 
 ```
-
-
-### OUTDATED: Using CPM to further filter genes with low coverage
-
-One final filtering step, we want to filter out sequences with very low expression. Therefore, we will **only keep** sequences with more than **0.5 counts per million mapped reads across all 24 samples**. To do this we calculate the counts per million (CPM) per gene per indivdual. Then, if all individuals have a CPM greater than 0.5 for the gene, it is retained.   
-```{r,eval=FALSE}
-## Function CPM in package edgeR, takes countMatrix and normalizes it as counts per million
-# Without removing exceptionally high read loci
-perMilReads <- cpm(GeneCounts)
-
-# Example of how cpm calculates the number of reads per million bases
-GeneCounts$RNA17019[1]/sum(GeneCounts$RNA17019)*1*10^{6} # Manually calculate read per million at first locus in sample RNA17019
-perMilReads[1,dimnames(perMilReads)[[2]] == "RNA17019"] # Calculate read per million at first locus in sample RNA17019 using cpm
-
-## Only keep a locus if it was at least 0.5 million reads for all 24 individuals
-keep <- row.names(perMilReads[rowSums(perMilReads>0.5) >=24,])
-
-
-# Counts per million on pre filtered dataset (considering lane bias)
-perMilReads_alt <- cpm(account_forCount) # cpm on pre filtered dataset
-keep2 <- rowSums(perMilReads_alt>0.5) >=24
-
-```
-
-```{r,eval=FALSE, echo=FALSE}
-Save subset in new dataframe and log transform counts.  
-# Without log transformation
-y <- GeneReduce2
-#y<- account_forCount+0.01 #GeneCounts[keep,]
-hist(rowMeans(y),breaks = 100,xlab = "Mean Count", main = "Histogram of mean counts for each locus") 
-
-# With log2 transformation
-yLog<- log2(y)
-hist(rowMeans(yLog),breaks=100,xlab= "Mean log Count",main = "Histogram of log transformed mean counts for each locus")
-pairs.panels(yLog[,1:6])
-pairs.panels(yLog[,7:12])
-pairs.panels(yLog[,13:18])
-pairs.panels(yLog[,19:24])
-
-**Note**: *The log transformed data shown illustrates how transforming data in this way helps will the heavily skewed RNA expression data. However, we will actually be log transforming the untransformed values at a later step using the package ```limm```, so we will proceed with the untransformed values for the time being.* 
-```
-
-```{r,eval=FALSE, echo=FALSE}
-**Number of remaining loci after filtering:**  
-# Number of total loci
-nrow(y)
-percent_retained <- nrow(y)/nrow(GeneCounts)*100
-print(paste("Percent retained:", percent_retained))
-
-** Notes on filtering**: The percent retained (~11%) is much lower than the Wong paper received (~48%). May need to assess and compare methods to get count matrix.  
-```
-  

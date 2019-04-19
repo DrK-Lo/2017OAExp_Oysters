@@ -30,12 +30,13 @@ library(pacman)
   
 #### **Necessary Packages**:  
 ```{r}
-library("edgeR")
-library("limma")
-library("statmod")
-library("ggplot2")
-library("psych")
-library("DESeq2")
+library(edgeR)
+library(limma)
+library(statmod)
+library(ggplot2)
+library(psych)
+library(DESeq2)
+library(kableExtra)
 ```
 **Note**: ```edgeR``` and ```limma``` are both available through **bioconductor** rather than **CRAN**. To install these packages for the first time you will need to use ```biocLite()``` function (e.g. ```biocLite("limma")```). If you **do not** have bioconductor install, first run ```source("http://bioconductor.org/biocLite.R")``` for the latest first of ```biocLite```.
 
@@ -51,7 +52,7 @@ sum(GeneCounts)
 (sum2 <- sapply(GeneCounts,sum))
 
 
-exons <- read.delim("~/Github/2017OAExp_Oysters/input_files/exon_count2.txt",header=TRUE,sep="",col.names = c("Locus","Gene","Count"))  
+exons <- read.delim("~/Github/2017OAExp_Oysters/input_files/RNA/exon_count2.txt",header=TRUE,sep="",col.names = c("Locus","Gene","Count"))  
 genes <- as.character(exons$Gene)
 gene_split <- matrix(unlist(strsplit(genes,split = "-")),ncol=1)
 
@@ -84,7 +85,7 @@ kable(count_class_df)
 #### **Oyster MetaData**  
 ```{r echo=TRUE}
 # Oyster meta data
-model<-read.delim("~/Github/2017OAExp_Oysters/input_files/metadata_cvirginica_rna_meta.txt",sep = ",",header=TRUE)
+model<-read.delim("~/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt",sep = ",",header=TRUE)
 head(model)
 ```
 

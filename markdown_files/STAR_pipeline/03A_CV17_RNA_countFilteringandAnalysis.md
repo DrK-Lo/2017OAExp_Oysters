@@ -308,6 +308,7 @@ kable(model) %>%
    <th style="text-align:right;"> sample_index </th>
    <th style="text-align:right;"> treatment </th>
    <th style="text-align:right;"> timepoint </th>
+   <th style="text-align:right;"> Day </th>
    <th style="text-align:right;"> shelf </th>
    <th style="text-align:right;"> tank </th>
    <th style="text-align:right;"> tankID </th>
@@ -330,6 +331,7 @@ kable(model) %>%
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 1 </td>
@@ -350,6 +352,7 @@ kable(model) %>%
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 2 </td>
@@ -370,6 +373,7 @@ kable(model) %>%
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 5 </td>
@@ -390,6 +394,7 @@ kable(model) %>%
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 9 </td>
@@ -410,6 +415,7 @@ kable(model) %>%
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 1 </td>
@@ -430,6 +436,7 @@ kable(model) %>%
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 2 </td>
@@ -450,6 +457,7 @@ kable(model) %>%
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 9 </td>
@@ -470,6 +478,7 @@ kable(model) %>%
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 6 </td>
@@ -490,6 +499,7 @@ kable(model) %>%
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 11 </td>
@@ -510,6 +520,7 @@ kable(model) %>%
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 11 </td>
@@ -530,6 +541,7 @@ kable(model) %>%
    <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 3 </td>
@@ -550,6 +562,7 @@ kable(model) %>%
    <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 12 </td>
@@ -570,6 +583,7 @@ kable(model) %>%
    <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 7 </td>
@@ -590,6 +604,7 @@ kable(model) %>%
    <td style="text-align:right;"> 14 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 12 </td>
@@ -610,6 +625,7 @@ kable(model) %>%
    <td style="text-align:right;"> 15 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 10 </td>
@@ -630,6 +646,7 @@ kable(model) %>%
    <td style="text-align:right;"> 16 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 10 </td>
@@ -650,6 +667,7 @@ kable(model) %>%
    <td style="text-align:right;"> 17 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 6 </td>
@@ -670,6 +688,7 @@ kable(model) %>%
    <td style="text-align:right;"> 18 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 3 </td>
@@ -690,6 +709,7 @@ kable(model) %>%
    <td style="text-align:right;"> 19 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 4 </td>
@@ -710,6 +730,7 @@ kable(model) %>%
    <td style="text-align:right;"> 20 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 8 </td>
@@ -730,6 +751,7 @@ kable(model) %>%
    <td style="text-align:right;"> 21 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 8 </td>
@@ -750,6 +772,7 @@ kable(model) %>%
    <td style="text-align:right;"> 22 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 4 </td>
@@ -770,6 +793,7 @@ kable(model) %>%
    <td style="text-align:right;"> 23 </td>
    <td style="text-align:right;"> 400 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 5 </td>
@@ -790,6 +814,7 @@ kable(model) %>%
    <td style="text-align:right;"> 24 </td>
    <td style="text-align:right;"> 2800 </td>
    <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 80 </td>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 7 </td>
@@ -1201,7 +1226,7 @@ kable(count_class_df)
 
 ```r
 # Count Threshold
-CT <-  10
+CT <-  50
 PMAX <-  0.8
 ```
 
@@ -1210,7 +1235,8 @@ PMAX <-  0.8
 ### Updates Dataframe with T/F based on specific filtering criterion
 
 # Counts
-gene_diagnostics$CT <- c(gene_diagnostics$Total_Reads < 10)
+gene_diagnostics$CT <- c(gene_diagnostics$Total_Reads > CT)
+
 # Single Ind Max
 gene_diagnostics$PMAX <- c(gene_diagnostics$Prop_Single_Ind < 0.8)
 ```
@@ -1233,38 +1259,25 @@ scenario1 <-GeneCounts[c(gene_diagnostics$CT & gene_diagnostics$PMAX),]
 #                          Gene_Per=100,
 #                          Counts=sum(GeneCounts),
 #                          Counts_Per=100)
-# (s1_gene <- nrow(scenario1)/nrow(GeneCounts)*100)
-# (s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100)
-# (s1_count <- sum(scenario1))
-# (s1_count_per <- sum(scenario1)/sum(GeneCounts)*100)
-
-#s1 <- rbind(filter_sum,cbind("Scenario1",CT,PMAX,s1_gene,s1_gene_per,s1_count,s1_count_per))
+# 
+# #scenario 1
+# s1_gene <- nrow(scenario1)
+# s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100
+# s1_count <- sum(scenario1)
+# s1_count_per <- sum(scenario1)/sum(GeneCounts)*100
+# s1 <- cbind(Name="Scenario 1",cbind(CT,
+#                                    PMAX,
+#                                    Genes=s1_gene,
+#                                    Gene_Per=s1_gene_per,
+#                                    Counts=s1_count,
+#                                    Counts_Per=s1_count_per))
+# 
+# filter_sum <- rbind(filter_sum,s1)
 ```
-
-
-### OUTDATED: Using CPM to further filter genes with low coverage
-
-One final filtering step, we want to filter out sequences with very low expression. Therefore, we will **only keep** sequences with more than **0.5 counts per million mapped reads across all 24 samples**. To do this we calculate the counts per million (CPM) per gene per indivdual. Then, if all individuals have a CPM greater than 0.5 for the gene, it is retained.   
+  
+**Saving Data**
 
 ```r
-## Function CPM in package edgeR, takes countMatrix and normalizes it as counts per million
-# Without removing exceptionally high read loci
-perMilReads <- cpm(GeneCounts)
-
-# Example of how cpm calculates the number of reads per million bases
-GeneCounts$RNA17019[1]/sum(GeneCounts$RNA17019)*1*10^{6} # Manually calculate read per million at first locus in sample RNA17019
-perMilReads[1,dimnames(perMilReads)[[2]] == "RNA17019"] # Calculate read per million at first locus in sample RNA17019 using cpm
-
-## Only keep a locus if it was at least 0.5 million reads for all 24 individuals
-keep <- row.names(perMilReads[rowSums(perMilReads>0.5) >=24,])
-
-
-# Counts per million on pre filtered dataset (considering lane bias)
-perMilReads_alt <- cpm(account_forCount) # cpm on pre filtered dataset
-keep2 <- rowSums(perMilReads_alt>0.5) >=24
+## Saving Data
+#saveRDS(scenario1,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/scenario1_GeneCount.RData")
 ```
-
-
-
-
-  
