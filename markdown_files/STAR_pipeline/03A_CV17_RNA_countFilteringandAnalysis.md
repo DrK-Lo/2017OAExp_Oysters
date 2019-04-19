@@ -832,7 +832,7 @@ kable(model) %>%
   </tr>
 </tbody>
 </table></div>
-
+  
 ####**Count Matrix Visualization**  
 ![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-7-1.png)<!-- -->![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-7-2.png)<!-- -->![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-7-3.png)<!-- --><div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:900px; "><table class="table" style="margin-left: auto; margin-right: auto;">
  <thead>
@@ -943,26 +943,7 @@ kable(model) %>%
 
 ```r
 # Balanced Design - equal number of individuals from each treatment*time combination are in each lane
-table(model$treatment,model$lane,model$timepoint)
-```
 
-```
-## , ,  = 3
-## 
-##       
-##        1 2
-##   400  3 3
-##   2800 3 3
-## 
-## , ,  = 6
-## 
-##       
-##        1 2
-##   400  3 3
-##   2800 3 3
-```
-
-```r
 ### Looking at lane specific effects
 # Isolate samples by lane
 GC_lane1 <- GeneCounts[,model$lane == 1]
@@ -1028,7 +1009,12 @@ max_var <- apply(max_var_mat,1,var)
 gene_var <- apply(GeneCounts,1,var)
 # Per gene variance scaled by theoritical maximum
 Count_Variance <- gene_var/max_var
-#hist(Count_Variance,main="Histogram Standardize Count Variance")
+hist(Count_Variance,main="Histogram Standardize Count Variance")
+```
+
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
+```r
 #plot(ecdf(Count_Variance),main="CDF Standardize Count Variance")
 gene_diagnostics$Gene_Count_Variance = Count_Variance
 ```
@@ -1054,14 +1040,12 @@ GC_400_sum <- rowSums(GC_400)
 GC_2800_sum <- rowSums(GC_2800)
 # Ratio of the difference in read count between treatment for each gene feature 
 GC_trt_diff <- c(abs(GC_400_sum - GC_2800_sum)+0.0001)/ c(GC_400_sum + GC_2800_sum+0.0001)
-hist(GC_trt_diff,breaks=100)
+# Store diff in gene diagnostics dataframe
+gene_diagnostics$Difference_Trt <-  GC_trt_diff
+hist(GC_trt_diff,breaks=100,main="Histogram of proportion difference of gene counts between treatments (1 = present in only one treatment, 0 = to same number of counts in each treatment)")
 ```
 
 ![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
-
-```r
-gene_diagnostics$Difference_Trt <-  GC_trt_diff
-```
 
 **Time**
 
@@ -1074,160 +1058,108 @@ GC_early_sum <- rowSums(GC_early)
 GC_late_sum <- rowSums(GC_late)
 # Ratio of the difference in read count between treatment for each gene feature 
 GC_time_diff <- c(abs(GC_early_sum - GC_late_sum)+0.0001)/ c(GC_early_sum + GC_late_sum+0.0001)
-hist(GC_time_diff,breaks =100)
+# Store diff in gene diagnostics dataframe
+gene_diagnostics$Difference_Time <-  GC_time_diff
+hist(GC_time_diff,breaks =100,main="Histogram of proportion difference of gene counts between timepoints (1 = present at only one time, 0 = to same number of counts in each timepoint)")
 ```
 
 ![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+  
 
-```r
-gene_diagnostics$Difference_Time <-  GC_time_diff
-```
-
-**Treatment & Time**
-
-```r
-### Isolate samples by Timepoint ###
-t9_400 <- c(model$timepoint == 3 & model$treatment == 400)
-t9_2800 <- c(model$timepoint == 3 & model$treatment == 2800)
-t80_400 <- c(model$timepoint == 80 & model$treatment == 400)
-t80_2800 <- c(model$timepoint == 80 & model$treatment == 2800)
-
-GC_1 <- GeneCounts[,t9_400]
-GC_2 <- GeneCounts[,t9_2800]
-GC_3 <- GeneCounts[,t80_400]
-GC_4 <- GeneCounts[,t80_2800]
-
-# Median for each treatment at each locus
-GC_1_median <-  apply(GC_1,1,median)
-GC_2_median <-  apply(GC_2,1,median)
-GC_3_median <-  apply(GC_3,1,median)
-GC_4_median <-  apply(GC_4,1,median)
-
-# Means
-# Sum counts for each treatment at each locus
-GC_1_mean <-  apply(GC_1,1,mean)
-GC_2_mean <-  apply(GC_2,1,mean)
-GC_3_mean <-  apply(GC_3,1,mean)
-GC_4_mean <-  apply(GC_4,1,mean)
-```
-
+  
 **Gene Table with summary statistics**  
-
-```r
-kable(count_class_df)
-```
-
-<table>
+<div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:900px; "><table class="table" style="margin-left: auto; margin-right: auto;">
  <thead>
   <tr>
-   <th style="text-align:right;"> Max_Count </th>
-   <th style="text-align:right;"> Prob_Gene_less </th>
-   <th style="text-align:right;"> Prob_Gene_greater </th>
-   <th style="text-align:right;"> Prob_Change </th>
+   <th style="text-align:left;">   </th>
+   <th style="text-align:left;"> name </th>
+   <th style="text-align:right;"> Total_Reads </th>
+   <th style="text-align:right;"> Difference_Ratio </th>
+   <th style="text-align:right;"> Prop_Single_Ind </th>
+   <th style="text-align:right;"> Prop_with_Count </th>
+   <th style="text-align:right;"> Gene_Count_Variance </th>
+   <th style="text-align:right;"> Difference_Trt </th>
+   <th style="text-align:right;"> Difference_Time </th>
   </tr>
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:right;"> 0 </td>
-   <td style="text-align:right;"> 1.0000000 </td>
-   <td style="text-align:right;"> 0.0000000 </td>
-   <td style="text-align:right;"> 0.0000000 </td>
+   <td style="text-align:left;"> LOC111099029 </td>
+   <td style="text-align:left;"> LOC111099029 </td>
+   <td style="text-align:right;"> 16 </td>
+   <td style="text-align:right;"> 0.0000062 </td>
+   <td style="text-align:right;"> 0.1875000 </td>
+   <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 0.0461957 </td>
+   <td style="text-align:right;"> 0.3750039 </td>
+   <td style="text-align:right;"> 0.1250055 </td>
   </tr>
   <tr>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 0.9060425 </td>
-   <td style="text-align:right;"> 0.0939575 </td>
-   <td style="text-align:right;"> 0.0939575 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:right;"> 0.8484375 </td>
-   <td style="text-align:right;"> 0.1515625 </td>
-   <td style="text-align:right;"> 0.0576050 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 0.7382008 </td>
-   <td style="text-align:right;"> 0.2617992 </td>
-   <td style="text-align:right;"> 0.1102366 </td>
-  </tr>
-  <tr>
+   <td style="text-align:left;"> LOC111099030 </td>
+   <td style="text-align:left;"> LOC111099030 </td>
+   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 0.2941218 </td>
+   <td style="text-align:right;"> 0.2352941 </td>
    <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 0.6235291 </td>
-   <td style="text-align:right;"> 0.3764709 </td>
-   <td style="text-align:right;"> 0.1146717 </td>
+   <td style="text-align:right;"> 0.0973371 </td>
+   <td style="text-align:right;"> 0.4117682 </td>
+   <td style="text-align:right;"> 0.0588291 </td>
   </tr>
   <tr>
-   <td style="text-align:right;"> 25 </td>
-   <td style="text-align:right;"> 0.4471761 </td>
-   <td style="text-align:right;"> 0.5528239 </td>
-   <td style="text-align:right;"> 0.1763530 </td>
+   <td style="text-align:left;"> LOC111099031 </td>
+   <td style="text-align:left;"> LOC111099031 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 1.0000000 </td>
+   <td style="text-align:right;"> 0.5000000 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 0.4782609 </td>
+   <td style="text-align:right;"> 0.0000500 </td>
+   <td style="text-align:right;"> 1.0000000 </td>
   </tr>
   <tr>
-   <td style="text-align:right;"> 50 </td>
-   <td style="text-align:right;"> 0.3063809 </td>
-   <td style="text-align:right;"> 0.6936191 </td>
-   <td style="text-align:right;"> 0.1407952 </td>
+   <td style="text-align:left;"> LOC111099032 </td>
+   <td style="text-align:left;"> LOC111099032 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 1.0000000 </td>
+   <td style="text-align:right;"> 1.0000000 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 1.0000000 </td>
+   <td style="text-align:right;"> 1.0000000 </td>
+   <td style="text-align:right;"> 1.0000000 </td>
   </tr>
   <tr>
-   <td style="text-align:right;"> 100 </td>
-   <td style="text-align:right;"> 0.1843515 </td>
-   <td style="text-align:right;"> 0.8156485 </td>
-   <td style="text-align:right;"> 0.1220294 </td>
+   <td style="text-align:left;"> LOC111099033 </td>
+   <td style="text-align:left;"> LOC111099033 </td>
+   <td style="text-align:right;"> 27 </td>
+   <td style="text-align:right;"> 0.1851882 </td>
+   <td style="text-align:right;"> 0.1481481 </td>
+   <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 0.0466989 </td>
+   <td style="text-align:right;"> 0.2592620 </td>
+   <td style="text-align:right;"> 0.0370406 </td>
   </tr>
   <tr>
-   <td style="text-align:right;"> 200 </td>
-   <td style="text-align:right;"> 0.0966493 </td>
-   <td style="text-align:right;"> 0.9033507 </td>
-   <td style="text-align:right;"> 0.0877022 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 250 </td>
-   <td style="text-align:right;"> 0.0768324 </td>
-   <td style="text-align:right;"> 0.9231676 </td>
-   <td style="text-align:right;"> 0.0198170 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 500 </td>
-   <td style="text-align:right;"> 0.0353783 </td>
-   <td style="text-align:right;"> 0.9646217 </td>
-   <td style="text-align:right;"> 0.0414541 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 1000 </td>
-   <td style="text-align:right;"> 0.0154588 </td>
-   <td style="text-align:right;"> 0.9845412 </td>
-   <td style="text-align:right;"> 0.0199195 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 5000 </td>
-   <td style="text-align:right;"> 0.0018458 </td>
-   <td style="text-align:right;"> 0.9981542 </td>
-   <td style="text-align:right;"> 0.0136129 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 10000 </td>
-   <td style="text-align:right;"> 0.0007947 </td>
-   <td style="text-align:right;"> 0.9992053 </td>
-   <td style="text-align:right;"> 0.0010511 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 20000 </td>
-   <td style="text-align:right;"> 0.0003845 </td>
-   <td style="text-align:right;"> 0.9996155 </td>
-   <td style="text-align:right;"> 0.0004102 </td>
+   <td style="text-align:left;"> LOC111099034 </td>
+   <td style="text-align:left;"> LOC111099034 </td>
+   <td style="text-align:right;"> 60 </td>
+   <td style="text-align:right;"> 0.2000013 </td>
+   <td style="text-align:right;"> 0.1666667 </td>
+   <td style="text-align:right;"> 18 </td>
+   <td style="text-align:right;"> 0.0423188 </td>
+   <td style="text-align:right;"> 0.1333348 </td>
+   <td style="text-align:right;"> 0.0666682 </td>
   </tr>
 </tbody>
-</table>
+</table></div>
 
-### Filtering  
+### **Filtering**  
 
 **Criteria**
 
 ```r
 # Count Threshold
-CT <-  50
-PMAX <-  0.8
+CT <-  50 # Minimum number of counts for a single gene
+PMAX <-  0.5 # Maximum proportion of counts in a single individual
 ```
 
 
@@ -1247,37 +1179,111 @@ gene_diagnostics$PMAX <- c(gene_diagnostics$Prop_Single_Ind < 0.8)
 ```r
 scenario1_crit <- c(CT,PMAX)
 scenario1 <-GeneCounts[c(gene_diagnostics$CT & gene_diagnostics$PMAX),]
+scenario1_diag <- gene_diagnostics[c(gene_diagnostics$CT & gene_diagnostics$PMAX),]
 ```
 
 **Filtering Summary**
 
 ```r
-# filter_sum <- data.frame(Name="Original",
-#                          CT=0,
-#                          PMAX=0,
-#                          Genes=nrow(GeneCounts),
-#                          Gene_Per=100,
-#                          Counts=sum(GeneCounts),
-#                          Counts_Per=100)
-# 
-# #scenario 1
-# s1_gene <- nrow(scenario1)
-# s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100
-# s1_count <- sum(scenario1)
-# s1_count_per <- sum(scenario1)/sum(GeneCounts)*100
-# s1 <- cbind(Name="Scenario 1",cbind(CT,
-#                                    PMAX,
-#                                    Genes=s1_gene,
-#                                    Gene_Per=s1_gene_per,
-#                                    Counts=s1_count,
-#                                    Counts_Per=s1_count_per))
-# 
-# filter_sum <- rbind(filter_sum,s1)
+filter_sum <- data.frame(Name="Original",
+                         CT=0,
+                         PMAX=0,
+                         Genes=nrow(GeneCounts),
+                         Gene_Per=100,
+                         Counts=sum(GeneCounts),
+                         Counts_Per=100)
+
+#scenario 1
+s1_gene <- nrow(scenario1)
+s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100
+s1_count <- sum(scenario1)
+s1_count_per <- sum(scenario1)/sum(GeneCounts)*100
+s1 <- cbind(Name="Scenario 1",cbind(CT,
+                                   PMAX,
+                                   Genes=s1_gene,
+                                   Gene_Per=s1_gene_per,
+                                   Counts=s1_count,
+                                   Counts_Per=s1_count_per))
+scenario1_list <- list(summary=s1,countMatrix=scenario1)
+
+
+filter_sum <- rbind(filter_sum,s1)
 ```
+  
+**Summary of Different Filtering Scenarios**  
+<div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:900px; "><table class="table" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Name </th>
+   <th style="text-align:left;"> CT </th>
+   <th style="text-align:left;"> PMAX </th>
+   <th style="text-align:left;"> Genes </th>
+   <th style="text-align:left;"> Gene_Per </th>
+   <th style="text-align:left;"> Counts </th>
+   <th style="text-align:left;"> Counts_Per </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> Original </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> 39003 </td>
+   <td style="text-align:left;"> 100 </td>
+   <td style="text-align:left;"> 4742788 </td>
+   <td style="text-align:left;"> 100 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Scenario 1 </td>
+   <td style="text-align:left;"> 50 </td>
+   <td style="text-align:left;"> 0.5 </td>
+   <td style="text-align:left;"> 11690 </td>
+   <td style="text-align:left;"> 29.9720534317873 </td>
+   <td style="text-align:left;"> 4361101 </td>
+   <td style="text-align:left;"> 91.9522652077217 </td>
+  </tr>
+</tbody>
+</table></div>
   
 **Saving Data**
 
 ```r
 ## Saving Data
-#saveRDS(scenario1,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/scenario1_GeneCount.RData")
+saveRDS(filter_sum,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Filter_CountMatrix/filter_summary.RData")
+saveRDS(scenario1_list,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Filter_CountMatrix/scenario1_GeneCount.RData")
 ```
+
+**Scenario 1 Plots**  
+  
+**TOTAL DATASET: Read count vs. Trt Ratio**  
+
+```
+## Warning: Removed 598 rows containing missing values (geom_point).
+```
+
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+  
+**SCENARIO 1: Read count vs. Trt Ratio**  
+
+```
+## Warning: Removed 595 rows containing missing values (geom_point).
+```
+
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
+  
+**TOTAL DATASET: Read count vs. Treatment (per gene; Total counts < 100)**  
+
+```
+## Warning: Removed 7122 rows containing missing values (geom_point).
+```
+
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
+  
+**SCENARIO 1: Read count vs. Treatment (per gene; Total counts < 100)**  
+
+```
+## Warning: Removed 7064 rows containing missing values (geom_point).
+```
+
+![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
+

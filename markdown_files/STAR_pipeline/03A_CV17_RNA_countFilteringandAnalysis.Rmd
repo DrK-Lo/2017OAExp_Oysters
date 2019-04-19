@@ -37,7 +37,6 @@ kable(head(GeneCounts)) %>%
 
 Total gene counts in data set  
 ```{r echo=FALSE}
-# 
 kable(rbind("Total Counts in Gene Count Matrix",sum(GeneCounts))) %>%
   kable_styling()
 ```
@@ -59,7 +58,7 @@ kable(model) %>%
   kable_styling() %>% 
   scroll_box(width = "900px", height = "400px")
 ```
-
+  
 ####**Count Matrix Visualization**  
 ```{r,echo=FALSE}
 # Histograms of all Counts
@@ -100,7 +99,6 @@ gene_diagnostics <- data.frame(name = row.names(GeneCounts),
 **Examining low read count and potential lane bias**  
 ```{r echo=TRUE}
 # Balanced Design - equal number of individuals from each treatment*time combination are in each lane
-table(model$treatment,model$lane,model$timepoint)
 
 ### Looking at lane specific effects
 # Isolate samples by lane
@@ -146,7 +144,7 @@ max_var <- apply(max_var_mat,1,var)
 gene_var <- apply(GeneCounts,1,var)
 # Per gene variance scaled by theoritical maximum
 Count_Variance <- gene_var/max_var
-#hist(Count_Variance,main="Histogram Standardize Count Variance")
+hist(Count_Variance,main="Histogram Standardize Count Variance")
 #plot(ecdf(Count_Variance),main="CDF Standardize Count Variance")
 gene_diagnostics$Gene_Count_Variance = Count_Variance
 ```
@@ -166,9 +164,9 @@ gene_diagnostics$Gene_Count_Variance = Count_Variance
 # abline(h = 0.80,col="red") + abline(v = 10,col="red")
 
 ggplot(gene_diagnostics,aes(x=Total_Reads,y=Difference_Ratio,colour=Prop_Single_Ind)) + geom_point() +
- labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
-      x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
- xlim(0,1000)
+labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
+     x="Total Reads (per Gene)",y="Lane Bias (0 is no bias, 1 biased to one lane)") +
+xlim(0,1000) + scale_colour_continuous(low="blue",high="red")
 
 #ggplot(gene_diagnostics,aes(x=Total_Reads,y=Difference_Ratio,colour=Gene_Count_Variance)) + geom_point() + 
 #  labs(title="Read count vs. Ratio of the difference in read count between lanes (per gene)",
@@ -188,8 +186,9 @@ GC_400_sum <- rowSums(GC_400)
 GC_2800_sum <- rowSums(GC_2800)
 # Ratio of the difference in read count between treatment for each gene feature 
 GC_trt_diff <- c(abs(GC_400_sum - GC_2800_sum)+0.0001)/ c(GC_400_sum + GC_2800_sum+0.0001)
-hist(GC_trt_diff,breaks=100)
+# Store diff in gene diagnostics dataframe
 gene_diagnostics$Difference_Trt <-  GC_trt_diff
+hist(GC_trt_diff,breaks=100,main="Histogram of proportion difference of gene counts between treatments (1 = present in only one treatment, 0 = to same number of counts in each treatment)")
 ```
 
 **Time**
@@ -202,12 +201,13 @@ GC_early_sum <- rowSums(GC_early)
 GC_late_sum <- rowSums(GC_late)
 # Ratio of the difference in read count between treatment for each gene feature 
 GC_time_diff <- c(abs(GC_early_sum - GC_late_sum)+0.0001)/ c(GC_early_sum + GC_late_sum+0.0001)
-hist(GC_time_diff,breaks =100)
+# Store diff in gene diagnostics dataframe
 gene_diagnostics$Difference_Time <-  GC_time_diff
+hist(GC_time_diff,breaks =100,main="Histogram of proportion difference of gene counts between timepoints (1 = present at only one time, 0 = to same number of counts in each timepoint)")
 ```
-
-**Treatment & Time**
-```{r}
+  
+```{r echo=FALSE}
+##Treatment & Time
 ### Isolate samples by Timepoint ###
 t9_400 <- c(model$timepoint == 3 & model$treatment == 400)
 t9_2800 <- c(model$timepoint == 3 & model$treatment == 2800)
@@ -232,25 +232,25 @@ GC_2_mean <-  apply(GC_2,1,mean)
 GC_3_mean <-  apply(GC_3,1,mean)
 GC_4_mean <-  apply(GC_4,1,mean)
 
-
-
 ```
-
+  
 **Gene Table with summary statistics**  
-```{r}
-kable(count_class_df)
+```{r echo=FALSE}
+kable(head(gene_diagnostics)) %>%
+  kable_styling() %>% 
+  scroll_box(width = "900px")
 ```
 
-### Filtering  
+### **Filtering**  
 
 **Criteria**
 ```{r}
 # Count Threshold
-CT <-  50
-PMAX <-  0.8
+CT <-  50 # Minimum number of counts for a single gene
+PMAX <-  0.5 # Maximum proportion of counts in a single individual
 ```
 
-```{r,eval=FALSE}
+```{r}
 ### Updates Dataframe with T/F based on specific filtering criterion
 
 # Counts
@@ -265,38 +265,92 @@ gene_diagnostics$PMAX <- c(gene_diagnostics$Prop_Single_Ind < 0.8)
 ```{r}
 scenario1_crit <- c(CT,PMAX)
 scenario1 <-GeneCounts[c(gene_diagnostics$CT & gene_diagnostics$PMAX),]
+scenario1_diag <- gene_diagnostics[c(gene_diagnostics$CT & gene_diagnostics$PMAX),]
 ```
 
 **Filtering Summary**
 ```{r}
-# filter_sum <- data.frame(Name="Original",
-#                          CT=0,
-#                          PMAX=0,
-#                          Genes=nrow(GeneCounts),
-#                          Gene_Per=100,
-#                          Counts=sum(GeneCounts),
-#                          Counts_Per=100)
-# 
-# #scenario 1
-# s1_gene <- nrow(scenario1)
-# s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100
-# s1_count <- sum(scenario1)
-# s1_count_per <- sum(scenario1)/sum(GeneCounts)*100
-# s1 <- cbind(Name="Scenario 1",cbind(CT,
-#                                    PMAX,
-#                                    Genes=s1_gene,
-#                                    Gene_Per=s1_gene_per,
-#                                    Counts=s1_count,
-#                                    Counts_Per=s1_count_per))
-# 
-# filter_sum <- rbind(filter_sum,s1)
+filter_sum <- data.frame(Name="Original",
+                         CT=0,
+                         PMAX=0,
+                         Genes=nrow(GeneCounts),
+                         Gene_Per=100,
+                         Counts=sum(GeneCounts),
+                         Counts_Per=100)
+
+#scenario 1
+s1_gene <- nrow(scenario1)
+s1_gene_per <- nrow(scenario1)/nrow(GeneCounts)*100
+s1_count <- sum(scenario1)
+s1_count_per <- sum(scenario1)/sum(GeneCounts)*100
+s1 <- cbind(Name="Scenario 1",cbind(CT,
+                                   PMAX,
+                                   Genes=s1_gene,
+                                   Gene_Per=s1_gene_per,
+                                   Counts=s1_count,
+                                   Counts_Per=s1_count_per))
+scenario1_list <- list(summary=s1,countMatrix=scenario1)
 
 
+filter_sum <- rbind(filter_sum,s1)
+```
+  
+**Summary of Different Filtering Scenarios**  
+```{r echo=FALSE}
+kable(filter_sum) %>%
+  kable_styling() %>% 
+  scroll_box(width = "900px")
 ```
   
 **Saving Data**
-```{r}
+```{r eval=FALSE}
 ## Saving Data
-#saveRDS(scenario1,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/scenario1_GeneCount.RData")
-
+saveRDS(filter_sum,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Filter_CountMatrix/filter_summary.RData")
+saveRDS(scenario1_list,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Filter_CountMatrix/scenario1_GeneCount.RData")
 ```
+
+**Scenario 1 Plots**  
+  
+**TOTAL DATASET: Read count vs. Trt Ratio**  
+```{r echo=FALSE}
+library(ggExtra)
+#### All Counts
+p <- ggplot(gene_diagnostics,aes(x=Total_Reads,y=Difference_Trt,colour=Prop_Single_Ind)) + geom_point() +
+labs(title=NULL,
+     x="Total Reads (per Gene)",y="Proportion of Counts in each Trt (0 equal number in each treatment, 1 all in one treatment)") +
+xlim(0,1000) + scale_colour_continuous(low="blue",high="red",limits=c(0, 1))
+ggMarginal(p, type = "histogram",size=12)
+```
+  
+**SCENARIO 1: Read count vs. Trt Ratio**  
+```{r echo=FALSE}
+p <- ggplot(scenario1_diag,aes(x=Total_Reads,y=Difference_Trt,colour=Prop_Single_Ind)) + geom_point() +
+labs(title=NULL,
+     x="Total Reads (per Gene)",y="Proportion of Counts in each Trt (0 equal number in each treatment, 1 all in one treatment)") +
+xlim(0,1000) + scale_colour_continuous(low="blue",high="red",limits=c(0, 1)) 
+ggMarginal(p, type = "histogram",size=12)
+```
+  
+**TOTAL DATASET: Read count vs. Treatment (per gene; Total counts < 100)**  
+```{r echo=FALSE}
+### Just the genes with < 100 total Counts
+p <- ggplot(gene_diagnostics,aes(x=Total_Reads,y=Difference_Trt,colour=Prop_Single_Ind)) + 
+  geom_point() +
+labs(title=NULL,
+     x="Total Reads (per Gene)",
+     y="Proportion of Counts in each Trt (0 equal number in each treatment, 1 all in one treatment)") +
+xlim(0,100) + scale_colour_continuous(low="blue",high="red",limits=c(0, 1))
+ggMarginal(p, type = "histogram",size=12)
+```
+  
+**SCENARIO 1: Read count vs. Treatment (per gene; Total counts < 100)**  
+```{r echo=FALSE}
+p <- ggplot(scenario1_diag,aes(x=Total_Reads,y=Difference_Trt,colour=Prop_Single_Ind)) + 
+  geom_point() +
+labs(title=NULL,
+     x="Total Reads (per Gene)",
+     y="Proportion of Counts in each Trt (0 equal number in each treatment, 1 all in one treatment)") +
+xlim(0,100) + scale_colour_continuous(low="blue",high="red",limits=c(0, 1))
+ggMarginal(p, type = "histogram",size=12)
+```
+
