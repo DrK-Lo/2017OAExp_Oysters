@@ -17,9 +17,10 @@ library(ggplot2)
 ```
   
 **Data**
-```{r echo = FALSE}
+```{r echo = TRUE}
 # This is the filtered count matrix
-counts <- readRDS(file = "/home/downeyam/Github/2017OAExp_Oysters/input_files/s1_CountMat.RData")
+counts_Rdat <- readRDS(file = "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Normalized_CountMatrix/Scenario1_normalizedVoom.RData")
+counts <- log2(counts_Rdat$E)
 # This is the complete count matrix
 count2 <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
 # Meta Data for the 24 samples

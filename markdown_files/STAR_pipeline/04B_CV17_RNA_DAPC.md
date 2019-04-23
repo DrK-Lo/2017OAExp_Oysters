@@ -13,6 +13,22 @@ editor_options:
   
 **Data**
 
+```r
+# This is the filtered count matrix
+counts_Rdat <- readRDS(file = "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Normalized_CountMatrix/Scenario1_normalizedVoom.RData")
+counts <- log2(counts_Rdat$E)
+```
+
+```
+## Loading required package: limma
+```
+
+```r
+# This is the complete count matrix
+count2 <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
+# Meta Data for the 24 samples
+meta <- read.csv(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt")
+```
   
 ## Performing a DAPC
 
@@ -28,14 +44,14 @@ cumsum(props)
 ```
 
 ```
-##       PC1       PC2       PC3       PC4       PC5       PC6       PC7 
-## 0.6467538 0.7286689 0.7753976 0.8128845 0.8438545 0.8638166 0.8791894 
-##       PC8       PC9      PC10      PC11      PC12      PC13      PC14 
-## 0.8934852 0.9062057 0.9179667 0.9296414 0.9393513 0.9480983 0.9563125 
-##      PC15      PC16      PC17      PC18      PC19      PC20      PC21 
-## 0.9635734 0.9699005 0.9759201 0.9808125 0.9853414 0.9897658 0.9937253 
-##      PC22      PC23      PC24 
-## 0.9971211 1.0000000 1.0000000
+##        PC1        PC2        PC3        PC4        PC5        PC6 
+## 0.05488057 0.10812551 0.15944845 0.20894727 0.25747995 0.30470992 
+##        PC7        PC8        PC9       PC10       PC11       PC12 
+## 0.35133418 0.39728772 0.44224971 0.48636657 0.52997669 0.57258531 
+##       PC13       PC14       PC15       PC16       PC17       PC18 
+## 0.61469572 0.65613613 0.69684068 0.73693347 0.77684600 0.81596484 
+##       PC19       PC20       PC21       PC22       PC23       PC24 
+## 0.85451222 0.89213567 0.92914657 0.96550480 1.00000000 1.00000000
 ```
 
 ```r
