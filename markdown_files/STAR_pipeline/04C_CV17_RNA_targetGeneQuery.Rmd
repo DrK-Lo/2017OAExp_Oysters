@@ -219,3 +219,16 @@ ggplot(bu_data,aes(x=interaction(Treatment,Day),y=locus)) +
 #   geom_point(aes(shape=Treatment)) + 
 #   labs(title="beta-ureidopropionase",x="EPF pH")
 ```
+
+### EGF-like protein
+```{r}
+
+(eg_text <- counts$E[match("LOC111134661",row.names(counts$E)),])
+# Yes its retained!
+eg_data <- data.frame(Treatment=model$Treatment,Day=model$Day,EPF=model$epf_pH,locus=(eg_text))
+
+ggplot(eg_data,aes(x=interaction(Treatment,Day),y=locus)) + 
+  geom_boxplot() +
+  labs(x="Treatment.Day Combination",y="Gene Expression (log2)")
+```
+

@@ -1,5 +1,5 @@
 ---
-title: "01C_CV17_ReadMapping"
+title: "01C CV17 ReadMapping W STAR"
 author: "adowneywall"
 date: "March 5, 2019"
 output: html_document

@@ -502,3 +502,30 @@ ggplot(bu_data,aes(x=interaction(Treatment,Day),y=locus)) +
 #   geom_point(aes(shape=Treatment)) + 
 #   labs(title="beta-ureidopropionase",x="EPF pH")
 ```
+
+### EGF-like protein
+
+```r
+(eg_text <- counts$E[match("LOC111134661",row.names(counts$E)),])
+```
+
+```
+## RNA17005 RNA17007 RNA17013 RNA17019 RNA17069 RNA17070 RNA17072 RNA17079 
+## 6.666422 5.590635 1.337120 2.994923 5.197756 3.008288 4.348343 5.362749 
+## RNA17090 RNA17094 RNA17099 RNA17108 RNA17122 RNA17130 RNA17142 RNA17145 
+## 4.862569 3.145001 4.862661 5.031062 4.134110 4.690454 5.129640 3.963712 
+## RNA17162 RNA17174 RNA17176 RNA17178 RNA17181 RNA17203 RNA17211 RNA17213 
+## 3.135825 3.877382 3.781385 1.794307 4.974829 4.675843 5.789092 3.636977
+```
+
+```r
+# Yes its retained!
+eg_data <- data.frame(Treatment=model$Treatment,Day=model$Day,EPF=model$epf_pH,locus=(eg_text))
+
+ggplot(eg_data,aes(x=interaction(Treatment,Day),y=locus)) + 
+  geom_boxplot() +
+  labs(x="Treatment.Day Combination",y="Gene Expression (log2)")
+```
+
+![](04C_CV17_RNA_targetGeneQuery_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
+
