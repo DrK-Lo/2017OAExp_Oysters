@@ -39,6 +39,8 @@ counts <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Norma
 
 #Significance threshold for mixed model
 thres <- 0.05
+#Rerun mixed models (will take a v. long time or readin Rdata files from previous run)
+RERUN <- TRUE
 ```
   
 #### Creating Count Matrices and Contrasts  
@@ -100,24 +102,22 @@ cate.results <- cate(~ sumLevels | .- sumLevels + 0,
 
 #with latent factor in model
 design_config_full <- cbind(design_config,latent=cate.results$Z)
+
+kable(design_config_full) %>%
+  kable_styling()
 ```
 
 
-### LMM - RV:GENE EXPRESSION -  EF:DAY*TREATMENT - RF:POPULATION & SHELF
+### LMM - RV:GENE EXPRESSION - EF:DAY*TREATMENT - RF:POPULATION & SHELF & LANE
   
 **Response variable** : Gene expression  
-**Explanatory Factors** : Time and Treatment
-**Random Factors** : Population and Shelf (random intercepts)
-
-### LMM - RV:GENE EXPRESSION -  EF:DAY*TREATMENT - RF:NONE
+**Explanatory Factors** : Time and Treatment  
+**Latent Factors** : No  
+**Random Factors** : Population and Shelf and Lane (random intercepts)  
   
-**Response variable** : Gene expression  
-**Explanatory Factors** : Time and Treatment
-
-**NOTE**: THIS WILL TAKE TIME. If running with default filtering from previous steps just read in ``lmm_voom_sigValues.RData`` from ``results`` folder. This contains the final output of this model saved as an RData object.
-
-```{r LMM_voom_model,eval=FALSE}
-#Vectors for fixed factor p and t values
+```{r LMM_GE_Rand_model,eval=FALSE,echo=FALSE}
+if(RERUN == TRUE){
+  #Vectors for fixed factor p and t values 
 trt_p <- NULL
 time_p <- NULL
 trtTime_p <- NULL
@@ -131,34 +131,163 @@ shelf_rand_p <- NULL
 lane_rand_p <- NULL
 
 for (l in 1:nrow(counts$E)){
-  out <- glm(t(counts$E)[,l] ~
+  out <-  lmer(t(counts$E)[,1] ~
                #Fixed Factors
-               design_config_full$trt + 
-               design_config_full$time + 
-               design_config_full$trt:design_config_full$time)
+               design_config$trt + 
+               design_config$time + 
+               design_config$trt:design_config$time +
+               #Random Factors
+               (1|model$population)+(1|model$shelf)+(1|model$lane),
+             REML = TRUE)
   out_sum <- summary(out)
-  
-  trt_z[l] <- out_sum$coefficients[2,3]
-  time_z[l] <- out_sum$coefficients[3,3]
-  trtTime_z[l] <- out_sum$coefficients[4,3]
 
-  trt_p[l] <- out_sum$coefficients[2,4]
-  time_p[l] <- out_sum$coefficients[3,4]
-  trtTime_p[l] <- out_sum$coefficients[4,4]
+  time_z[l] <- out_sum$coefficients[3,4]
+  trt_z[l] <- out_sum$coefficients[2,4]
+  trtTime_z[l] <- out_sum$coefficients[4,4]
+
+  trt_p[l] <- out_sum$coefficients[2,5]
+  time_p[l] <- out_sum$coefficients[3,5]
+  trtTime_p[l] <- out_sum$coefficients[4,5]
+
+  rand_out <- ranova(out)
+
+  pop_rand_p[l] <- rand_out$`Pr(>Chisq)`[2]
+  shelf_rand_p[l] <- rand_out$`Pr(>Chisq)`[3]
+  lane_rand_p[l] <- rand_out$`Pr(>Chisq)`[4]
 }
 
-lmm_voom_output <- data.frame(time_z=time_z,trt_z=trt_z,trtTime_z=trtTime_z,
-                   trt_p=trt_p,time_p=time_p,trtTime_p=trtTime_p)
-saveRDS(lmm_voom_output,"/home/downeyam/Github/2017OAExp_Oysters/results/lmm_voomNoRand_sigValues.RData")
+lmm_voom_EPFoutput <- data.frame(time_z=time_z,trt_z=trt_z,trtTime_z=trtTime_z,
+                   trt_p=trt_p,time_p=time_p,trtTime_p=trtTime_p,
+                   pop_rand_p=pop_rand_p,shelf_rand_p=shelf_rand_p,lane_rand_p=lane_rand_p)
+saveRDS(lmm_voom_EPFoutput,"/home/downeyam/Github/2017OAExp_Oysters/results/lmm_GE_Rand_sigValues.RData")
+}
+
+if(RERUN == FALSE){
+  lmm_voom_EPFoutput <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/lmm_GE_Rand_sigValues.RData")
+}
+```
+  
+Nice relatively uniform distribution of fixed effect pvalues
+```{r LMM_GE_Rand_histFixed, echo=FALSE}
+#Histogram of fixed effects
+hist(lmm_voom_EPFoutput$trt_p) #treatment
+hist(lmm_voom_EPFoutput$time_p) #time
+hist(lmm_voom_EPFoutput$trtTime_p) #treatment-time interaction
 ```
 
-Code for just reading in default model output (saves time)
-```{r LMM_voom_defaultRead}
-lmm_voom_output <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/lmm_voomNoRand_sigValues.RData")  
+In vast majority of test random effects not significant (after mult. hyp. corr. none are significant and can be removed)  
+```{r LMM_GE_Rand_histRand, echo=FALSE}
+# Histogram of random effects 
+hist(lmm_voom_EPFoutput$pop_rand_p) #population
+hist(lmm_voom_EPFoutput$shelf_rand_p) #shelf
+hist(lmm_voom_EPFoutput$lane_rand_p) #lane
+```
+
+P-value correction (using FDR tools)
+```{r LMM_GE_Rand_mhc, echo=FALSE}
+#Time
+fdr.adj<-fdrtool(lmm_voom_EPFoutput$time_z,statistic = c("normal"))
+time_qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(time_qvals) <- row.names(t(counts$E))
+#Treatment
+fdr.adj<-fdrtool(lmm_voom_EPFoutput$trt_z,statistic = c("normal"))
+treatment_qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(treatment_qvals) <- row.names(t(counts$E))
+#Time-Treatment Interaction
+fdr.adj<-fdrtool(lmm_voom_EPFoutput$trtTime_z,statistic = c("normal"))
+timeTrt_qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(timeTrt_qvals) <- row.names(t(counts$E))
+
+## Random Factor multi hyp adj.
+#Population
+fdr.adj<-fdrtool(lmm_voom_EPFoutput$pop_rand_p,statistic = c("pvalue"))
+randPop_qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(randPop_qvals) <- row.names(t(counts$E))
+#Shelf
+fdr.adj<-fdrtool(lmm_voom_EPFoutput$shelf_rand_p,statistic = c("pvalue"))
+randShelf_qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(randShelf_qvals) <- row.names(t(counts$E))
+#Lane
+fdr.adj<-fdrtool(lmm_voom_EPFoutput$lane_rand_p,statistic = c("pvalue"))
+randLane_qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
+row.names(randLane_qvals) <- row.names(t(counts$E))
+```
+
+```{r LMM_GE_Rand_finalDataframe,echo=FALSE}
+#Create dataframe of qvals and lfdr for each fixed factor
+time_diff_genes <- data.frame(Test="Time",Gene_ID = names(time_qvals[,1])[which(time_qvals[,1]<thres)],Qval = time_qvals[,1][which(time_qvals[,1]<thres)],lfdr = time_qvals[,2][which(time_qvals[,1]<thres)])
+time_diff_genes$Gene_ID <- as.character(time_diff_genes$Gene_ID)
+
+treatment_diff_genes <- data.frame(Test="Treatment",Gene_ID = names(treatment_qvals[,1])[which(treatment_qvals[,1]<thres)],Qval = treatment_qvals[,1][which(treatment_qvals[,1]<thres)],lfdr = treatment_qvals[,2][which(treatment_qvals[,1]<thres)])
+treatment_diff_genes$Gene_ID <- as.character(treatment_diff_genes$Gene_ID)
+
+timeTrt_diff_genes <- data.frame(Test="Trt_Time",Gene_ID = names(timeTrt_qvals[,1])[which(timeTrt_qvals[,1]<thres)],Qval = timeTrt_qvals[,1][which(timeTrt_qvals[,1]<thres)],lfdr = timeTrt_qvals[,2][which(timeTrt_qvals[,1]<thres)])
+timeTrt_diff_genes$Gene_ID <- as.character(timeTrt_diff_genes$Gene_ID)
+
+lmm_voom_qvals <- rbind(time_diff_genes,treatment_diff_genes,timeTrt_diff_genes)
+```
+
+**Table of Diff. Expressed Genes**
+```{r LMM_voom_printTable,echo=FALSE}
+#Table of all significant loci
+kable(treatment_diff_genes)
+#kable(table(lmm_voom_qvals$Gene_ID,lmm_voom_qvals$Test))
+```
+
+### LMM - RV:GENE EXPRESSION -  EF:DAY*TREATMENT - RF:NONE
+  
+**Response variable** : Gene expression  
+**Explanatory Factors** : Time and Treatment  
+**Latent Factors** : No  
+**Random Factors** : No  
+  
+```{r LMM_GE_model,eval=FALSE}
+if(RERUN == TRUE){
+  #Vectors for fixed factor p and t values
+  trt_p <- NULL
+  time_p <- NULL
+  trtTime_p <- NULL
+  time_z <- NULL
+  trt_z <- NULL
+  trtTime_z <- NULL
+  
+  # P values of random factors
+  pop_rand_p <- NULL
+  shelf_rand_p <- NULL
+  lane_rand_p <- NULL
+  
+  for (l in 1:nrow(counts$E)){
+    out <- glm(t(counts$E)[,l] ~
+                 #Fixed Factors
+                 design_config_full$trt + 
+                 design_config_full$time + 
+                 design_config_full$trt:design_config_full$time)
+    out_sum <- summary(out)
+    
+    trt_z[l] <- out_sum$coefficients[2,3]
+    time_z[l] <- out_sum$coefficients[3,3]
+    trtTime_z[l] <- out_sum$coefficients[4,3]
+  
+    trt_p[l] <- out_sum$coefficients[2,4]
+    time_p[l] <- out_sum$coefficients[3,4]
+    trtTime_p[l] <- out_sum$coefficients[4,4]
+    
+  }
+  
+  lmm_voom_output <- data.frame(time_z=time_z,trt_z=trt_z,trtTime_z=trtTime_z,
+                     trt_p=trt_p,time_p=time_p,trtTime_p=trtTime_p)
+  saveRDS(lmm_voom_output,"/home/downeyam/Github/2017OAExp_Oysters/results/lmm_GE_NoRand_sigValues.RData")
+}
+
+if(RERUN == FALSE){
+  lmm_voom_output <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/lmm_voomNoRand_sigValues.RData")
+}
+
+
 ```
 
 Nice relatively uniform distribution of fixed effect pvalues
-```{r LMM_voom_histFixed}
+```{r LMM_GE_histFixed, echo = FALSE}
 #Histogram of fixed effects
 hist(lmm_voom_output$trt_p) #treatment
 hist(lmm_voom_output$time_p) #time
@@ -166,19 +295,19 @@ hist(lmm_voom_output$trtTime_p) #treatment-time interaction
 ```
   
 ##### Known Issues   
-
+  
 
 ##### Adjusting t and p values for multiple hypothesis testing 
 
 Genomic Inflation Factor  
-```{r LMM_voom_GIF}
+```{r LMM_GE_GIF, echo = FALSE}
 (gif <- median(lmm_voom_output$time_z^2)/0.456) #time
 (gif <- median(lmm_voom_output$trt_z^2)/0.456) #trt
 (gif <- median(lmm_voom_output$trtTime_z^2)/0.456) #trtTime
 ```
   
 P-value correction (using FDR tools)
-```{r LMM_voom_mhc}
+```{r LMM_GE_mhc, echo = FALSE}
 #Time
 fdr.adj<-fdrtool(lmm_voom_output$time_z,statistic = c("normal"))
 time_qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
@@ -195,7 +324,7 @@ row.names(timeTrt_qvals) <- row.names(counts$E)
 ```
 
 Create dataframe of qvals and lfdr for each fixed factor
-```{r LMM_voom_finalDataframe}
+```{r LMM_GE_finalDataframe, echo=FALSE}
 time_diff_genes <- data.frame(Test="Time",Gene_ID = names(time_qvals[,1])[which(time_qvals[,1]<thres)],Qval = time_qvals[,1][which(time_qvals[,1]<thres)],lfdr = time_qvals[,2][which(time_qvals[,1]<thres)])
 time_diff_genes$Gene_ID <- as.character(time_diff_genes$Gene_ID)
 
@@ -204,20 +333,25 @@ treatment_diff_genes$Gene_ID <- as.character(treatment_diff_genes$Gene_ID)
 
 timeTrt_diff_genes <- data.frame(Test="Trt_Time",Gene_ID = names(timeTrt_qvals[,1])[which(timeTrt_qvals[,1]<thres)],Qval = timeTrt_qvals[,1][which(timeTrt_qvals[,1]<thres)],lfdr = timeTrt_qvals[,2][which(timeTrt_qvals[,1]<thres)])
 timeTrt_diff_genes$Gene_ID <- as.character(timeTrt_diff_genes$Gene_ID)
-
 lmm_voom_qvals <- rbind(time_diff_genes,treatment_diff_genes,timeTrt_diff_genes)
-#Table of all significant loci
-table(lmm_voom_qvals$Gene_ID,lmm_voom_qvals$Test)
-kable(table(lmm_voom_qvals$Gene_ID,lmm_voom_qvals$Test))
 ```
 
-Save dataframe
-```{r LMM_voom_saveDataframe,eval=FALSE}
+**Table of Diff. Expressed Genes (w/o random factors)**
+```{r LMM_GE_printTable, echo=FALSE}
+#Table of all significant loci
+#table(lmm_voom_qvals$Gene_ID,lmm_voom_qvals$Test)
+kable(table(lmm_voom_qvals$Gene_ID,lmm_voom_qvals$Test)) %>%
+  kable_styling()
+```
+
+Saving dataframe...  
+```{r LMM_GE_saveDataframe,eval=FALSE,echo=FALSE}
 saveRDS(lmm_voom_qvals,"/home/downeyam/Github/2017OAExp_Oysters/results/lmm_voomnoRAnd_qvalSignificant.RData")
 ```
+"/home/downeyam/Github/2017OAExp_Oysters/results/lmm_GE_noRAnd_qvalSignificant.RData"   
     
 Count significant genes for each fixed factor and determine number of overlapping genes
-```{r LMM_voom_sigGeneCountOverlap}
+```{r LMM_GE_sigGeneCountOverlap, echo=FALSE,eval=FALSE}
 time_treat_intersect <- time_diff_genes[time_diff_genes$Gene_ID %in% treatment_diff_genes$Gene_ID,]
 time_timeTrt_intersect <- time_diff_genes[time_diff_genes$Gene_ID %in% timeTrt_diff_genes$Gene_ID,]
 treatment_timeTrt_intersect <-treatment_diff_genes[treatment_diff_genes$Gene_ID %in% timeTrt_diff_genes$Gene_ID,]
@@ -233,7 +367,7 @@ timeTrt_Count <- length(timeTrt_diff_genes$Gene_ID) - treat_timeTrt_intersectCou
 ```  
   
 ##### Venn diagram of genes associated with predictor variables
-```{r LMM_voom_vennDiagram, eval=FALSE}
+```{r LMM_GE_vennDiagram, eval=FALSE,echo=FALSE}
 library(VennDiagram)
 grid.newpage()
 draw.triple.venn(area1 = treat_Count, 
@@ -250,9 +384,13 @@ draw.triple.venn(area1 = treat_Count,
 
 ### LMM - RV:GENE EXPRESSION -  EF:TREATMENT*DAY - RF: Population and Shelf - WITH CONTRASTS  
 
-**NOTE**: THIS WILL TAKE TIME. If running with default filtering from previous steps just read in ``lmm_logY_singlePred_sigValues.RData`` from ``results`` folder. This contains the final output of this model saved as an RData object.
+**Response variable** : Gene expression  
+**Explanatory Factors** : Time and Treatment  
+**Latent Factors** : No  
+**Random Factors** : Population and Shelf and Lane (random intercepts)  
+**WITH specific contrasts**
 
-```{r LMM_logY_contrasts_model,eval=FALSE}
+```{r LMM_GE_contrasts_model,eval=FALSE}
 #Vectors for fixed factor p and t values
 trt_p <- NULL
 time_p <- NULL
@@ -351,7 +489,7 @@ lmm_contr_output <- data.frame(C1_z=D9T2800_D80T2800_z,
 saveRDS(lmm_contr_output,"/home/downeyam/Github/2017OAExp_Oysters/results/lmm_voom_withContrasts_contrasts.RData")
 ```
 
-```{r LMM_logY_singlePred_contrast_histFixed}
+```{r LMM_GE_singlePred_contrast_histFixed, eval=FALSE}
 #Histogram of fixed effects
 hist(lmm_contr_output$C1_p) 
 hist(lmm_contr_output$C2_p) 
@@ -361,72 +499,83 @@ hist(lmm_contr_output$C5_p)
 hist(lmm_contr_output$C6_p)
 ```
   
-##### Known Issues   
-
-
+**TO DO FINALIZE CONTRASTS AND RUN ANALYSIS  
 
 ## GeneExpression-Phenotype Association Tests  
 
 ### LMM - RV:EPF -  EF:GENE EXPRESSION*DAY*TREATMENT - RF:POPULATION & SHELF & LANE
 
-```{r LMM_voom_model,eval=FALSE}
-#Vectors for fixed factor p and t values 
+**Response variable** : EPF Gene expression  
+**Explanatory Factors** : Gene expression and Time and Treatment  (what should be included here besides gene expression)
+**Latent Factors** : No  
+**Random Factors** : Population and Shelf and Lane (random intercepts)  
 
-trt_p <- NULL
-time_p <- NULL
-trtTime_p <- NULL
-time_z <- NULL
-trt_z <- NULL
-trtTime_z <- NULL
+```{r LMM_EPF_Rand_model,eval=FALSE}
 
-# P values of random factors
-pop_rand_p <- NULL
-shelf_rand_p <- NULL
-lane_rand_p <- NULL
-
-for (l in 1:nrow(counts$E)){
-  out <-  lmer(model$epf_pH ~
-               #Fixed Factors
-               t(counts$E)[,l] + 
-               design_config$trt + 
-               design_config$time + 
-               design_config$trt:design_config$time +
-               #Random Factors
-               (1|model$population)+(1|model$shelf)+(1|model$lane),
-             REML = TRUE)
-  out_sum <- summary(out)
-
-  time_z[l] <- out_sum$coefficients[3,4]
-  trt_z[l] <- out_sum$coefficients[2,4]
-  trtTime_z[l] <- out_sum$coefficients[4,4]
-
-  trt_p[l] <- out_sum$coefficients[2,5]
-  time_p[l] <- out_sum$coefficients[3,5]
-  trtTime_p[l] <- out_sum$coefficients[4,5]
-
-  rand_out <- ranova(out)
-
-  pop_rand_p[l] <- rand_out$`Pr(>Chisq)`[2]
-  shelf_rand_p[l] <- rand_out$`Pr(>Chisq)`[3]
-  lane_rand_p[l] <- rand_out$`Pr(>Chisq)`[4]
+if(RERUN == TRUE){
+  #Vectors for fixed factor p and t values 
+  
+  trt_p <- NULL
+  time_p <- NULL
+  trtTime_p <- NULL
+  time_z <- NULL
+  trt_z <- NULL
+  trtTime_z <- NULL
+  
+  # P values of random factors
+  pop_rand_p <- NULL
+  shelf_rand_p <- NULL
+  lane_rand_p <- NULL
+  
+  for (l in 1:nrow(counts$E)){
+    out <-  lmer(model$epf_pH ~
+                 #Fixed Factors
+                 t(counts$E)[,1] + 
+                 design_config$trt + 
+                 design_config$time + 
+                 design_config$trt:design_config$time +
+                 #Random Factors
+                 (1|model$population)+(1|model$shelf)+(1|model$lane),
+               REML = TRUE)
+    out_sum <- summary(out)
+  
+    time_z[l] <- out_sum$coefficients[3,4]
+    trt_z[l] <- out_sum$coefficients[2,4]
+    trtTime_z[l] <- out_sum$coefficients[4,4]
+  
+    trt_p[l] <- out_sum$coefficients[2,5]
+    time_p[l] <- out_sum$coefficients[3,5]
+    trtTime_p[l] <- out_sum$coefficients[4,5]
+  
+    rand_out <- ranova(out)
+  
+    pop_rand_p[l] <- rand_out$`Pr(>Chisq)`[2]
+    shelf_rand_p[l] <- rand_out$`Pr(>Chisq)`[3]
+    lane_rand_p[l] <- rand_out$`Pr(>Chisq)`[4]
+  }
+  
+  lmm_voom_EPFoutput <- data.frame(time_z=time_z,trt_z=trt_z,trtTime_z=trtTime_z,
+                     trt_p=trt_p,time_p=time_p,trtTime_p=trtTime_p,
+                     pop_rand_p=pop_rand_p,shelf_rand_p=shelf_rand_p,lane_rand_p=lane_rand_p)
+  saveRDS(lmm_voom_EPFoutput,"/home/downeyam/Github/2017OAExp_Oysters/results/lmm_voom_epf_sigValues.RData")
 }
 
-lmm_voom_EPFoutput <- data.frame(time_z=time_z,trt_z=trt_z,trtTime_z=trtTime_z,
-                   trt_p=trt_p,time_p=time_p,trtTime_p=trtTime_p,
-                   pop_rand_p=pop_rand_p,shelf_rand_p=shelf_rand_p,lane_rand_p=lane_rand_p)
-saveRDS(lmm_voom_EPFoutput,"/home/downeyam/Github/2017OAExp_Oysters/results/lmm_voom_epf_sigValues.RData")
+if(RERUN == FALSE){
+  lmm_voom_EPFoutput <- readRDS(lmm_voom_EPFoutput,"/home/downeyam/Github/2017OAExp_Oysters/results/lmm_voom_epf_sigValues.RData")
+}
+
 ```
 
-Nice relatively uniform distribution of fixed effect pvalues
-```{r LMM_voom_histFixed}
+Fixed effect pvalues
+```{r LMM_EPF_Rand_histFixed, echo=FALSE}
 #Histogram of fixed effects
 hist(lmm_voom_EPFoutput$trt_p) #treatment
 hist(lmm_voom_EPFoutput$time_p) #time
 hist(lmm_voom_EPFoutput$trtTime_p) #treatment-time interaction
 ```
 
-In vast majority of test random effects not significant (after mult. hyp. corr. none are significant and can be removed)  
-```{r LMM_voom_histRand}
+Random Effects pvalues
+```{r LMM_EPF_Rand_histRand, echo=FALSE}
 # Histogram of random effects 
 hist(lmm_voom_EPFoutput$pop_rand_p) #population
 hist(lmm_voom_EPFoutput$shelf_rand_p) #shelf
@@ -434,7 +583,7 @@ hist(lmm_voom_EPFoutput$lane_rand_p) #lane
 ```
 
 P-value correction (using FDR tools)
-```{r LMM_voom_mhc}
+```{r LMM_EPF_Rand_mhc, echo=FALSE}
 #Time
 fdr.adj<-fdrtool(lmm_voom_EPFoutput$time_z,statistic = c("normal"))
 time_qvals <- matrix(cbind(fdr.adj$qval,fdr.adj$lfdr),ncol=2)
@@ -468,7 +617,7 @@ min(randLane_qvals[,1])
 
 ```
 Create dataframe of qvals and lfdr for each fixed factor
-```{r LMM_voom_finalDataframe}
+```{r LMM_EPF_Rand_finalDataframe, echo=FALSE}
 time_diff_genes <- data.frame(Test="Time",Gene_ID = names(time_qvals[,1])[which(time_qvals[,1]<thres)],Qval = time_qvals[,1][which(time_qvals[,1]<thres)],lfdr = time_qvals[,2][which(time_qvals[,1]<thres)])
 time_diff_genes$Gene_ID <- as.character(time_diff_genes$Gene_ID)
 
@@ -480,10 +629,10 @@ timeTrt_diff_genes$Gene_ID <- as.character(timeTrt_diff_genes$Gene_ID)
 
 lmm_voom_qvals <- rbind(time_diff_genes,treatment_diff_genes,timeTrt_diff_genes)
 #Table of all significant loci
-kable(treatment_diff_genes)
-#kable(table(lmm_voom_qvals$Gene_ID,lmm_voom_qvals$Test))
+#kable(treatment_diff_genes)
+kable(table(lmm_voom_qvals$Gene_ID,lmm_voom_qvals$Test)) %>%
+  kable_styling()
 ```
-
 
 ### LMM - RV:EPF -  EF:GENE EXPRESSION*DAY*TREATMENT - RF:NONE
 
