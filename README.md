@@ -17,6 +17,7 @@ This repository was created to keep track of the code and preliminary analyses f
 ### Extra 
 
 - [Read Count Break Down](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/readAnalysis.md): Summarized raw read, alignment, and final gene count data for each individual. This file also contains a preliminary look at the unfiltered ```geneCount``` matrix. Specifically, the proportion of counts that fall in the upper 10,5,and1% of genes and how the counts of those genes compare between treatments.
+- [Gene Count Matrix Comparison](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/starReRun_17005_comparison.md): This was a brief comparisons between the geneCounts for sample 17005 generated during the original Original STAR Pipeline run (MAR-2018) and new STAR Pipeline run which used the same data and sample parameters.
 
 ### RNASeq Data Analysis Directory
 
