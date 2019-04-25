@@ -1,0 +1,5 @@
+## Justin's thoughts on tank independence
+
+Hi All,
+
+One thing to note about the replicate tanks.  Yes, they do share a re-circ sump, but because they are independently bubbled with CO2 and also because they are continually receiving new seawater apart from the re-circ, they should be considered independent from a statistical perspective (we have addressed this issue with reviewers numerous times in the past). This is borne out by the fact that they have slightly different carbonate chemistries, arising from their physical independence.  Classifying them as not true replicates because they share a re-circ sump would be akin to classifying all tanks in the MSC as non-independent because they share the same seawater holding source (i.e., green building on the hill), or, to take it to an extreme, classifying all flow-through seawater experiments in northern New England as non-independent because the seawater is sourced from the same larger body of water (Gulf of Maine). But I agree that if we did not bubble the tanks and replenish seawater independently, then the tanks connected by a recirc loop would not be independent.
