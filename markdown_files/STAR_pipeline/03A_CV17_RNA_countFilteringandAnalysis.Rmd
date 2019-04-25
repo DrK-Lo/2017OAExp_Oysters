@@ -247,7 +247,7 @@ kable(head(gene_diagnostics)) %>%
 ```{r}
 # Count Threshold
 CT <-  50 # Minimum number of counts for a single gene
-PMAX <-  0.5 # Maximum proportion of counts in a single individual
+PMAX <-  0.2 # Maximum proportion of counts in a single individual
 ```
 
 ```{r}
@@ -257,7 +257,7 @@ PMAX <-  0.5 # Maximum proportion of counts in a single individual
 gene_diagnostics$CT <- c(gene_diagnostics$Total_Reads > CT)
 
 # Single Ind Max
-gene_diagnostics$PMAX <- c(gene_diagnostics$Prop_Single_Ind < 0.8)
+gene_diagnostics$PMAX <- c(gene_diagnostics$Prop_Single_Ind < PMAX)
 ```
 
 #### **Filtering Scenarios**  

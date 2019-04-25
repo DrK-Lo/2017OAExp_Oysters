@@ -44,14 +44,14 @@ cumsum(props)
 ```
 
 ```
-##        PC1        PC2        PC3        PC4        PC5        PC6 
-## 0.05488057 0.10812551 0.15944845 0.20894727 0.25747995 0.30470992 
-##        PC7        PC8        PC9       PC10       PC11       PC12 
-## 0.35133418 0.39728772 0.44224971 0.48636657 0.52997669 0.57258531 
-##       PC13       PC14       PC15       PC16       PC17       PC18 
-## 0.61469572 0.65613613 0.69684068 0.73693347 0.77684600 0.81596484 
-##       PC19       PC20       PC21       PC22       PC23       PC24 
-## 0.85451222 0.89213567 0.92914657 0.96550480 1.00000000 1.00000000
+##       PC1       PC2       PC3       PC4       PC5       PC6       PC7 
+## 0.0572804 0.1110882 0.1614416 0.2100125 0.2584666 0.3061630 0.3524641 
+##       PC8       PC9      PC10      PC11      PC12      PC13      PC14 
+## 0.3981932 0.4424318 0.4863204 0.5294445 0.5724671 0.6145279 0.6556555 
+##      PC15      PC16      PC17      PC18      PC19      PC20      PC21 
+## 0.6963296 0.7368893 0.7771020 0.8162589 0.8549461 0.8931683 0.9302421 
+##      PC22      PC23      PC24 
+## 0.9664466 1.0000000 1.0000000
 ```
 
 ```r
@@ -168,3 +168,47 @@ ggplot(meta,aes(discriminant_treatment_15,fill=as.factor(interaction(Day,treatme
 
 ![](04B_CV17_RNA_DAPC_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
   
+### TWO STEP DAPC: first create discriminant function from TP 9 samples and predict coordinates on df for day 80 samples.  
+  
+**Creating DF by treatment with first timepoint**  
+
+```r
+early_time_counts <- counts[,meta$Day == 9]
+early_time_meta <- meta[meta$Day == 9,]
+
+dapc_treatment_15<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=10,n.da=2)
+# PCs = 5
+# clusters = 1
+early_time_meta$discriminant_treatment_15 <- dapc_treatment_15$ind.coord
+
+ggplot(early_time_meta,aes(discriminant_treatment_15,fill=as.factor(treatment),colour=as.factor(treatment))) + 
+  geom_density(alpha=0.1,adjust=3) + xlim(-10,10) + 
+  labs(title="Discriminant Function for Treatment on Day 9",
+       x="Discriminant function 1",
+       colour="Treatment",
+       fill="Treatment")
+```
+
+![](04B_CV17_RNA_DAPC_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+**Mapping Day 80 samples**  
+
+```r
+late_time_counts <- counts[,meta$Day == 80]
+late_time_meta <- meta[meta$Day == 80,]
+
+predict_values <- predict.dapc(dapc_treatment_15,t(late_time_counts))
+late_time_meta$discriminant_treatment_15 <-predict_values$ind.scores
+
+whole_meta <- rbind(early_time_meta,late_time_meta)
+
+ggplot(whole_meta,aes(discriminant_treatment_15,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+  geom_density(alpha=0.1,adjust=3) + xlim(-10,10) + 
+  labs(title="Discriminant Function for Treatment on Day 9 - Mapped with Day 80 Samples",
+       x="Discriminant function 1",
+       colour="Day.Treatment",
+       fill="Day.Treatment")
+```
+
+![](04B_CV17_RNA_DAPC_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+Huh... expresssion profiles appear to converge over time.

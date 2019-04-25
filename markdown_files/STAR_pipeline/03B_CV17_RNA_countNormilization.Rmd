@@ -175,7 +175,7 @@ To see a full description of this method please reference the original paper. [(
 ### Final count matrix Transformations  
 
 #### Using ```Voom``` in the ```limma``` package to transform data yet again.  
-Voom transform the count data using voomWithQualityWeights function. Voom transformation log normalizes the cpm data. Given that we a passing the DGEList that has already computed the normalization factors we can specify the ```lib.size``` and specify the ```normalization.method = "none"```  
+Voom transform the count data using voomWithQualityWeights function. Voom transformation log normalizes the cpm data. Given that we are passing the DGEList that has already computed the normalization factors we can specify the ```lib.size``` and specify the ```normalization.method = "none"```  
 
 ```{r}
 v1 <- voomWithQualityWeights(dgeNorm, design=design, lib.size=dgeNorm$samples$lib.size, normalize.method="none", plot = TRUE)
@@ -183,7 +183,7 @@ v1 <- voomWithQualityWeights(dgeNorm, design=design, lib.size=dgeNorm$samples$li
   
 ### Including blocking variable in count matrix transformation  
   
-**Problem**: Our original meta data contains additional information about difference between samples that is not currently being utilized. This included at least one additional fixed fixed  factor (population), as well as random and blocking factors (the tank each oyster was sampled from). This latter can be accounted for in voom tranformation by inputting the blocking variable within the the function ```voomWithQualityWeights``` by using the arguement ```block=model$blockVariable```. In addition, the degreee of correlation between you blocking variable and your fixed factors (your design from above) should be inputted into the function. This can be estimated using ```duplicateCorrelation```.  
+**Problem**: Our original meta data contains additional information about difference between samples that is not currently being utilized. This included at least one additional fixed factor (population), as well as random and blocking factors (the tank each oyster was sampled from). This latter variable can be accounted for in voom tranformation by inputting the blocking variable within the the function ```voomWithQualityWeights``` by using the arguement ```block=model$blockVariable```. In addition, the degreee of correlation between your blocking variable and your fixed factors (your design from above) should be inputted into the function. This can be estimated using ```duplicateCorrelation```.  
 The benefit of incorporating the blocking variable is that it allows for there to be different variance between biological replicates, rather than calculating variance on a per-individual basis. In the Wong paper they considered samples taken from the same pCO2 vessel as a biological replicate. Here we consider any oyster taken from the same tank (tankID from unique shelf and tank combo) as biological replicates.  
   
 **Step 1:** run ```duplicateCorrelation``` using your original ```voom``` object, your fixed factor ```design```, and a vector with your blocking variable IDs. This function attempts to find the correlation between each locus in your count matrix and the block factor provided. It will output a list contain a vector of all correaltions - ```atanh.correlations``` -  for each locus, and a mean correlation across all loci, ```consensus```. The ```consensus``` scalar is what we will need to include when we perform the transformation again.  
@@ -196,8 +196,13 @@ corfit <- duplicateCorrelation(v1,design,block=model$tankID)
 
 v2 <- voomWithQualityWeights(dgeNorm,design,plot=TRUE,lib.size=dge$samples$lib.size,block=model$tankID,normalize.method=,correlation=corfit$consensus)
 
-hist(unlist(scenario1$countMatrix[1,]))
-hist(v2$E[1,])
+# Small sample of transformed genes to get a feel for normalized distributions
+plot(density(v2$E[1,]),lwd=0.2,ylim=c(0,1.2),xlim=c(0,12),
+     main="Density Plots for first 500 genes after normalization")
+for(i in 2:500){
+  lines(density(v2$E[i,]),lwd=0.2)
+}
+
 ```
   
 ### Writing ```.csv``` and ```.Rdata``` files for normalized count matrices

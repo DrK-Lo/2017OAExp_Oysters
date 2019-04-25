@@ -134,3 +134,41 @@ ggplot(meta,aes(discriminant_treatment_15,fill=as.factor(interaction(Day,treatme
        fill="Time.Treatment")
 ```
   
+### TWO STEP DAPC: first create discriminant function from TP 9 samples and predict coordinates on df for day 80 samples.  
+  
+**Creating DF by treatment with first timepoint**  
+```{r}
+early_time_counts <- counts[,meta$Day == 9]
+early_time_meta <- meta[meta$Day == 9,]
+
+dapc_treatment_15<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=10,n.da=2)
+# PCs = 5
+# clusters = 1
+early_time_meta$discriminant_treatment_15 <- dapc_treatment_15$ind.coord
+
+ggplot(early_time_meta,aes(discriminant_treatment_15,fill=as.factor(treatment),colour=as.factor(treatment))) + 
+  geom_density(alpha=0.1,adjust=3) + xlim(-10,10) + 
+  labs(title="Discriminant Function for Treatment on Day 9",
+       x="Discriminant function 1",
+       colour="Treatment",
+       fill="Treatment")
+```
+
+**Mapping Day 80 samples**  
+```{r}
+late_time_counts <- counts[,meta$Day == 80]
+late_time_meta <- meta[meta$Day == 80,]
+
+predict_values <- predict.dapc(dapc_treatment_15,t(late_time_counts))
+late_time_meta$discriminant_treatment_15 <-predict_values$ind.scores
+
+whole_meta <- rbind(early_time_meta,late_time_meta)
+
+ggplot(whole_meta,aes(discriminant_treatment_15,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+  geom_density(alpha=0.1,adjust=3) + xlim(-10,10) + 
+  labs(title="Discriminant Function for Treatment on Day 9 - Mapped with Day 80 Samples",
+       x="Discriminant function 1",
+       colour="Day.Treatment",
+       fill="Day.Treatment")
+```
+Huh... expresssion profiles appear to converge over time.

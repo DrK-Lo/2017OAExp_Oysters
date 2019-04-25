@@ -1159,7 +1159,7 @@ hist(GC_time_diff,breaks =100,main="Histogram of proportion difference of gene c
 ```r
 # Count Threshold
 CT <-  50 # Minimum number of counts for a single gene
-PMAX <-  0.5 # Maximum proportion of counts in a single individual
+PMAX <-  0.2 # Maximum proportion of counts in a single individual
 ```
 
 
@@ -1170,7 +1170,7 @@ PMAX <-  0.5 # Maximum proportion of counts in a single individual
 gene_diagnostics$CT <- c(gene_diagnostics$Total_Reads > CT)
 
 # Single Ind Max
-gene_diagnostics$PMAX <- c(gene_diagnostics$Prop_Single_Ind < 0.8)
+gene_diagnostics$PMAX <- c(gene_diagnostics$Prop_Single_Ind < PMAX)
 ```
 
 #### **Filtering Scenarios**  
@@ -1236,11 +1236,11 @@ filter_sum <- rbind(filter_sum,s1)
   <tr>
    <td style="text-align:left;"> Scenario 1 </td>
    <td style="text-align:left;"> 50 </td>
-   <td style="text-align:left;"> 0.5 </td>
-   <td style="text-align:left;"> 11690 </td>
-   <td style="text-align:left;"> 29.9720534317873 </td>
-   <td style="text-align:left;"> 4361101 </td>
-   <td style="text-align:left;"> 91.9522652077217 </td>
+   <td style="text-align:left;"> 0.2 </td>
+   <td style="text-align:left;"> 9009 </td>
+   <td style="text-align:left;"> 23.098223213599 </td>
+   <td style="text-align:left;"> 3915817 </td>
+   <td style="text-align:left;"> 82.5636102646798 </td>
   </tr>
 </tbody>
 </table></div>
@@ -1266,7 +1266,7 @@ saveRDS(scenario1_list,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/
 **SCENARIO 1: Read count vs. Trt Ratio**  
 
 ```
-## Warning: Removed 595 rows containing missing values (geom_point).
+## Warning: Removed 563 rows containing missing values (geom_point).
 ```
 
 ![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
@@ -1282,7 +1282,7 @@ saveRDS(scenario1_list,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/
 **SCENARIO 1: Read count vs. Treatment (per gene; Total counts < 100)**  
 
 ```
-## Warning: Removed 7064 rows containing missing values (geom_point).
+## Warning: Removed 5765 rows containing missing values (geom_point).
 ```
 
 ![](03A_CV17_RNA_countFilteringandAnalysis_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
