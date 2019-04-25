@@ -120,11 +120,8 @@ ca_data
 #LOC111120607 
 ggplot(ca_data,aes(x=interaction(Treatment,Day),y=LOC111120607)) + geom_boxplot()
 #LOC111134700 
-ggplot(ca_data,aes(x=interaction(Treatment,Day),y=LOC111134700)) + geom_boxplot()
-#LOC111134104 
-ggplot(ca_data,aes(x=interaction(Treatment,Day),y=LOC111134104 )) + geom_boxplot()
-#LOC111133247 
 ggplot(ca_data,aes(x=interaction(Treatment,Day),y=LOC111133247)) + geom_boxplot()
+
 
 # Q-vals for locus from linear mixed model
 #### UPDATED THIS
@@ -160,6 +157,7 @@ bi_data
 
 ggplot(bi_data,aes(x=interaction(Treatment,Day),y=LOC111124629)) + geom_boxplot()
 ggplot(bi_data,aes(x=interaction(Treatment,Day),y=LOC111126568)) + geom_boxplot()
+ggplot(bi_data,aes(x=interaction(Treatment,Day),y=LOC111126835)) + geom_boxplot()
 ggplot(bi_data,aes(x=interaction(Treatment,Day),y=LOC111123835)) + geom_boxplot()
 ```
 
@@ -190,9 +188,9 @@ ggplot(ac_data,aes(x=interaction(Treatment,Day),y=LOC111109301)) + geom_boxplot(
 
 ### Calbindin - 32  
 ```{r Calbindin}
-(cb_text <- counts$E[match("LOC111136252",row.names(counts$E)),])
+(cb_text <- counts$E[match("LOC111136252",row.names(counts)),])
 # Yes its retained!
-cb_data <- data.frame(Treatment=model$Treatment,Day=model$Day,EPF=model$epf_pH,locus=(cb_text))
+cb_data <- data.frame(Treatment=model$Treatment,Day=model$Day,EPF=model$epf_pH,locus=cb_text)
 
 ggplot(cb_data,aes(x=interaction(Treatment,Day),y=locus)) + 
   geom_boxplot() + theme_classic() + 
@@ -207,7 +205,7 @@ ggplot(cb_data,aes(x=interaction(Treatment,Day),y=locus)) +
 
 ### Beta-ureidopropionase  
 ```{r beta-ureidopropionase}
-(bu_text <- counts$E[match("LOC111132068",row.names(counts$E)),])
+(bu_text <- counts$E[match("LOC111132068",row.names(counts)),])
 # Yes its retained!
 bu_data <- data.frame(Treatment=model$Treatment,Day=model$Day,EPF=model$epf_pH,locus=(bu_text))
 
@@ -222,8 +220,7 @@ ggplot(bu_data,aes(x=interaction(Treatment,Day),y=locus)) +
 
 ### EGF-like protein
 ```{r}
-
-(eg_text <- counts$E[match("LOC111134661",row.names(counts$E)),])
+(eg_text <- counts$E[match("LOC111134661",row.names(counts)),])
 # Yes its retained!
 eg_data <- data.frame(Treatment=model$Treatment,Day=model$Day,EPF=model$epf_pH,locus=(eg_text))
 
