@@ -51,7 +51,6 @@ library(psych)
 ```
 
 ```r
-library(DESeq2)
 library(kableExtra)
 ```
 **Note**: ```edgeR``` and ```limma``` are both available through **bioconductor** rather than **CRAN**. To install these packages for the first time you will need to use ```biocLite()``` function (e.g. ```biocLite("limma")```). If you **do not** have bioconductor install, first run ```source("http://bioconductor.org/biocLite.R")``` for the latest first of ```biocLite```.
