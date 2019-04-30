@@ -12,4 +12,4 @@ We see that a DAPC effectively discriminates between treatment levels using only
 
 As a check I performed a DAPC with only the day points to check if it was capable of discriminating between treatments. We see that it can (keeping all parameter the selection the same, 10 PCs). Similarly I mapped th early timepoint onto the discriminant function and found that the discriminant function did not do a good job of discriminating between between treatment at day 9. 
 
-![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/notebook/img/DAPC_Day9Trt_Day80Predict.png)
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/notebook/img/DAPC_Day80Trt_Day09Predict.png)
