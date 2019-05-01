@@ -37,7 +37,7 @@ FULL_MODEL : EPF ~ Treatment + Time + Treatment:Time + (1|Population) + (1|Shelf
   
 Simple_MODEL : EPF ~ Treatment + Time + Treatment:Time
 
-### Model Creating, Testing and Evaluation
+### Model Creating, Testing and Evaluationm
 
 **Packages Needed**
 - ```lme4``` :  Needed to perform linear mixed effects models with random effects using ```lmer()``` function.
