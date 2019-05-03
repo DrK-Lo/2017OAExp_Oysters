@@ -229,3 +229,56 @@ ggplot(eg_data,aes(x=interaction(Treatment,Day),y=locus)) +
   labs(x="Treatment.Day Combination",y="Gene Expression (log2)")
 ```
 
+```{r}
+library(dplyr)
+library(reshape2)
+ac_sum <- ac_data %>% 
+  group_by(Treatment,Day) %>%
+  summarize(AC_3=mean(LOC111131100),
+            AC_2=mean(LOC111134509),
+            AC_1=mean(LOC111109301))
+            
+bi_sum <- bi_data %>% 
+  group_by(Treatment,Day) %>%
+  summarize(BI_4=mean(LOC111124629),
+            BI_3=mean(LOC111126568),
+            BI_2=mean(LOC111126835),
+            BI_1=mean(LOC111123835))
+
+nac_sum <- nac_data %>% 
+  group_by(Treatment,Day) %>%
+  summarize(NAC_1=mean(locus))
+
+ca_sum <- ca_data %>% 
+  group_by(Treatment,Day) %>%
+  summarize(CA_2=mean(LOC111133247),
+            CA_1=mean(LOC111120607))
+
+cb_sum <- cb_data %>% 
+  group_by(Treatment,Day) %>%
+  summarize(CB_1=mean(locus))
+
+eg_sum <- eg_data %>% 
+  group_by(Treatment,Day) %>%
+  summarize(EG_1=mean(locus))
+
+names <- paste(eg_sum$Day,"_",eg_sum$Treatment,sep="")
+heat_df <- data.frame(t(eg_sum[,c(3)]))
+heat_df <- rbind(heat_df,data.frame(t(cb_sum[,c(3)])))
+heat_df <- rbind(heat_df,data.frame(t(ca_sum[,c(3:ncol(ca_sum))])))
+heat_df <- rbind(heat_df,data.frame(t(nac_sum[,c(3)])))
+heat_df <- rbind(heat_df,data.frame(t(ac_sum[,c(3:ncol(ac_sum))])))
+heat_df <- rbind(heat_df,data.frame(t(bi_sum[,c(3:ncol(bi_sum))])))
+# Note add here if you add additional genes analysis
+
+colnames(heat_df) <- names
+heat_rel <- heat_df - heat_df$`9_400`
+heat_rel$gene <-  row.names(heat_rel)
+heat_long <- melt(heat_rel,id=c("gene"))
+
+ggplot(heat_long,aes(x=variable,y=gene)) + geom_tile(aes(fill=value),alpha=.9) +
+  scale_fill_gradient2(low="red2",high="springgreen1",mid="black") +  
+  labs(x="Day Treatment",fill= "GE (log2)",y="Putative Gene") +
+  theme_classic()
+  
+```
