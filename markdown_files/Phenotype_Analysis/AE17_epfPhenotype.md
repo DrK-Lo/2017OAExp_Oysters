@@ -329,7 +329,7 @@ whole_factor_full <- lmer(EPF_pH~timepoint_fac*pCO2_fac + (1|pop) + (1|shelf/tan
 ```
 
 ```
-## singular fit
+## boundary (singular) fit: see ?isSingular
 ```
 
 ```r
@@ -370,7 +370,7 @@ ranova(whole_factor_full)
 ```
 
 ```
-## singular fit
+## boundary (singular) fit: see ?isSingular
 ```
 
 ```
@@ -700,7 +700,7 @@ seq_full <- lmer(EPF_pH~timepoint_fac*pCO2_fac + (1|pop) + (1|shelf/tank),data=j
 ```
 
 ```
-## singular fit
+## boundary (singular) fit: see ?isSingular
 ```
 
 ```r
@@ -738,9 +738,9 @@ ranova(seq_full) # None of these seem important
 ```
 
 ```
-## singular fit
-## singular fit
-## singular fit
+## boundary (singular) fit: see ?isSingular
+## boundary (singular) fit: see ?isSingular
+## boundary (singular) fit: see ?isSingular
 ```
 
 ```
@@ -853,41 +853,7 @@ Final bar plot has SE bars and significance levels based on pairwise comparison 
 **Automated Model Selection**
 
 ```r
-step(seq_full)
-```
-
-```
-## singular fit
-## singular fit
-## singular fit
-## singular fit
-## singular fit
-## singular fit
-## singular fit
-```
-
-```
-## Backward reduced random-effect table:
-## 
-##                  Eliminated npar logLik    AIC         LRT Df Pr(>Chisq)
-## <none>                         8 -5.901 27.802                          
-## (1 | pop)                 1    7 -5.901 25.802  0.0000e+00  1          1
-## (1 | tank:shelf)          2    6 -5.901 23.802  0.0000e+00  1          1
-## (1 | shelf)               3    5 -5.901 21.802 -2.6645e-14  1          1
-## 
-## Backward reduced fixed-effect table:
-##                        Eliminated Df Sum of Sq    RSS     AIC F value
-## timepoint_fac:pCO2_fac          0  1   0.57366 2.0501 -53.045  7.7711
-##                         Pr(>F)  
-## timepoint_fac:pCO2_fac 0.01136 *
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## Model found:
-## EPF_pH ~ timepoint_fac + pCO2_fac + timepoint_fac:pCO2_fac
-```
-
-```r
+#step(seq_full)
 # Automated processed converged on the same model as above
 ```
   
@@ -1162,3 +1128,114 @@ summary(aov_1)
 # :( close but not significant (might be limited power here)
 ```
 
+### Examining water chem in multi dimensions
+
+```r
+epf_cCarbChem <- epf_cal[!is.na(epf_cal$EPF_DIC_Start),]
+
+chemNames <- c("EPF_pH","EPF_DIC_Start","EPF_Ca_Start")
+epf_cCarbChem_r <- subset(epf_cCarbChem,select = chemNames )
+
+cCarb_pca <- prcomp(epf_cCarbChem_r,scale=TRUE)
+fviz_eig(cCarb_pca)
+```
+
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+
+```r
+fviz_pca_var(cCarb_pca,
+             title="Variable Vectors - Total Carbonate Chem Data ",
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+```
+
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-23-2.png)<!-- -->
+
+```r
+group1 <- as.factor(epf_cCarbChem$pCO2)
+fviz_pca_biplot(cCarb_pca, repel = TRUE,
+                title="Individuals and Variable Vectors - Total Carbonate Chem Data (Ellipse = CI) ",
+                col.ind = group1, # color by groups
+                palette = c("#00AFBB",  "#FC4E07","darkseagreen"),
+                addEllipses = TRUE,
+                ellipse.type = "confidence",
+                legend.title = "pCO2",
+                col.var = "#2E9FDF" # Variables color
+                #col.ind = "#696969"  # Individuals color
+                )
+```
+
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-23-3.png)<!-- -->
+
+```r
+group2 <- interaction(epf_cCarbChem$pCO2,epf_cCarbChem$timepoint)
+fviz_pca_biplot(cCarb_pca, repel = TRUE,label = c("var"),
+                col.ind = group2, # color by groups
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                addEllipses = TRUE,
+                ellipse.type = "confidence",
+                legend.title = "pCO2.SampleDay",
+                col.var = "#2E9FDF" # Variables color
+                #col.ind = "#696969"  # Individuals color
+                )
+```
+
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-23-4.png)<!-- -->
+
+```r
+### Just Samples from the actual exposure (acclimation points removed)
+exposure_cCarbChem <- epf_cCarbChem[epf_cCarbChem$timepoint > 0,]
+chemNames <- c("EPF_pH","EPF_DIC_Start","EPF_Ca_Start")
+exposure_cCarbChem_r <- subset(exposure_cCarbChem,select = chemNames )
+
+cCarb_pca2 <- prcomp(exposure_cCarbChem_r,scale=TRUE)
+fviz_eig(cCarb_pca2)
+```
+
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-23-5.png)<!-- -->
+
+```r
+group3 <- interaction(exposure_cCarbChem$pCO2,exposure_cCarbChem$timepoint)
+fviz_pca_biplot(cCarb_pca2, repel = TRUE,label = c("var"),
+                title="Individuals and Variable Vectors - Exposure Only Carbonate Chem Data (Ellipse = CI) ",
+                col.ind = group3, # color by groups
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                addEllipses = TRUE,
+                ellipse.type = "confidence",
+                legend.title = "pCO2",
+                col.var = "#2E9FDF" # Variables color
+                #col.ind = "#696969"  # Individuals color
+                )
+```
+
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-23-6.png)<!-- -->
+
+```r
+### Just Samples we sequenced 
+seq_cCarbChem <- just_seq[!is.na(just_seq$EPF_DIC_Start),]
+chemNames <- c("EPF_pH","EPF_DIC_Start","EPF_Ca_Start")
+seq_cCarbChem_r <- subset(seq_cCarbChem,select = chemNames )
+
+cCarb_pca3 <- prcomp(seq_cCarbChem_r,scale=TRUE)
+fviz_eig(cCarb_pca3)
+```
+
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-23-7.png)<!-- -->
+
+```r
+group3 <- interaction(seq_cCarbChem$pCO2,seq_cCarbChem$timepoint)
+fviz_pca_biplot(cCarb_pca3, repel = TRUE,label = c("var"),
+                title="Individuals and Variable Vectors - Sequenced Samples Only Carbonate Chem Data (Ellipse = CI) ",
+                col.ind = group3, # color by groups
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                addEllipses = TRUE,
+                ellipse.type = "confidence",
+                legend.title = "pCO2",
+                col.var = "#2E9FDF" # Variables color
+                #col.ind = "#696969"  # Individuals color
+                )
+```
+
+![](AE17_epfPhenotype_files/figure-html/unnamed-chunk-23-8.png)<!-- -->
