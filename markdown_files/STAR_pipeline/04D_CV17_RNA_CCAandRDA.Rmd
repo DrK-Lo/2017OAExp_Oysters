@@ -1,0 +1,133 @@
+---
+title: "CCA and RDA Analysis in Vegan"
+author: "adowneywall"
+date: "5/6/2019"
+output: 
+  html_document:
+    keep_md: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#source("http://bioconductor.org/biocLite.R")
+if(!require("edgeR")) biocLite("edgeR")
+if(!require("limma")) biocLite("limma")
+
+library(vegan)
+library(edgeR)
+library(limma)
+library(kableExtra)
+library(ggplot2)
+```
+
+#### Data
+```{r echo=FALSE}
+# Data frame of all variables (fixed and random) that could be used in models
+model<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt", header=TRUE)
+model$Treatment <- as.factor(model$treatment)
+model$Time <- as.character(model$timepoint)
+model$Time[model$Time == "3"] <- "09"
+model$Time[model$Time == "6"] <- "80"
+model$Time <- as.factor(model$Time)
+model$Pop <- as.factor(model$population)
+model$Lane <- as.factor(model$lane)
+model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
+kable(model) %>%
+  kable_styling() %>%
+  add_header_above(c("Sample MetaData"= ncol(model)),align = "l",font_size = "large")
+counts <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Normalized_CountMatrix/Scenario1_normalizedVoom.RData")
+count_mat <- counts$E
+counts_filtered <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Filter_CountMatrix/scenario1_GeneCount.RData")
+count_filtered_mat <- counts$E
+GeneCounts <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",sep = " ")
+```
+
+
+### PERMANOVA Analysis - Adonis function in vegan package  
+**Adonis**: The functions partition sums of squares of a multivariate data set, and they are directly analogous toMANOVA (multivariate analysis of variance). McArdle and Anderson (2001) and Anderson (2001)refer to the method as “permutational manova” (formerly “nonparametric manova”). Further, as theinputs are linear predictors,  and a response matrix of an arbitrary number of columns,  they area robust alternative to both parametric MANOVA and to ordination methods for describing howvariation is attributed to different experimental treatments or uncontrolled covariates.  
+
+```{r}
+# Using normalized gene count matrix
+(out <- adonis(t(count_mat)~Treatment*Time*Pop*Lane,data=model,permutations = 999))
+# Using filter gene count matrix(not normalized)
+adonis(t(count_filtered_mat)~Treatment*Time,data=model,permutations = 9999)
+# Using full gene count matrix
+adonis(t(GeneCounts)~Treatment*Time,data=model,permutations = 999)
+```
+
+### Checking differences in among group variance with Betadispr() in vegan
+```{r}
+# Creates a distance matrix based on our count matrix (needed for betadiser function)
+count_vd <- vegdist(t(count_mat))
+# Evaluates homogeneity of variances for all group levels
+count_bd <- betadisper(count_vd,model$SFV, type = c("median"), bias.adjust = FALSE,sqrt.dist = FALSE, add = FALSE)
+# Two different ways of calculating significance of homogeneity of variances tests from betadisper function
+TukeyHSD(count_bd)
+permutest(count_bd, pairwise = TRUE,permutations = 999)
+```
+Variances of sample points based on GE data is not significant different among all treatment*time levels
+  
+### Non-parametric Multidimensional Scaling (NMDS)  - LARGE 'SITE' SIZE ISSUE HERE NOT RUNNING
+```{r eval=FALSE}
+count_nMDS <- metaMDS(count_mat,k=2,try = 10)
+#Not sure this will work, dataset is too large
+stressplot(count_nMDS)
+ordiplot(count_nMDS,type="n")
+orditorp(count_nMDS,display="species",col="red",air=0.01)
+```
+  
+**Some Plots**
+```{r echo =FALSE}
+prin_comp<-rda(t(count_mat), scale=FALSE)
+pca_scores<-scores(prin_comp)
+color_comb <- c("deepskyblue2","blue4","firebrick1","darkred") # colors for population 
+model$colors <- "" 
+model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
+model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
+model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
+model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
+
+ordiplot(prin_comp,type="n",xlim = c(-15,16),ylim = c(-16,15))
+orditorp(prin_comp,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = 16)
+#ordiellipse(prin_comp,model$SFV,conf=0.90,col = color_comb,lwd = 3)
+ordispider(prin_comp,model$SFV,col = color_comb,lwd=2.5)
+legend(x=5,y=-5,legend = c("Day09_Control","Day80_Control","Day09_OA","Day80_OA"),pch = 16,col=color_comb,xpd = .25)
+text(x = 8.5 ,y = 14, paste0("Adonis P_Treatment = ",out$aov.tab$`Pr(>F)`[1]))
+text(x = 8.55 ,y = 12.5, paste0("Adonis P_Duration = ",out$aov.tab$`Pr(>F)`[2],"*"))
+text(x = 8.8 ,y = 11, paste0("Adonis P_Interaction = ",out$aov.tab$`Pr(>F)`[3]))
+
+# Also looked at the complete genecount dataset in multivariate space but several removed loci really seemed to drive the pattern
+
+# Perform PCA on normalized data that considered tank as a blocking variable
+# pca_comp <- prcomp(t(na.omit(count_mat)))
+# pca <- as.data.frame(pca_comp$x)
+# pca_summary <- summary(pca_comp)
+# 
+# # % variation explained
+# var_PC1 <- pca_summary$importance[2,1]*100
+# var_PC2 <- pca_summary$importance[2,2]*100
+# 
+# color_pop <- rainbow(length(unique(model$population))) # colors for population 
+# color_treat <- rainbow(length(unique(model$treatment))) # colors for treatment
+# color_time <- rainbow(length(unique(model$timepoint))) # colors for time
+# 
+# shapes <- c(as.character(model$Treatment)) # Setting shapes of points based on treatment
+# 
+# # PCA with colors for time
+# pcaplot <- ggplot(pca, aes(x=PC1, y=PC2,colour=shapes, size=I(4), shape=model$Time)) + geom_point()
+# pcaplot <- pcaplot + scale_colour_manual(values=c("firebrick3","deepskyblue4")) #$color as.character(color_pca$color)c("red","blue","green")
+# pcaplot <- pcaplot + theme_bw() + labs(x=paste0("PC1 (",var_PC1,"% explained)"),y=paste0("PC2 (",var_PC2,"% explained)"),colour="Treatment",shape="Day")
+# pcaplot + theme(panel.grid.major = element_blank(), 
+#                 panel.grid.minor = element_blank(), 
+#                 axis.title=element_text(size=14),
+#                 legend.text=element_text(size=14),
+#                 panel.background = element_blank(), 
+#                 axis.line = element_line(color = "black"), 
+#                 axis.text.y = element_text(angle = 90), 
+#                 legend.key = element_blank())
+# ordiellipse(pca_comp,interaction(model$Treatment,model$Time),conf=0.90,col = interaction(model$Treatment,model$Time))
+```
+
