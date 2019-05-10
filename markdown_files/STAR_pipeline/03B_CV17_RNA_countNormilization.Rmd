@@ -21,7 +21,7 @@ This code uses the raw count data and the filtered SNP data from RNAseq to ident
 Start by loading libraries required for the preliminary analysis. If the libraries do not properly load, make sure they are installed.  
   
 ```{r include=FALSE}
-#source("http://bioconductor.org/biocLite.R")
+source("http://bioconductor.org/biocLite.R")
 if(!require("edgeR")) biocLite("edgeR")
 if(!require("limma")) biocLite("limma")
 if(!require("DESeq2")) biocLite("DESeq2")

@@ -691,20 +691,20 @@ editor_options:
 ## Terms added sequentially (first to last)
 ## 
 ##                     Df SumsOfSqs   MeanSqs F.Model      R2 Pr(>F)  
-## Treatment            1  0.005847 0.0058467 0.98912 0.04429  0.547  
-## Time                 1  0.006759 0.0067589 1.14344 0.05120  0.023 *
-## Pop                  2  0.012083 0.0060416 1.02209 0.09153  0.346  
-## Lane                 1  0.005800 0.0057999 0.98120 0.04393  0.615  
-## Treatment:Time       1  0.005171 0.0051713 0.87485 0.03917  0.994  
-## Treatment:Pop        2  0.011187 0.0055936 0.94631 0.08474  0.864  
-## Time:Pop             2  0.011307 0.0056535 0.95644 0.08565  0.807  
-## Treatment:Lane       1  0.005486 0.0054858 0.92807 0.04156  0.890  
-## Time:Lane            1  0.005533 0.0055329 0.93603 0.04191  0.850  
-## Pop:Lane             2  0.011171 0.0055853 0.94490 0.08462  0.853  
-## Treatment:Time:Pop   2  0.011191 0.0055955 0.94662 0.08477  0.817  
-## Treatment:Time:Lane  1  0.005564 0.0055638 0.94126 0.04215  0.803  
-## Treatment:Pop:Lane   1  0.006002 0.0060019 1.01538 0.04546  0.399  
-## Time:Pop:Lane        1  0.005269 0.0052688 0.89136 0.03991  0.953  
+## Treatment            1  0.005847 0.0058467 0.98912 0.04429  0.530  
+## Time                 1  0.006759 0.0067589 1.14344 0.05120  0.024 *
+## Pop                  2  0.012083 0.0060416 1.02209 0.09153  0.331  
+## Lane                 1  0.005800 0.0057999 0.98120 0.04393  0.582  
+## Treatment:Time       1  0.005171 0.0051713 0.87485 0.03917  0.990  
+## Treatment:Pop        2  0.011187 0.0055936 0.94631 0.08474  0.849  
+## Time:Pop             2  0.011307 0.0056535 0.95644 0.08565  0.774  
+## Treatment:Lane       1  0.005486 0.0054858 0.92807 0.04156  0.886  
+## Time:Lane            1  0.005533 0.0055329 0.93603 0.04191  0.842  
+## Pop:Lane             2  0.011171 0.0055853 0.94490 0.08462  0.833  
+## Treatment:Time:Pop   2  0.011191 0.0055955 0.94662 0.08477  0.820  
+## Treatment:Time:Lane  1  0.005564 0.0055638 0.94126 0.04215  0.794  
+## Treatment:Pop:Lane   1  0.006002 0.0060019 1.01538 0.04546  0.421  
+## Time:Pop:Lane        1  0.005269 0.0052688 0.89136 0.03991  0.954  
 ## Residuals            4  0.023644 0.0059110         0.17910         
 ## Total               23  0.132013                   1.00000         
 ## ---
@@ -727,9 +727,9 @@ adonis(t(count_filtered_mat)~Treatment*Time,data=model,permutations = 9999)
 ## Terms added sequentially (first to last)
 ## 
 ##                Df SumsOfSqs   MeanSqs F.Model      R2 Pr(>F)   
-## Treatment       1  0.005847 0.0058467 1.02374 0.04429 0.2690   
-## Time            1  0.006759 0.0067589 1.18346 0.05120 0.0041 **
-## Treatment:Time  1  0.005185 0.0051852 0.90792 0.03928 0.9929   
+## Treatment       1  0.005847 0.0058467 1.02374 0.04429 0.2757   
+## Time            1  0.006759 0.0067589 1.18346 0.05120 0.0040 **
+## Treatment:Time  1  0.005185 0.0051852 0.90792 0.03928 0.9924   
 ## Residuals      20  0.114222 0.0057111         0.86523          
 ## Total          23  0.132013                   1.00000          
 ## ---
@@ -752,16 +752,16 @@ adonis(t(GeneCounts)~Treatment*Time,data=model,permutations = 999)
 ## Terms added sequentially (first to last)
 ## 
 ##                Df SumsOfSqs  MeanSqs F.Model      R2 Pr(>F)  
-## Treatment       1   0.06882 0.068824 1.24987 0.05330  0.060 .
-## Time            1   0.07146 0.071458 1.29770 0.05534  0.036 *
-## Treatment:Time  1   0.04973 0.049732 0.90315 0.03851  0.766  
+## Treatment       1   0.06882 0.068824 1.24987 0.05330  0.045 *
+## Time            1   0.07146 0.071458 1.29770 0.05534  0.037 *
+## Treatment:Time  1   0.04973 0.049732 0.90315 0.03851  0.783  
 ## Residuals      20   1.10130 0.055065         0.85285         
 ## Total          23   1.29131                  1.00000         
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
-### Checking differences in among group variance with Betadispr() in vegan
+### Checking differences in homogeneity of variance among groups with Betadispr() in vegan
 
 ```r
 # Creates a distance matrix based on our count matrix (needed for betadiser function)
@@ -800,15 +800,15 @@ permutest(count_bd, pairwise = TRUE,permutations = 999)
 ## 
 ## Response: Distances
 ##           Df     Sum Sq    Mean Sq      F N.Perm Pr(>F)
-## Groups     3 0.00002779 9.2617e-06 0.5814    999  0.633
+## Groups     3 0.00002779 9.2617e-06 0.5814    999  0.614
 ## Residuals 20 0.00031863 1.5931e-05                     
 ## 
 ## Pairwise comparisons:
 ## (Observed p-value below diagonal, permuted p-value above diagonal)
 ##          09.400  80.400 09.2800 80.2800
-## 09.400          0.74600 0.28500   0.296
-## 80.400  0.74029         0.51400   0.511
-## 09.2800 0.28870 0.50846           0.998
+## 09.400          0.75100 0.27000   0.284
+## 80.400  0.74029         0.51100   0.507
+## 09.2800 0.28870 0.50846           0.996
 ## 80.2800 0.29795 0.51560 0.99737
 ```
 Variances of sample points based on GE data is not significant different among all treatment*time levels

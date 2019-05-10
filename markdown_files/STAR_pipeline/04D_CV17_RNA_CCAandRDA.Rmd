@@ -58,7 +58,7 @@ adonis(t(count_filtered_mat)~Treatment*Time,data=model,permutations = 9999)
 adonis(t(GeneCounts)~Treatment*Time,data=model,permutations = 999)
 ```
 
-### Checking differences in among group variance with Betadispr() in vegan
+### Checking differences in homogeneity of variance among groups with Betadispr() in vegan
 ```{r}
 # Creates a distance matrix based on our count matrix (needed for betadiser function)
 count_vd <- vegdist(t(count_mat))
