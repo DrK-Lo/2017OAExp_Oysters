@@ -12,8 +12,9 @@ This repository was created to keep track of the code and preliminary analyses f
 - [Gene Normalization](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/03B_CV17_RNA_countAnalysis.md)
 - [DAPC Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04B_CV17_RNA_DAPC.md)
 - [Targeted Gene Queries](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04C_CV17_RNA_targetGeneQuery.md)
-- [EPF Phenotype Analysis - In progress](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/AE17_epfPhenotype.md)
+- [EPF Phenotype Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/AE17_epfPhenotype.md)
 - [RDA, nMDS, PERMANOVA(adonis), other Multivariate visualize and statistics](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04D_CV17_RNA_CCAandRDA.md)
+- [DESeq Analysis for Differential Expression](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04E_CV17_RNA_DESeqAnalysis.md)
 
 ### Extra 
 
