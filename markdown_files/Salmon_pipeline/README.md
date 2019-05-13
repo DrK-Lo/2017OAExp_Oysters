@@ -3,31 +3,42 @@
 ## Overview  
 This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and gene) level quantification from RNA-seq data. The leverages the output of Salmon for use in some basic multivariate visualization (RDA, DAPC) and inference based (PERMANOVA) analyses, as well as individual transcript, gene, and isoform level association tests (implemented in both DESeq2 and Sleuth).
 
-### Literature on Required Tools and Scripts
+### Brief Description and Literature on Required Tools and Scripts
 
 **Mapping and Transcript Quantification**
 
-*Salmon* -  
+*Salmon* -  Fast transcript quantification tool that utilizes a two phase mapping approach, which aligns RNA-seq reads to the a library of target transcripts, called an index, which can be constructed *de novo* or can simply be a published reference transcriptome. 
 * [Website](https://salmon.readthedocs.io/en/latest/salmon.html)  
-* [Publication]()
+* [Publication](https://www.nature.com/articles/nmeth.4197)
 
 **Formatting and Gene Aggregation Tools**  
 
-*Wasabi* - Converts the converts standard salmon outputs into an ```.h5``` file for each individual. These can be used to analyze transcript level data via Sleuth.
+*wasabi* - Converts the converts standard salmon outputs into an ```.h5``` file for each individual. These can be used to analyze transcript level data via Sleuth.
 * [Github Page](https://github.com/COMBINE-lab/wasabi)
 
-*Tximport* - 
+*tximport* - Tool for importing and summarizing transcript-level abundance estimates for transcript and gene level analysis. 
 * [Website](http://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html)
+* [Related Paper](https://f1000research.com/articles/4-1521/v1)
 
 **Gene, Transcript, and Isoform differential expression**
 
 *DESeq2* - 
 * [Website](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
 
-
-*Sleuth* - 
+*sleuth* - 
 * [Website](https://pachterlab.github.io/sleuth/about)
 * [Pimental et al. 2017 Nature Methods](https://www.nature.com/articles/nmeth.4324)
+
+### Step 1 - Mapping and Transcript Quantification
+
+### Step 2 - Formating Salmon Outputs,Gene Aggregation, and creating a Transcript to Gene Reference
+
+### Step 3 - Data Visualization and Multivariate Method Analyses
+
+### Step 4 - Differential Expression (transcript, isoform, and gene level)
+
+### Step 5 - 
+
 
 
 
