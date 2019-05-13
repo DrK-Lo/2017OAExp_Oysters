@@ -3,7 +3,16 @@
 ## Overview  
 This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and gene) level quantification from RNA-seq data. The leverages the output of Salmon for use in some basic multivariate visualization (RDA, DAPC) and inference based (PERMANOVA) analyses, as well as individual transcript, gene, and isoform level association tests (implemented in both DESeq2 and Sleuth).
 
-### Brief Description and Literature on Required Tools and Scripts
+## Table of Cotents 
+
+1. [Brief Description and Literature on Required Tools and Scripts](#one)
+2. [Step 1 - Mapping and Transcript Quantification](#paragraph1)
+3. [Step 2 - Formating Salmon Outputs,Gene Aggregation, and creating a Transcript to Gene Reference](#paragraph2)
+4. [Step 3 - Data Visualization and Multivariate Method Analyses]()
+5. [Step 4 - Differential Expression (transcript, isoform, and gene level)]()
+6. [Additional Description of Tools]()
+
+### Brief Description and Literature on Required Tools and Scripts <a name="one"></a>
 
 **Mapping and Transcript Quantification**
 
@@ -20,7 +29,7 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 * [Website](http://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html)
 * [Related Paper](https://f1000research.com/articles/4-1521/v1)
 
-**Gene, Transcript, and Isoform differential expression**
+**Gene, Transcript, and Isoform differential expression** Brief Description and Literature on Required Tools and Scripts
 
 *DESeq2* - 
 * [Website](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
@@ -37,7 +46,7 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 
 ### Step 4 - Differential Expression (transcript, isoform, and gene level)
 
-### Step 5 - 
+### Additional Description of Tools
 
 
 
