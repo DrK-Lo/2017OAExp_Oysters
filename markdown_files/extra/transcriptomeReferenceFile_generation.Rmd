@@ -1,0 +1,77 @@
+---
+title: "Script for creating reference transcriptomes"
+author: "adowneywall"
+date: "5/12/2019"
+output:
+  html_document:
+     keep_md: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
+```
+
+**Description**: This script takes the latest version of the the Eastern oyster genome and splits in into a data.frame.  
+
+**Reference files**  
+[Click here for NCBI ftp URL](ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/002/022/765/GCF_002022765.2_C_virginica-3.0)  
+
+**Original File IDs** 
+* ```GCF_002022765.2_C_virginica-3.0_rna.fna```  
+* ```GCF_002022765.2_C_virginica-3.0_rna_from_genomic.fna```  
+
+**Saved dataframe files**  
+* ```transcriptome_table.RData```  
+* ```transcriptome_fromGenome_table.RData```  
+
+### Reading in a transcriptome data  
+```{r}
+trans <- readLines("/home/downeyam/Github/salmon_tutorial/GCF_002022765.2_C_virginica-3.0_rna.fna")
+save_trans <- grep(">",trans)
+trans_select <- trans[save_trans]
+
+## Split up trans file
+# Full ID
+t_fullID <- sub(">(.+?)\\s.*", "\\1", trans_select)
+#Gene Prediction
+t_Predict <- sub(".*PREDICTED:\\s(.*)\\s\\(.*", "\\1", trans_select)
+# Gene location (matches with other file)
+t_location <- sub(".*\\((.*)\\).*","\\1",trans_select)
+# Gene Variant
+t_transVariant <- sub(".*,\\s(.*),.*","\\1",trans_select)
+# Gene Type
+t_type <- sub(".*,\\s(.*)","\\1",trans_select)
+
+t_rna <- data.frame(fullID=t_fullID,location=t_location,transVariant=t_transVariant,predict=t_Predict,type=t_type)
+#saveRDS(t_rna,"/home/downeyam/Github/2017OAExp_Oysters/input_files/transcriptome_table.RData")
+
+kable(head(t_rna)) %>%
+  kable_styling()
+```
+
+### Transcriptomic data from genome  
+```{r}
+trans_fg <- readLines("/home/downeyam/Github/salmon_tutorial/GCF_002022765.2_C_virginica-3.0_rna_from_genomic.fna")
+save_trans_fg <- grep(">",trans_fg)
+trans_fg_select <- trans_fg[save_trans_fg]
+
+## Split up trans_fg file
+#Gene Location
+fg_location <- sub(".*gene=(LOC[0-9]+).*", "\\1", trans_fg_select)
+# Gene ID
+fg_geneID <- sub(".*GeneID:(.+?)].*", "\\1", trans_fg_select)
+# Product
+fg_product <- sub(".*product=(.+?)].*", "\\1", trans_fg_select)
+# Transcript ID
+fg_transcriptID <- sub(".*transcript_id=(.+?)].*", "\\1", trans_fg_select)
+# Full ID
+fg_fullID <- sub(">(.+?)\\s.*", "\\1", trans_fg_select)
+
+fg <- data.frame(fullID=fg_fullID,location=fg_location,geneID=fg_geneID,product=fg_product,transcriptID=fg_transcriptID)
+#saveRDS(fg,"/home/downeyam/Github/2017OAExp_Oysters/input_files/transcriptome_fromGenome_table.RData")
+kable(head(fg)) %>%
+  kable_styling()
+```
