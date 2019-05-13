@@ -14,11 +14,11 @@ library(tximport)
 
 **Data**  
 ```{r}
-dir <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/out2/"
+dir <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/run20180512/"
 ls_files <- list.files(dir)
 files_input <- file.path(dir,ls_files,"/quant.sf",fsep = "")
 
-trans <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/transcriptome_table.RData")
+trans <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/transcriptome_fromGenome_table.RData")
 tr2gene <- data.frame(TXNAME = trans$fullID,GENEID=trans$location)
 tr2gene$TXNAME <- as.character(tr2gene$TXNAME)
 tr2gene$GENEID <- as.character(tr2gene$GENEID)
@@ -35,26 +35,102 @@ model$Time <- as.factor(model$Time)
 
 **Gene Count Matrix**
 ```{r}
+
 names(files_input) <- model$sample_name
 # Using transcriptome from Genome
-txi_transFromGenome_genes_1 <- tximport(files_input[1:6],
+txi_transFromGenome_genes_1 <- tximport(files_input[1:3],
                                       type = "salmon",
                                       tx2gene = tr2gene)
-txi_transFromGenome_genes_2 <- tximport(files_input[7:12],
-                                      type = "salmon",
-                                      tx2gene = tr2gene)
-txi_transFromGenome_genes_3 <- tximport(files_input[13:18],
-                                      type = "salmon",
-                                      tx2gene = tr2gene)
-txi_transFromGenome_genes_4 <- tximport(files_input[19:24],
-                                      type = "salmon",
-                                      tx2gene = tr2gene)
+t1c <- txi_transFromGenome_genes_1$counts
+t1a <- txi_transFromGenome_genes_1$abundance
+rm(txi_transFromGenome_genes_1)
 
-gene_countMatrix <- data.frame(cbind(txi_transFromGenome_genes_1$counts,
-                 txi_transFromGenome_genes_2$counts,
-                 txi_transFromGenome_genes_3$counts,
-                 txi_transFromGenome_genes_4$counts))
-#saveRDS(gene_countMatrix,"/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/out2/gene_countMatrix.RData")
+txi_transFromGenome_genes_2 <- tximport(files_input[4:6],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t2c <- txi_transFromGenome_genes_2$counts
+t2a <- txi_transFromGenome_genes_2$abundance
+rm(txi_transFromGenome_genes_2)
+
+txi_transFromGenome_genes_3 <- tximport(files_input[7:8],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t3c <- txi_transFromGenome_genes_3$counts
+t3a <- txi_transFromGenome_genes_3$abundance
+rm(txi_transFromGenome_genes_3)
+
+txi_transFromGenome_genes_4 <- tximport(files_input[9:10],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t4c <- txi_transFromGenome_genes_4$counts
+t4a <- txi_transFromGenome_genes_4$abundance
+rm(txi_transFromGenome_genes_4)
+
+txi_transFromGenome_genes_5 <- tximport(files_input[11:12],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t5c <- txi_transFromGenome_genes_5$counts
+t5a <- txi_transFromGenome_genes_5$abundance
+rm(txi_transFromGenome_genes_5)
+
+txi_transFromGenome_genes_6 <- tximport(files_input[13:14],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t6c <- txi_transFromGenome_genes_6$counts
+t6a <- txi_transFromGenome_genes_6$abundance
+rm(txi_transFromGenome_genes_6)
+
+txi_transFromGenome_genes_7 <- tximport(files_input[15:16],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t7c <- txi_transFromGenome_genes_7$counts
+t7a <- txi_transFromGenome_genes_7$abundance
+rm(txi_transFromGenome_genes_7)
+
+txi_transFromGenome_genes_8 <- tximport(files_input[17:18],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t8c <- txi_transFromGenome_genes_8$counts
+t8a <- txi_transFromGenome_genes_8$abundance
+rm(txi_transFromGenome_genes_8)
+
+txi_transFromGenome_genes_9 <- tximport(files_input[19:20],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t9c <- txi_transFromGenome_genes_9$counts
+t9a <- txi_transFromGenome_genes_9$abundance
+rm(txi_transFromGenome_genes_9)
+
+txi_transFromGenome_genes_10 <- tximport(files_input[21:22],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t10c <- txi_transFromGenome_genes_10$counts
+t10a <- txi_transFromGenome_genes_10$abundance
+rm(txi_transFromGenome_genes_10)
+
+txi_transFromGenome_genes_11 <- tximport(files_input[23:24],
+                                      type = "salmon",
+                                      tx2gene = tr2gene)
+t11c <- txi_transFromGenome_genes_11$counts
+t11a <- txi_transFromGenome_genes_11$abundance
+rm(txi_transFromGenome_genes_11)
+
+gene_countMatrix <- data.frame(cbind(t1c,t2c,
+                                     t3c,t4c,
+                                     t5c,t6c,
+                                     t7c,t8c,
+                                     t9c,t10c,
+                                     t11c))
+
+gene_abundMatrix <- data.frame(cbind(t1a,t2a,
+                                     t3a,t4a,
+                                     t5a,t6a,
+                                     t7a,t8a,
+                                     t9a,t10a,
+                                     t11a))
+  
+saveRDS(gene_countMatrix,"/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/run20180512_gene_countMatrix_.RData")
+saveRDS(gene_abundMatrix,"/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/run20180512_gene_abundMatrix_.RData")
 ```
 
 **Transcript Count Matrix**
@@ -69,7 +145,7 @@ txi_transFromGenome_trans_2 <- tximport(files_input[4:6],
                                       txOut = TRUE)
 t2 <- txi_transFromGenome_trans_2$counts
 rm(txi_transFromGenome_trans_2)
-txi_transFromGenome_trans_3 <- tximport(files_input[7:9],
+txi_transFromGenome_trans_3 <- tximport(files_input[8:10],
                                       type = "salmon",
                                       txOut = TRUE)
 t3 <- txi_transFromGenome_trans_3$counts
@@ -82,6 +158,6 @@ transcript_countMatrix <- data.frame(cbind(txi_transFromGenome_genes_1$counts,
                  txi_transFromGenome_genes_2$counts,
                  txi_transFromGenome_genes_3$counts,
                  txi_transFromGenome_genes_4$counts))
-saveRDS(transcript_countMatrix,"/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/out2/trans_countMatrix.RData")
+#saveRDS(transcript_countMatrix,"/home/downeyam/Github/2018OAExp_Oysters/input_files/salmon_RNA/out2/trans_countMatrix.RData")
 ```
 
