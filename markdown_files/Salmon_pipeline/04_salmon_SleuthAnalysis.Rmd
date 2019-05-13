@@ -1,0 +1,81 @@
+---
+title: "04_salmon_sleuth"
+author: "adowneywall"
+date: "5/13/2019"
+output: 
+  html_document:
+    keep_md: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#source("https://bioconductor.org/biocLite.R")
+#biocLite("biomaRt")
+library(biomaRt)
+library(wasabi)
+library(sleuth)
+library(cowplot)
+```
+
+Using Wasabi to convert Salmon files to ```.h5``` file format for sleuth
+```{r eval=FALSE}
+dir <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/"
+setwd(dir)
+sfdirs <- file.path(dir,"out2", list.files("out2")[1:24])
+prepare_fish_for_sleuth(sfdirs[2:24])
+```
+
+```{r}
+model<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt", header=TRUE)
+model$Treatment <- as.factor(model$treatment)
+model$Time <- as.character(model$timepoint)
+model$Time[model$Time == "3"] <- "09"
+model$Time[model$Time == "6"] <- "80"
+model$Time <- as.factor(model$Time)
+model$Pop <- as.factor(model$population)
+model$Lane <- as.factor(model$lane)
+model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
+samp_names <- substr(model$sample_name,4,10)
+model <- dplyr::mutate(model,
+  path = file.path(dir,'out2/',samp_names,'/abundance.h5',fsep = ""))
+
+metadata <- dplyr::select(model,c("sample_name","Treatment","Time","Pop","Lane","path"))
+colnames(metadata)[1] <- "sample"
+
+trans <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/transcriptome_table.RData")
+
+ttg <- dplyr::select(trans,c("fullID","location","transVariant"))
+colnames(ttg) <- c("target_id","ens_gene","ext_gene")
+```
+
+```{r}
+so <- sleuth_prep(metadata, target_mapping = ttg,
+  aggregation_column = 'ens_gene', extra_bootstrap_summary = TRUE)
+
+#reduced model
+so <- sleuth_fit(so, ~Lane + Pop, 'reduced')
+so <- sleuth_fit(so, ~Lane + Pop + Time, 'reduced_time')
+#full model 
+so <- sleuth_fit(so, ~Lane + Pop + Time + Treatment, 'full')
+#Likelihood ratio test
+so <- sleuth_lrt(so, 'reduced_time', 'full')
+```
+
+##Extracting significant values
+```{r}
+sleuth_table_gene <- sleuth_results(so, 'reduced_time:full', 'lrt', show_all = FALSE)
+sleuth_table_gene <- dplyr::filter(sleuth_table_gene, qval <= 0.05)
+head(sleuth_table_gene, 20)
+```
+
+```{r}
+sleuth_table_tx <- sleuth_results(so, 'reduced_time:full', 'lrt', show_all = FALSE, pval_aggregate = FALSE)
+sleuth_table_tx <- dplyr::filter(sleuth_table_tx, qval <= 0.05)
+head(sleuth_table_tx, 20)
+```
+
+```{r}
+sleuth_live(so)
+```
