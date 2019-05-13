@@ -6,11 +6,11 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 ## Table of Cotents 
 
 1. [Brief Description and Literature on Required Tools and Scripts](#one)
-2. [Step 1 - Mapping and Transcript Quantification](#paragraph1)
-3. [Step 2 - Formating Salmon Outputs,Gene Aggregation, and creating a Transcript to Gene Reference](#paragraph2)
-4. [Step 3 - Data Visualization and Multivariate Method Analyses]()
-5. [Step 4 - Differential Expression (transcript, isoform, and gene level)]()
-6. [Additional Description of Tools]()
+2. [Step 1 - Mapping and Transcript Quantification](#two)
+3. [Step 2 - Formating Salmon Outputs,Gene Aggregation, and creating a Transcript to Gene Reference](#three)
+4. [Step 3 - Data Visualization and Multivariate Method Analyses](#four)
+5. [Step 4 - Differential Expression (transcript, isoform, and gene level)](#five)
+6. [Additional Description of Tools](#six)
 
 ### Brief Description and Literature on Required Tools and Scripts <a name="one"></a>
 
@@ -38,15 +38,15 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 * [Website](https://pachterlab.github.io/sleuth/about)
 * [Pimental et al. 2017 Nature Methods](https://www.nature.com/articles/nmeth.4324)
 
-### Step 1 - Mapping and Transcript Quantification
+### Step 1 - Mapping and Transcript Quantification <a name="two"></a>
 
-### Step 2 - Formating Salmon Outputs,Gene Aggregation, and creating a Transcript to Gene Reference
+### Step 2 - Formating Salmon Outputs,Gene Aggregation, and creating a Transcript to Gene Reference <a name="three"></a>
 
-### Step 3 - Data Visualization and Multivariate Method Analyses
+### Step 3 - Data Visualization and Multivariate Method Analyses <a name="four"></a>
 
-### Step 4 - Differential Expression (transcript, isoform, and gene level)
+### Step 4 - Differential Expression (transcript, isoform, and gene level) <a name="five"></a>
 
-### Additional Description of Tools
+### Additional Description of Tools <a name="six"></a>
 
 
 
