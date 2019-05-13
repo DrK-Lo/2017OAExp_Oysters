@@ -41,6 +41,8 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 
 ### Step 1 - Mapping and Transcript Quantification <a name="two"></a>
 
+
+
 ### Step 2 - Formating Salmon Outputs,Gene Aggregation, and creating a Transcript to Gene Reference <a name="three"></a>
 
 ### Step 3 - Data Visualization and Multivariate Method Analyses <a name="four"></a>
