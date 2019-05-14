@@ -14,7 +14,7 @@ STAR Pipeline
   - [Gene Normalization](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/03B_CV17_RNA_countAnalysis.md)
   - [DAPC Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04B_CV17_RNA_DAPC.md)
   - [Targeted Gene Queries](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04C_CV17_RNA_targetGeneQuery.md)
-  - [RDA, nMDS, PERMANOVA(adonis), other Multivariate visualize and statistics](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04D_CV17_RNA_CCAandRDA.md)
+  - [RDA, DAPC, PERMANOVA(adonis), other Multivariate visualize and statistics](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04D_CV17_RNA_CCAandRDA.md)
   - [DESeq Analysis for Differential Expression](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04E_CV17_RNA_DESeqAnalysis.md)
 
 [SALMON Pipeline](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/README.md)
