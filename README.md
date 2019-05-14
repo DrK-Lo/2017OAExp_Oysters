@@ -3,11 +3,9 @@
 ### Overview  
 This repository was created to keep track of the code and preliminary analyses for the 2017 Oyster Acidification Experiment. RNA was extracted from 24 total samples, 12 samples from Timepoint 3 (June 13th) and 12 samples from Timepoint 6 (August 22/24th), with six samples from the two extreme treatments (400 and 2800 ppm) within each of these timepoints. 
 
-### Manuscript (in progress)
-[Manuscript](https://docs.google.com/document/d/1UTjTN_KC_exGVlf0I0UpntO7woBzGoJ3CKZel8WXobc/edit?ts=5bbf8c38)
+### [Manuscript (in progress)](https://docs.google.com/document/d/1UTjTN_KC_exGVlf0I0UpntO7woBzGoJ3CKZel8WXobc/edit?ts=5bbf8c38)
 
-### Notebook 
-[Work Log]()
+### [Notebook]() 
 
 ### Main Analysis (in progress)
 
