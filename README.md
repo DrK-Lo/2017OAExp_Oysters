@@ -6,6 +6,9 @@ This repository was created to keep track of the code and preliminary analyses f
 ### Manuscript (in progress)
 [Manuscript](https://docs.google.com/document/d/1UTjTN_KC_exGVlf0I0UpntO7woBzGoJ3CKZel8WXobc/edit?ts=5bbf8c38)
 
+### Notebook 
+[Work Log]()
+
 ### Main Analysis (in progress)
 
 STAR Pipeline
@@ -16,9 +19,13 @@ STAR Pipeline
   - [RDA, nMDS, PERMANOVA(adonis), other Multivariate visualize and statistics](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04D_CV17_RNA_CCAandRDA.md)
   - [DESeq Analysis for Differential Expression](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04E_CV17_RNA_DESeqAnalysis.md)
 
-[SALMON Pipeline]()
+[SALMON Pipeline](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/README.md)
+  - [Transcript Quantification]()
 
-- [EPF Phenotype Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/AE17_epfPhenotype.md)
+Phenotypes 
+  - [EPF Phenotype Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/AE17_epfPhenotype.md)
+
+[Water Chemistry]() 
 
 
 ### Extra 
