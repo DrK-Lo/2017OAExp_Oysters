@@ -813,8 +813,8 @@ for(i in 1:ncol(sa_c)){
   cor_val[i] <- cor(x,y)
 }
 ```
-
-Correlation by sample
+  
+Correlation by sample  
 
 ```r
 names(cor_val) <- colnames(sa_c)
@@ -928,7 +928,9 @@ kable(cor_val) %>%
   </tr>
 </tbody>
 </table>
-
+  
+**Initial Thoughts** : The different mappers are not only leading to drastically different numbers of successfully mapped counts, but appear to lead to unique mapping to different transcripts that are only weakly correlated. In other words, Salmon leads not only to more reads being successfully mapped, but also leads to different loci with increased counts.  
+  
 
 
 
