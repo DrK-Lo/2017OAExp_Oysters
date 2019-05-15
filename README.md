@@ -34,6 +34,7 @@ Phenotypes
 
 - [Read Count Break Down](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/readAnalysis.md): Summarized raw read, alignment, and final gene count data for each individual. This file also contains a preliminary look at the unfiltered ```geneCount``` matrix. Specifically, the proportion of counts that fall in the upper 10,5,and1% of genes and how the counts of those genes compare between treatments.
 - [Gene Count Matrix Comparison](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/starReRun_17005_comparison.md): This was a brief comparisons between the geneCounts for sample 17005 generated during the original Original STAR Pipeline run (MAR-2018) and new STAR Pipeline run which used the same data and sample parameters.
+- [Salmon vs STAR Mapping Comparison](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/STAR_Salmon_Mapping_Comparison.md): Looked at gene count matrix created by using the STAR mapping pipeline (created MAR-2018) vs. Salmon (MAY-2019). Found Salmon lead to much higher counts (x100 times), that only correlated with the STAR mapping outputs by ~ 11%.  
 
 ### RNASeq Data Analysis Directory
 
