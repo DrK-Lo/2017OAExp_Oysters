@@ -41,8 +41,50 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 
 ### Step 1 - Mapping and Transcript Quantification <a name="two"></a>
 
+**Summary** : Mapping and Quantification is done using the two-phase approach. 
+  * Step 1: Use 
+  * Step 2: 
+
+**Step 1.1 - Create a Index of all transcripts**
 
 
+Command line for running a Single Sample:
+```
+> salmon quant -i index -l IU -1 lib_1_1.fq lib_2_1.fq -2 lib_1_2.fq lib_2_2.fq --validateMappings -o out
+```
+
+Bash Script for running multiple samples
+```
+#!/bin/bash
+
+cd $2;
+
+echo "Saving in directory $2"
+
+for fn in $(ls $1/*R1_001.fastq.gz);
+do
+samp=$(echo ${fn} | rev | cut -d'/' -f 1 | rev | cut -d'_' -f 1)
+echo "Processing Sample ${samp}"
+echo "$1/${samp}_R1_001.fastq.gz"
+
+salmon quant -i oyster_index_from_genome \
+        -l A \
+	-1 $1/${samp}_R1_001.fastq.gz \
+        -2 $1/${samp}_R2_001.fastq.gz \
+        -p 40 \
+        --validateMappings \
+        --rangeFactorizationBins 4 \
+        --numBootstraps 1000 \
+        --gcBias \
+        --seqBias \
+        -o run20180512/${samp}
+done
+```
+
+Command line code for running bash script
+```
+
+```
 ### Step 2 - Formating Salmon Outputs,Gene Aggregation, and creating a Transcript to Gene Reference <a name="three"></a>
 
 ### Step 3 - Data Visualization and Multivariate Method Analyses <a name="four"></a>
