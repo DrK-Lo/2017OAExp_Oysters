@@ -13,6 +13,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(DESeq2)
 library(ashr)
+library(kableExtra)
 ```
 
 **Data**
@@ -27,8 +28,11 @@ model$Pop <- as.factor(model$population)
 model$Lane <- as.factor(model$lane)
 model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
 
-gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/out2/gene_countMatrix.RData")
+gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/run20180512_gene_countMatrix_.RData")
+gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
 gc_round <- round(gc,digits=0)
+
+trans <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/transcriptome_table.RData")
 ```
 
 **Full Model** - Lane, Pop, Treatment, Time, Treatment:Time as factors  
@@ -37,7 +41,7 @@ gc_round <- round(gc,digits=0)
 filtered_full <- DESeqDataSetFromMatrix(countData = gc_round,
                               colData = model,
                               design = ~ Lane + Pop + Treatment + Time + Treatment:Time)
-dds_filtered_full <- DESeq(filtered_full)
+dds_filtered_full <- DESeq(filtered_full,minmu = 120)
 # Interaction
 res_filtered_full <- results(dds_filtered_full)
 summary(res_filtered_full)
@@ -51,7 +55,7 @@ res_filtered_full_Treatment <- results(dds_filtered_full,contrast=c("Treatment",
 summary(res_filtered_full_Treatment)
 pVal_treatment <- res_filtered_full_Treatment$padj
 
-pvals_df <- data.frame(Locus=row.names(gc),pVal_interaction,pVal_time,pVal_treatment)
+pvals_df <- data.frame(location=row.names(gc),pVal_interaction,pVal_time,pVal_treatment)
 
 
 ## Looking at most significant genes
@@ -64,6 +68,29 @@ plotCounts(dds_filtered_full, gene=ordered_val_treatment[1], intgroup="SFV",norm
 #Time (lowest pval)
 ordered_val_time <- order(res_filtered_full_Time$padj)
 plotCounts(dds_filtered_full, gene=ordered_val_time[1], intgroup="SFV",normalized = FALSE)
+
+gene_GE <- merge(trans,pvals_df,by="location")
+```
+
+**Top Twenty Genes Associated with Treatment** 
+```{r}
+gene_GE_trt <- gene_GE[order(gene_GE$pVal_treatment),]
+kable(gene_GE_trt[1:20,]) %>%
+  kable_styling()
+```
+
+**Top Twenty Genes Associated with Time** 
+```{r}
+gene_GE_t <- gene_GE[order(gene_GE$pVal_time),]
+kable(gene_GE_t[1:20,]) %>%
+  kable_styling()
+```
+
+**Top Twenty Genes Associated with Time:Treatment** 
+```{r}
+gene_GE_ttrt <- gene_GE[order(gene_GE$pVal_interaction),]
+kable(gene_GE_ttrt[1:20,]) %>%
+  kable_styling()
 ```
 
 ### A few targeted gene queries  
@@ -100,7 +127,6 @@ out_ca <- out_ca[!is.na(out_ca)]
 ca_data <- data.frame(t(as.matrix(gc[out_ca,])))
 ca_data$Treatment <- model$Treatment
 ca_data$Day <- model$Day
-ca_data
 pvals_df[out_ca,]
 
 ggplot(ca_data,aes(x=interaction(Treatment,Day),y=ca_data[,1])) + geom_boxplot()

@@ -1,0 +1,97 @@
+---
+title: "STAR_Salmon_Mapping_Comparison"
+author: "adowneywall"
+date: "5/14/2019"
+output: 
+  html_document: 
+    keep_md: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+library(kableExtra)
+```
+
+### **Data**
+```{r}
+sa_c <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/run20180512_gene_countMatrix_.RData")  
+sa_c <- sa_c[-c(1:205),] #removing some no LOC genes (most trna)  
+
+st_c <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",sep = " ")
+```
+
+### **Looking at non-overlapping transcripts**
+```{r}
+# Genes that are unique to the Salmon mapping
+length(setdiff(row.names(sa_c),row.names(st_c)))
+# None
+
+# Genes that are unique to the STAR mapping
+length(setdiff(row.names(st_c),row.names(sa_c)))
+# 836 Genes
+
+## Create dataframe of ordered genes unique to STAR mapping
+st_genes <- setdiff(row.names(st_c),row.names(sa_c))
+st_reduce <- st_c[match(st_genes,row.names(st_c)),]
+sum_vec <- rowSums(st_reduce)
+st_reduce <- st_reduce[rev(order(sum_vec)),]
+```
+
+Summary Table of Non-overlapping Transcripts Order by Count
+```{r}
+kable(st_reduce[1:20,]) %>%
+  kable_styling()
+```
+  
+**Thoughts** - Looks like most of these non-overlapping genes I have looked at so far are pseudo genes which don't have any known function and weren't in the transcriptome that was used for mapping by Salmon.  
+  
+### **Count Summaries**  
+```{r}
+# Column sums
+st_col_sum <- colSums(st_c)
+sa_col_sum <- colSums(sa_c)
+# Column means
+st_col_means <- colMeans(st_c)
+sa_col_means <- colMeans(sa_c)
+
+col_sums <- rbind(st_col_sum,sa_col_sum,st_col_means,sa_col_means)
+row.names(col_sums) <- c("STAR - Count Sum","Salmon - Count Sum",
+                         "STAR - Count Means","Salmon - Count Means")
+colnames(col_sums) <- colnames(st_c)
+
+kable(col_sums) %>%
+  kable_styling()
+```
+
+### **Pearsons correlation between STAR and Salmon mappers (using only those sites that match**  
+```{r}
+st_c_match <- st_c[match(row.names(sa_c),row.names(st_c)),]
+st_c_match$loc <- row.names(st_c_match)
+sa_c_loc <- sa_c
+sa_c_loc$loc <- row.names(sa_c)
+
+cor_val <- rep(0,times=ncol(sa_c))
+temp <- merge(st_c_match,sa_c_loc,by="loc")
+for(i in 1:ncol(sa_c)){
+  temp <- merge(st_c_match,sa_c_loc,by="loc")
+  x <- temp[,c(i+1)]
+  y <- temp[,c(i+25)]
+  cor_val[i] <- cor(x,y)
+}
+```
+  
+Correlation by sample  
+```{r}
+names(cor_val) <- colnames(sa_c)
+kable(cor_val) %>%
+  kable_styling()
+```
+  
+**Initial Thoughts** : The different mappers are not only leading to drastically different numbers of successfully mapped counts, but appear to lead to unique mapping to different transcripts that are only weakly correlated. In other words, Salmon leads not only to more reads being successfully mapped, but also leads to different loci with increased counts.  
+  
+
+
+
