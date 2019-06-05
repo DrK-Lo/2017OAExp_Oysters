@@ -17,10 +17,12 @@ Sample of original reference code for generating genome files:
 ```
 
 **NCBI FILES**: 
-Fasta file used: GCF_002022765.2_C_virginica-3.0_genomic.fna
-Gff file used: GCF_002022765.2_C_virginica-3.0_genomic.gff
+
+* Fasta file used: GCF_002022765.2_C_virginica-3.0_genomic.fna
+* Gff file used: GCF_002022765.2_C_virginica-3.0_genomic.gff
 
 **Notes**:
+
 Everything else was default. Also as a warning getting this to run was a little challenging, and it kept throwing a `do not recognize the directory` message that was due to an additional space in the script after `--genomeFastaFiles`, be sure to remove any additional spaces before running.
 
 ### First Pass Mapping 
@@ -51,7 +53,7 @@ All files are stored on `comp5` in the `/shared*/2018*/RNA/STAR_KM*/` directory,
 
 ## Comparison of STAR rerun with Kevin script verse orignal
 
-![]()
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/notebook/img/Screenshot%20from%202019-06-05%2011-36-13.png)
 
 Figure Description: Original run log for samples **17005** after the 1st pass in on the left, and the 1st pass using the new scripts is on the right.
 
