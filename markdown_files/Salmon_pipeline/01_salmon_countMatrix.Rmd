@@ -1,8 +1,7 @@
 ---
 title: "Creating count matrix from Salmon output"
 output: 
-  html_document: 
-    keep_md: true
+  github_document
 editor_options: 
   chunk_output_type: console
 ---
@@ -100,4 +99,4 @@ row.names(abund_mat) <- tr2gene$TXNAME
 
 ### Scripts for creating the gene count matrix on remote cluster
 
-XXX  LINK HERE
+[LINK HERE](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/remote_computing_scripts/01_salmon_countMatrix.R)

@@ -1,29 +1,45 @@
----
-title: "Creating count matrix from Salmon output"
-output: 
-  html_document: 
-    keep_md: true
-editor_options: 
-  chunk_output_type: console
----
+Creating count matrix from Salmon output
+================
 
+### **Script Description**
 
+**Brief Overview** : This script is used to create the gene count
+matrices from the `salmon`transcript quantification tool ([See full
+description
+here](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/README.md)).
+It leverages the `tximport` function within the [`tximport`
+package](http://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html)
+to convert transcript level quantification for each sample into a count
+matrix consisting of columns equal to the the number of samples in the
+dataset (ncol = 24) and rows equal to the number of transcripts or
+genes. Importantly, `tximport` is capable of creating both transcript
+and aggregated gene-level matrices utilizing the `tx2gene` arguement,
+and the user offering a list of transcripts with there corresponding
+gene IDS ([Click here for details on how this file is
+constructed](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/transcriptomeReferenceFile_generation.md)).
 
-### **Script Description**  
-**Brief Overview** : This script is used to create the gene count matrices from the ```salmon```transcript quantification tool ([See full description here](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/README.md)). It leverages the ```tximport``` function within the [```tximport``` package](http://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html) to convert transcript level quantification for each sample into a count matrix consisting of columns equal to the the number of samples in the dataset (ncol = 24) and rows equal to the number of transcripts or genes. Importantly, ```tximport``` is capable of creating both transcript and aggregated gene-level matrices utilizing the ```tx2gene``` arguement, and the user offering a list of transcripts with there corresponding gene IDS ([Click here for details on how this file is constructed](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/transcriptomeReferenceFile_generation.md)).  
-
-**Coding Note** : Scripts below were written to operate on my local machine (rather than a cluster or some other more powerful computing resource), as a result it uses a ```for()``` loop to process each sample separately, storing the abundance and count outputs as vectors and removing the ```tximport``` object before moving onto the sample. This was due to constraints on the available memory for allocation, which may not be an issue for some computing systems. Alternatively, see the linked ```.R``` scripts for process all samples in a single function call if you want to process samples using a remote cluster. 
+**Coding Note** : Scripts below were written to operate on my local
+machine (rather than a cluster or some other more powerful computing
+resource), as a result it uses a `for()` loop to process each sample
+separately, storing the abundance and count outputs as vectors and
+removing the `tximport` object before moving onto the sample. This was
+due to constraints on the available memory for allocation, which may not
+be an issue for some computing systems. Alternatively, see the linked
+`.R` scripts for process all samples in a single function call if you
+want to process samples using a remote cluster.
 
 **Additional Notes**:
 
-### **Data**  
+### **Data**
 
 Steps:  
-1) Create a ```dir``` variable that stores the path to your sample ```salmon``` quantification output directory. This should be the base path to where all sample files are located if you want to run them all at the same time.  
-2) Load a list of transcripts with corresponding gene IDs. 
-  
+1\) Create a `dir` variable that stores the path to your sample `salmon`
+quantification output directory. This should be the base path to where
+all sample files are located if you want to run them all at the same
+time.  
+2\) Load a list of transcripts with corresponding gene IDs.
 
-```r
+```` r
 ### Directory of sample salmon files
 dir <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20180512/"
 ls_files <- list.files(dir)
@@ -37,17 +53,18 @@ tr2gene$GENEID <- as.character(tr2gene$GENEID)
 # Notes This can be in multiple formats, but the object passed to the ```tximport``` function should contain two columns called TXNAME with the transcript ID and GENEID with the gene names. In addition, the TXNAME column needs to match transcript names used for the transcript quantification in salmon.  
 
 model <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt")
-```
+````
 
-## **Creating Count Matrix**  
+## **Creating Count Matrix**
 
-### Scripts for running on each sample individually on your local computer 
+### Scripts for running on each sample individually on your local computer
 
-**WARNING: Even this requires substantial memory allocation and may not work for all PCs**  
+**WARNING: Even this requires substantial memory allocation and may not
+work for all PCs**
 
 **Gene Count Matrix**
 
-```r
+``` r
 ### Need to split to run on my local machine
 
 names(files_input) <- model$sample_name
@@ -73,9 +90,10 @@ row.names(abund_mat) <- tr2gene$GENEID
 #saveRDS(abund_mat,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/XXXXFILENAMEHERE_gene_abundMatrix_.RData")
 ```
 
-**Transcript Count Matrix**
+**Transcript Count
+Matrix**
 
-```r
+``` r
 count_mat <- matrix(nrow =length(unique(tr2gene$TXNAME)),ncol = length(files_input),data = 0)
 abund_mat <- matrix(nrow =length(unique(tr2gene$TXNAME)),ncol =length(files_input),data=0)
 
@@ -100,4 +118,5 @@ row.names(abund_mat) <- tr2gene$TXNAME
 
 ### Scripts for creating the gene count matrix on remote cluster
 
-XXX  LINK HERE
+[LINK
+HERE](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/remote_computing_scripts/01_salmon_countMatrix.R)

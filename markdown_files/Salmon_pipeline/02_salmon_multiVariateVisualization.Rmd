@@ -20,8 +20,11 @@ library(ggplot2)
 ```
 
 ## **Script Description**  
-**Brief Overview** :
 
+**Brief Overview** : This script performs a series of basic multivariate approaches to explore the whole genome expression profiles of the 24 oyster RNAseq samples. In partiular this includes:
+* A permanova (implemented in the package vegan, called adonis)  
+* An RDA (implemented in vegan)
+* A DAPC with a focus on treatment(implemented in adegenet)
 
 ## **Data**  
 
@@ -42,7 +45,7 @@ model$Pop <- as.factor(model$population)
 model$Lane <- as.factor(model$lane)
 model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
 
-gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/geneMatrixAbundance_default.RData")
+gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20180512_gene_abundMatrix_.RData")
 gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
 ```
 
@@ -51,7 +54,7 @@ gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
 * Testing for statistic differential between treatment, time, and treatment:time  
 
 ```{r}
-(out <- adonis(t(gc)~Treatment*Time+Pop+Lane,data=model,permutations = 999))
+(out <- adonis(t(gc)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
 ```
 
 ## Plotting data with RDA  
@@ -59,10 +62,13 @@ gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
 ### Plot in multivariate space with RDA (treatment and time)
 ```{r}
 prin_comp<-rda(t(gc), scale=FALSE)
-prin_comp$colsum
 sum_pri <- summary(prin_comp)
-sum_pri$species
 pca_scores<-scores(prin_comp)
+
+pca <- prcomp(t(gc))
+eigs <- pca$sdev^2
+
+head(sum_pri$species)
 color_comb <- c("deepskyblue2","blue4","firebrick1","darkred") # colors for population 
 model$colors <- "" 
 model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
@@ -70,25 +76,28 @@ model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
 model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
 model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
 
-ordiplot(prin_comp,type="n",xlab="PC1 (25.2% Variance Explained)",
-         ylab="PC1 (14.6% Variance Explained)")
+ordiplot(prin_comp,type="n",
+         xlab=paste0("PC1 ",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2 ",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
 orditorp(prin_comp,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = 16,)
 #ordiellipse(prin_comp,model$SFV,conf=0.90,col = color_comb,lwd = 3)
 ordispider(prin_comp,model$SFV,col = color_comb,lwd=2.5)
-legend(x=220,y=-150,legend = c("Day09_Control","Day80_Control","Day09_OA","Day80_OA"),pch = 16,col=color_comb,xpd = .25)
+legend(x=100,y=150,legend = c("Day09_Control","Day80_Control","Day09_OA","Day80_OA"),pch = 16,col=color_comb,xpd = .25)
 text(x = -538 ,y = -300, paste0("Adonis P_Treatment = ",out$aov.tab$`Pr(>F)`[1],"*"))
 text(x = -550 ,y = -360, paste0("Adonis P_Duration = ",out$aov.tab$`Pr(>F)`[2],"*"))
 text(x = -540 ,y = -420, paste0("Adonis P_Interaction = ",out$aov.tab$`Pr(>F)`[5]))
 ```
 
-### Plot colored by population
+### Plot colored by population  
 ```{r}
-ordiplot(prin_comp,type="n")
+ordiplot(prin_comp,type="n",
+         xlab=paste0("PC1 ",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2 ",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
 orditorp(prin_comp,display="sites",labels = FALSE,col=model$Pop,cex = 2,pch = 16)
-legend(x=240,y=-150,legend = c("Ipswich_LIV","Rowley_1","Rowley_2"),pch = 16,col=unique(model$Pop),xpd = .25)
+legend(x=100,y=100,legend = c("Ipswich","Rowley 1","Rowley 2"),pch = 16,col=unique(model$Pop),xpd = .25)
 ```
-
-### Cumulative Variance Plot
+  
+### Cumulative Variance Plot  
 ```{r}
 out <- prcomp(t(gc))
 vars <- apply(out$x, 2, var)  
@@ -105,7 +114,7 @@ early_time_counts <- gc[,model$Day == 9]
 early_time_meta <- model[model$Day == 9,]
 
 dapc_treatment_10<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=8,n.da=2)
-# PCs = 5
+# PCs = 8
 # clusters = 1
 early_time_meta$discriminant_treatment_10 <- dapc_treatment_10$ind.coord
 
@@ -114,7 +123,24 @@ ggplot(early_time_meta,aes(discriminant_treatment_10,fill=as.factor(treatment),c
   labs(title="Discriminant Function for Treatment on Day 9 (based on 8 PCs)",
        x="Discriminant function 1",
        colour="Treatment",
-       fill="Treatment")
+       fill="Treatment") +
+  theme_bw() +
+  scale_color_manual(values=c("deepskyblue2","firebrick1")) +
+  scale_fill_manual(values=c("deepskyblue2","firebrick1"))
+```
+
+Looking at which genes are driving the patterns between the two treatments
+```{r}
+contrib_treatment <- loadingplot(dapc_treatment_10$var.contr, axis=1,thres=.05, lab.jitter=1)
+```
+
+Looking at the most important locus based on loading
+```{r}
+gc_majorLoading <- gc[row.names(gc) == "LOC111112914",]
+majorLoading_counts <- as.data.frame(cbind(Trt=model$Treatment,Time=model$Time,SFV=model$SFV,Pop=model$Pop,t(gc_majorLoading)))
+
+ggplot(majorLoading_counts,aes(x=as.factor(SFV),y=LOC111112914)) + geom_boxplot() + 
+  labs(x= c("SFV"))
 ```
 
 **Mapping Day 80 samples**  
@@ -132,7 +158,11 @@ ggplot(whole_meta,aes(discriminant_treatment_10,fill=as.factor(interaction(Day,t
   labs(title="Discriminant Function for Treatment on Day 9 - Mapped with Day 80 Samples",
        x="Discriminant function 1",
        colour="Day.Treatment",
-       fill="Day.Treatment")
+       fill="Day.Treatment") +
+  theme_bw() +
+  scale_color_manual(values=c("deepskyblue2","blue4","firebrick1","darkred")) +
+  scale_fill_manual(values=c("deepskyblue2","blue4","firebrick1","darkred"))
+
 ```
 
 ### DAPC based on combined time*treatment factor  
@@ -150,5 +180,13 @@ ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.fa
        x="Discriminant function 1",
        y="Discriminant function 2",
        colour="Treatment",
-       fill="Treatment")
+       fill="Treatment") +
+    theme_bw() +
+  scale_color_manual(values=c("deepskyblue2","blue4","firebrick1","darkred")) +
+  scale_fill_manual(values=c("deepskyblue2","blue4","firebrick1","darkred"))
+```
+
+Looking at contribution of individual genes
+```{r}
+contrib_SFV <- loadingplot(dapc_SFV_10$var.contr, axis=2,thres=.07, lab.jitter=1)
 ```
