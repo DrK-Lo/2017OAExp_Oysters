@@ -1,7 +1,7 @@
 
 setwd("/shared_lab/20180226_RNAseq_2017OAExp/RNA/WGCNA");
 library(WGCNA)
-
+library(tximport)
 # The following setting is important, do not omit.
 options(stringsAsFactors = FALSE);
 # Allow multi-threading within WGCNA. 

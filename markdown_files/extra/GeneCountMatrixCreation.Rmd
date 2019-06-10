@@ -1,0 +1,69 @@
+---
+title: "Gene Count Matrix Creation"
+author: "adowneywall"
+date: "6/8/2019"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+### User set directory information  
+```{r}
+# Pathway to folder with samples to be included in gene count matrix
+PATH_IN <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_pipeline/rawCounts"
+#Name of folder with raw count files (from STAR)
+FOLD <- "rerun3"
+# Patway where created .rds files are stored
+PATH_OUT <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_pipeline/rawCounts"
+# GCF file used to creat gene counts in STAR
+GCF <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/GCF.gtf", header = FALSE)
+```
+  
+### Convert GTF file (.gtf) into a GTF.rds file (needed for creating gene count matrix)
+```{r, eval=FALSE}
+GCF_info <- as.character(GCF$V9)
+GCF_info_mat <- matrix(nrow=length(GCF_info),ncol=8)
+missing <- NULL
+for( i in 1:length(GCF_info)){
+  temp <- unlist(strsplit(unlist(strsplit(GCF_info[i],";"))," "))
+  GCF_info_mat[i,c(1:length(temp))] <- temp
+  if(length(temp)==8){
+
+  } else {
+    missing <- c(missing,i)
+  }
+}
+tail(GCF_info_mat[,c(2,5,8)])
+GTF_names <- c("ref_seq","source_annot","feature","start","end","score","strand","frame","Full_Description","transcript_id","gene_id","gene_name")
+GCF_mat <- as.data.frame(cbind(GCF,GCF_info_mat[,c(2,5,8)]))
+names(GCF_mat) <- GTF_names
+head(GCF_mat)
+```
+  
+### Code for looping through each file to create a single gene count matrix for each time of count   
+```{r}
+files <- list.files(paste0(PATH_IN,"/",FOLD))
+LEN <- length(files)
+NAME <- c("Gene","unstranded","Stranded","Reverse")
+for(j in 2:4){
+  for(i in 1:LEN){
+    if(i == 1){
+      TEMP <- read.delim(paste0(PATH_IN,"/",FOLD,"/",files[i]),
+                       header = FALSE,skip = 4)
+      names(TEMP) <- NAME
+      MAT <- matrix(nrow=length(TEMP$Gene),ncol = LEN)
+      MAT[,i] <- TEMP[,j]
+    }else{
+        TEMP <- read.delim(paste0(PATH_IN,"/",FOLD,"/",files[i]),
+                       header = FALSE,skip = 4)
+        MAT[,i] <- TEMP[,j]
+    }
+  }
+  row.names(MAT) <- as.character(GCF_mat$gene_name[match(as.character(TEMP[,1]),as.character(GCF_mat$gene_id))])
+  MAT <- as.data.frame(MAT)
+  saveRDS(MAT,paste0(PATH_OUT,"/",FOLD,"_GeneCountMatrix_",NAME[j],".rds"))
+}
+```
+  
+**WARNING**: these files need to be the readCount tab delimited files produced by STAR  

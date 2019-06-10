@@ -7,10 +7,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(tximport)
-```
+
 
 ### **Script Description**  
 **Brief Overview** : This script is used to create the gene count matrices from the ```salmon```transcript quantification tool ([See full description here](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/README.md)). It leverages the ```tximport``` function within the [```tximport``` package](http://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html) to convert transcript level quantification for each sample into a count matrix consisting of columns equal to the the number of samples in the dataset (ncol = 24) and rows equal to the number of transcripts or genes. Importantly, ```tximport``` is capable of creating both transcript and aggregated gene-level matrices utilizing the ```tx2gene``` arguement, and the user offering a list of transcripts with there corresponding gene IDS ([Click here for details on how this file is constructed](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/transcriptomeReferenceFile_generation.md)).  
@@ -25,7 +22,8 @@ Steps:
 1) Create a ```dir``` variable that stores the path to your sample ```salmon``` quantification output directory. This should be the base path to where all sample files are located if you want to run them all at the same time.  
 2) Load a list of transcripts with corresponding gene IDs. 
   
-```{r eval=FALSE}
+
+```r
 ### Directory of sample salmon files
 dir <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20180512/"
 ls_files <- list.files(dir)
@@ -48,7 +46,8 @@ model <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metad
 **WARNING: Even this requires substantial memory allocation and may not work for all PCs**  
 
 **Gene Count Matrix**
-```{r eval=FALSE}
+
+```r
 ### Need to split to run on my local machine
 
 names(files_input) <- model$sample_name
@@ -75,7 +74,8 @@ row.names(abund_mat) <- tr2gene$GENEID
 ```
 
 **Transcript Count Matrix**
-```{r eval=FALSE}
+
+```r
 count_mat <- matrix(nrow =length(unique(tr2gene$TXNAME)),ncol = length(files_input),data = 0)
 abund_mat <- matrix(nrow =length(unique(tr2gene$TXNAME)),ncol =length(files_input),data=0)
 

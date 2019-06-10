@@ -19,7 +19,19 @@ library(adegenet)
 library(ggplot2)
 ```
 
+## **Script Description**  
+**Brief Overview** :
+
+
+## **Data**  
+
+Steps:  
+* Read in dataframe with metadata for each samples including, treatment, time, population, lane of sequencing, and variable that contains each unique combination level between treatment and time.  
+* Read in gene (or transcript) abundance matrix generated from the '01_salmon_countMatrix.Rmd' script.  
+* Remove uninformative genes from count matrix.  
+
 ```{r}
+## Meta Data for the Model
 model<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt", header=TRUE)
 model$Treatment <- as.factor(model$treatment)
 model$Time <- as.character(model$timepoint)
@@ -30,15 +42,21 @@ model$Pop <- as.factor(model$population)
 model$Lane <- as.factor(model$lane)
 model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
 
-gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/run20180512_gene_countMatrix_.RData")
+gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/geneMatrixAbundance_default.RData")
 gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
 ```
+
+## PERMANOVA (implements using adonis from vegan package)
+
+* Testing for statistic differential between treatment, time, and treatment:time  
 
 ```{r}
 (out <- adonis(t(gc)~Treatment*Time+Pop+Lane,data=model,permutations = 999))
 ```
 
-## Plot in multivariate space with RDA (treatment and time)
+## Plotting data with RDA  
+
+### Plot in multivariate space with RDA (treatment and time)
 ```{r}
 prin_comp<-rda(t(gc), scale=FALSE)
 prin_comp$colsum

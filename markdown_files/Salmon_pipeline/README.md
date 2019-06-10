@@ -87,6 +87,7 @@ Command line code for running bash script
 ```
 ### Step 2 - Formating Salmon Outputs,Gene Aggregation, and creating a Transcript to Gene Reference <a name="three"></a>
 
+
 ### Step 3 - Data Visualization and Multivariate Method Analyses <a name="four"></a>
 
 ### Step 4 - Differential Expression (transcript, isoform, and gene level) <a name="five"></a>
