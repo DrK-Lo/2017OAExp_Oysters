@@ -38,8 +38,8 @@ model$Pop <- as.factor(model$population)
 model$Lane <- as.factor(model$lane)
 model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
 
-gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20180512_gene_abundMatrix_.RData")
-gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
+gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610/geneMatrixAbundance_default.RData")
+#gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
 ```
 
 ## PERMANOVA (implements using adonis from vegan package)
@@ -61,14 +61,14 @@ gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
 ## 
 ## Terms added sequentially (first to last)
 ## 
-##                Df SumsOfSqs  MeanSqs F.Model      R2  Pr(>F)    
-## Treatment       1   0.03170 0.031699 1.45160 0.05749 0.02300 *  
-## Time            1   0.04832 0.048325 2.21297 0.08764 0.00020 ***
-## Pop             2   0.05215 0.026077 1.19415 0.09459 0.09878 .  
-## Lane            1   0.02768 0.027681 1.26761 0.05020 0.09738 .  
-## Treatment:Time  1   0.02029 0.020291 0.92921 0.03680 0.60968    
-## Residuals      17   0.37123 0.021837         0.67328            
-## Total          23   0.55138                  1.00000            
+##                Df SumsOfSqs  MeanSqs F.Model      R2    Pr(>F)    
+## Treatment       1   0.03153 0.031529 1.43924 0.05710 0.0333933 *  
+## Time            1   0.04806 0.048058 2.19378 0.08704 0.0003999 ***
+## Pop             2   0.05248 0.026240 1.19783 0.09505 0.0919816 .  
+## Lane            1   0.02773 0.027730 1.26584 0.05022 0.0853829 .  
+## Treatment:Time  1   0.01992 0.019918 0.90922 0.03607 0.6442711    
+## Residuals      17   0.37241 0.021906         0.67450              
+## Total          23   0.55213                  1.00000              
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
@@ -90,19 +90,19 @@ head(sum_pri$species)
 
 ```
 ##                        PC1           PC2          PC3           PC4
-## LOC111099029 -2.432954e-03  0.0000231773 2.667991e-03  2.121259e-03
-## LOC111099030 -5.100276e-01 -0.4343227395 8.016061e-01 -1.232862e+00
-## LOC111099031  1.177123e-04  0.0001933143 1.251508e-04  1.356039e-04
-## LOC111099032  5.744518e-05  0.0001395553 4.504468e-05  1.122106e-05
-## LOC111099033 -5.265188e-02 -0.0214166032 2.029884e-02 -5.044111e-02
-## LOC111099034 -1.775297e-03  0.0031607961 4.987734e-03  2.291729e-03
+## LOC111099029 -2.382980e-03 -1.306844e-05 2.682298e-03  2.178992e-03
+## LOC111099030 -5.160989e-01 -4.446035e-01 8.254272e-01 -1.272561e+00
+## LOC111099031  1.110952e-04  2.084359e-04 1.220995e-04  1.314414e-04
+## LOC111099032  5.672436e-05  1.452482e-04 4.228419e-05  1.091941e-05
+## LOC111099033 -5.246618e-02 -2.340208e-02 2.086646e-02 -5.228106e-02
+## LOC111099034 -1.716876e-03  3.243520e-03 4.940142e-03  2.549189e-03
 ##                        PC5           PC6
-## LOC111099029 -1.594811e-03  1.826297e-04
-## LOC111099030  1.827979e-01 -4.438335e-01
-## LOC111099031  1.059510e-04 -2.218093e-04
-## LOC111099032 -3.720566e-06 -3.173615e-05
-## LOC111099033 -2.462102e-02 -8.814008e-03
-## LOC111099034  2.640098e-03 -5.490798e-04
+## LOC111099029 -1.498076e-03  3.702898e-04
+## LOC111099030  2.110372e-01 -4.668311e-01
+## LOC111099031  1.025203e-04 -2.404532e-04
+## LOC111099032 -3.892466e-06 -2.459393e-05
+## LOC111099033 -2.464362e-02 -9.654350e-03
+## LOC111099034  2.450725e-03 -4.195273e-04
 ```
 
 ```r
@@ -150,13 +150,13 @@ cumsum(props)
 
 ```
 ##       PC1       PC2       PC3       PC4       PC5       PC6       PC7 
-## 0.5087059 0.6360367 0.7242154 0.7884668 0.8190354 0.8430982 0.8643221 
+## 0.5126111 0.6390950 0.7256155 0.7890958 0.8193021 0.8433486 0.8647353 
 ##       PC8       PC9      PC10      PC11      PC12      PC13      PC14 
-## 0.8829884 0.8971544 0.9107303 0.9227811 0.9343326 0.9450818 0.9542035 
+## 0.8832903 0.8980497 0.9116143 0.9235074 0.9348894 0.9454728 0.9544352 
 ##      PC15      PC16      PC17      PC18      PC19      PC20      PC21 
-## 0.9615578 0.9685951 0.9743923 0.9796035 0.9846414 0.9893100 0.9934340 
+## 0.9618096 0.9688719 0.9745486 0.9796556 0.9846408 0.9892511 0.9934741 
 ##      PC22      PC23      PC24 
-## 0.9973108 1.0000000 1.0000000
+## 0.9973135 1.0000000 1.0000000
 ```
 
 ```r
@@ -173,12 +173,12 @@ plot(cumsum(props)~c(1:24))
 early_time_counts <- gc[,model$Day == 9]
 early_time_meta <- model[model$Day == 9,]
 
-dapc_treatment_10<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=8,n.da=2)
+dapc_treatment_10<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=9,n.da=2)
 # PCs = 8
 # clusters = 1
-early_time_meta$discriminant_treatment_10 <- dapc_treatment_10$ind.coord
+early_time_meta$dt <- unlist(dapc_treatment_10$ind.coord[,1])
 
-ggplot(early_time_meta,aes(discriminant_treatment_10,fill=as.factor(treatment),colour=as.factor(treatment))) + 
+ggplot(early_time_meta,aes(dt,fill=as.factor(treatment),colour=as.factor(treatment))) + 
   geom_density(alpha=0.1) + xlim(-8,8) + 
   labs(title="Discriminant Function for Treatment on Day 9 (based on 8 PCs)",
        x="Discriminant function 1",
@@ -191,6 +191,61 @@ ggplot(early_time_meta,aes(discriminant_treatment_10,fill=as.factor(treatment),c
 
 ![](02_salmon_multiVariateVisualization_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
+Looking at which genes are driving the patterns between the two treatments
+
+```r
+contrib_treatment <- loadingplot(dapc_treatment_10$var.contr, axis=1,thres=.05, lab.jitter=1)
+```
+
+![](02_salmon_multiVariateVisualization_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+Looking at the most important locus based on loading
+
+```r
+head(gc)
+```
+
+```
+##                   [,1]      [,2]      [,3]      [,4]      [,5]      [,6]
+## LOC111099029  0.054836  0.767837  0.337342  1.408132  0.082930  1.299018
+## LOC111099030  6.695107 25.213291 34.216294  3.212135 10.691542  0.933617
+## LOC111099031  0.000000  0.000000  0.000000  0.088730  0.000000  0.000000
+## LOC111099032  0.000000  0.000000  0.000000  0.000000  0.000000  0.000000
+## LOC111099033 17.536455 22.374482 27.361933 17.316606  8.783201 26.868817
+## LOC111099034  1.764882  2.765377  3.294622  6.811804  3.376154  1.639565
+##                    [,7]      [,8]      [,9]     [,10]     [,11]     [,12]
+## LOC111099029   0.653362  0.873550  0.121886  0.094046  0.157326  0.113211
+## LOC111099030 524.413133  9.721098 19.706508 18.265789 11.159106 48.140014
+## LOC111099031   0.109216  0.000000  0.000000  0.000000  0.099033  0.000000
+## LOC111099032   0.000000  0.000000  0.000000  0.000000  0.000000  0.000000
+## LOC111099033  31.945709 15.886561 18.421057 29.181587 16.585032 23.137739
+## LOC111099034   0.887531  2.700555  2.937747  1.851594  4.585605  2.187277
+##                  [,13]     [,14]     [,15]     [,16]     [,17]     [,18]
+## LOC111099029  0.805138  0.726133  2.732844  0.686248  1.771646  1.388055
+## LOC111099030 19.564730  0.000000 16.614260 15.731977  8.408947 49.265429
+## LOC111099031  0.000000  0.111825  0.000000  0.096927  0.000000  0.000000
+## LOC111099032  0.000000  0.000000  0.000000  0.000000  0.000000  0.071519
+## LOC111099033 20.205813 22.588256 43.048526 26.605817 55.988860 63.276103
+## LOC111099034  2.335114  1.709982  1.347847  3.182730  2.436358  1.336849
+##                  [,19]     [,20]      [,21]     [,22]     [,23]     [,24]
+## LOC111099029  0.676043  1.090882   0.926567  1.137421  0.822404  0.447358
+## LOC111099030 52.788268  0.812123 481.744177 19.835379 33.477649 23.852491
+## LOC111099031  0.000000  0.119368   0.000000  0.110053  0.000000  0.000000
+## LOC111099032  0.000000  0.000000   0.000000  0.080701  0.000000  0.000000
+## LOC111099033 13.998843 15.709347  39.437150 10.269010 16.232932 21.846089
+## LOC111099034  1.107921  1.748140   3.739886  3.460239  2.839911  2.782818
+```
+
+```r
+gc_majorLoading <- gc[row.names(gc) == "LOC111102518",]
+majorLoading_counts <- as.data.frame(cbind(Trt=model$Treatment,Time=model$Time,SFV=model$SFV,Pop=model$Pop,(LOC111104151=gc_majorLoading)))
+
+ggplot(majorLoading_counts,aes(x=as.factor(SFV),y=log10(LOC111104151))) + geom_boxplot() + 
+  labs(x= c("SFV"))
+```
+
+![](02_salmon_multiVariateVisualization_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
 **Mapping Day 80 samples**  
 
 ```r
@@ -198,11 +253,11 @@ late_time_counts <- gc[,model$Day == 80]
 late_time_meta <- model[model$Day == 80,]
 
 predict_values <- predict.dapc(dapc_treatment_10,t(late_time_counts))
-late_time_meta$discriminant_treatment_10 <-predict_values$ind.scores
+late_time_meta$dt <-unlist(predict_values$ind.scores[,1])
 
 whole_meta<- rbind(early_time_meta,late_time_meta)
 
-ggplot(whole_meta,aes(discriminant_treatment_10,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+ggplot(whole_meta,aes(dt,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
   geom_density(alpha=0.1) + xlim(-8,8) + 
   labs(title="Discriminant Function for Treatment on Day 9 - Mapped with Day 80 Samples",
        x="Discriminant function 1",
@@ -213,7 +268,7 @@ ggplot(whole_meta,aes(discriminant_treatment_10,fill=as.factor(interaction(Day,t
   scale_fill_manual(values=c("deepskyblue2","blue4","firebrick1","darkred"))
 ```
 
-![](02_salmon_multiVariateVisualization_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](02_salmon_multiVariateVisualization_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 ### DAPC based on combined time*treatment factor  
   
@@ -237,4 +292,12 @@ ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.fa
   scale_fill_manual(values=c("deepskyblue2","blue4","firebrick1","darkred"))
 ```
 
-![](02_salmon_multiVariateVisualization_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](02_salmon_multiVariateVisualization_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+Looking at contribution of individual genes
+
+```r
+contrib_SFV <- loadingplot(dapc_SFV_10$var.contr, axis=2,thres=.07, lab.jitter=1)
+```
+
+![](02_salmon_multiVariateVisualization_files/figure-html/unnamed-chunk-11-1.png)<!-- -->

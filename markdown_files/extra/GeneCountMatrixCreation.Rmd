@@ -13,7 +13,7 @@ editor_options:
 # Pathway to folder with samples to be included in gene count matrix
 PATH_IN <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_pipeline/rawCounts"
 #Name of folder with raw count files (from STAR)
-FOLD <- "rerun3"
+FOLD <- "run20190610"
 # Patway where created .rds files are stored
 PATH_OUT <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_pipeline/rawCounts"
 # GCF file used to creat gene counts in STAR
@@ -38,7 +38,6 @@ tail(GCF_info_mat[,c(2,5,8)])
 GTF_names <- c("ref_seq","source_annot","feature","start","end","score","strand","frame","Full_Description","transcript_id","gene_id","gene_name")
 GCF_mat <- as.data.frame(cbind(GCF,GCF_info_mat[,c(2,5,8)]))
 names(GCF_mat) <- GTF_names
-head(GCF_mat)
 ```
   
 ### Code for looping through each file to create a single gene count matrix for each time of count   

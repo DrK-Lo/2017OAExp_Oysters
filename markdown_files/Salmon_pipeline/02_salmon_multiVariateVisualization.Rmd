@@ -1,7 +1,7 @@
 ---
 title: "02 Salmon Pipeline"
 author: "adowneywall"
-date: "5/12/2019"
+date: "6/11/2019"
 output: 
   html_document:
     keep_md: true
@@ -45,8 +45,8 @@ model$Pop <- as.factor(model$population)
 model$Lane <- as.factor(model$lane)
 model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
 
-gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20180512_gene_abundMatrix_.RData")
-gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
+gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610/geneMatrixCounts_default.Rdata")
+#gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
 ```
 
 ## PERMANOVA (implements using adonis from vegan package)
@@ -113,12 +113,12 @@ plot(cumsum(props)~c(1:24))
 early_time_counts <- gc[,model$Day == 9]
 early_time_meta <- model[model$Day == 9,]
 
-dapc_treatment_10<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=8,n.da=2)
+dapc_treatment_10<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=9,n.da=2)
 # PCs = 8
 # clusters = 1
-early_time_meta$discriminant_treatment_10 <- dapc_treatment_10$ind.coord
+early_time_meta$dt <- unlist(dapc_treatment_10$ind.coord[,1])
 
-ggplot(early_time_meta,aes(discriminant_treatment_10,fill=as.factor(treatment),colour=as.factor(treatment))) + 
+ggplot(early_time_meta,aes(dt,fill=as.factor(treatment),colour=as.factor(treatment))) + 
   geom_density(alpha=0.1) + xlim(-8,8) + 
   labs(title="Discriminant Function for Treatment on Day 9 (based on 8 PCs)",
        x="Discriminant function 1",
@@ -136,10 +136,11 @@ contrib_treatment <- loadingplot(dapc_treatment_10$var.contr, axis=1,thres=.05, 
 
 Looking at the most important locus based on loading
 ```{r}
-gc_majorLoading <- gc[row.names(gc) == "LOC111112914",]
-majorLoading_counts <- as.data.frame(cbind(Trt=model$Treatment,Time=model$Time,SFV=model$SFV,Pop=model$Pop,t(gc_majorLoading)))
+head(gc)
+gc_majorLoading <- gc[row.names(gc) == "LOC111102518",]
+majorLoading_counts <- as.data.frame(cbind(Trt=model$Treatment,Time=model$Time,SFV=model$SFV,Pop=model$Pop,(LOC111104151=gc_majorLoading)))
 
-ggplot(majorLoading_counts,aes(x=as.factor(SFV),y=LOC111112914)) + geom_boxplot() + 
+ggplot(majorLoading_counts,aes(x=as.factor(SFV),y=log10(LOC111104151))) + geom_boxplot() + 
   labs(x= c("SFV"))
 ```
 
@@ -149,11 +150,11 @@ late_time_counts <- gc[,model$Day == 80]
 late_time_meta <- model[model$Day == 80,]
 
 predict_values <- predict.dapc(dapc_treatment_10,t(late_time_counts))
-late_time_meta$discriminant_treatment_10 <-predict_values$ind.scores
+late_time_meta$dt <-unlist(predict_values$ind.scores[,1])
 
 whole_meta<- rbind(early_time_meta,late_time_meta)
 
-ggplot(whole_meta,aes(discriminant_treatment_10,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+ggplot(whole_meta,aes(dt,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
   geom_density(alpha=0.1) + xlim(-8,8) + 
   labs(title="Discriminant Function for Treatment on Day 9 - Mapped with Day 80 Samples",
        x="Discriminant function 1",

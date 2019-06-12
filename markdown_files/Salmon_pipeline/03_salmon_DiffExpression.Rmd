@@ -16,7 +16,7 @@ library(ashr)
 library(kableExtra)
 ```
 
-**Data**
+### **Data**
 ```{r}
 model<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt", header=TRUE)
 model$Treatment <- as.factor(model$treatment)
@@ -28,32 +28,36 @@ model$Pop <- as.factor(model$population)
 model$Lane <- as.factor(model$lane)
 model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
 
-gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA/run20180512_gene_countMatrix_.RData")
-gc <- gc[-c(1:205),] #removing some no LOC genes (most trna)
-gc_round <- round(gc,digits=0)
-
-trans <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/transcriptome_table.RData")
+# Transcript abundances - scaled by isoform length
+ga <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610/geneMatrixAbundance_default.RData")
+# Raw counts (tximport does not recommend using these for DE)
+gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610/geneMatrixCounts_default.Rdata")
+# Round counts before create DESeq matrix
+ga_round <- round(ga,digits=0)
+# Additional info about each gene
+trans <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/transcriptome_table.RData")
 ```
 
 **Full Model** - Lane, Pop, Treatment, Time, Treatment:Time as factors  
 ```{r}
 # Full Model
-filtered_full <- DESeqDataSetFromMatrix(countData = gc_round,
+full <- DESeqDataSetFromMatrix(countData = ga_round,
                               colData = model,
                               design = ~ Lane + Pop + Treatment + Time + Treatment:Time)
-dds_filtered_full <- DESeq(filtered_full,minmu = 120)
+
+dds_full_Wald <- DESeq(full,minmu = 80,test = "Wald")
 # Interaction
-res_filtered_full <- results(dds_filtered_full)
-summary(res_filtered_full)
-pVal_interaction <- res_filtered_full$padj
+res_full <- results(dds_full_Wald )
+summary(res_full)
+pVal_interaction <- res_full$padj
 # Time
-res_filtered_full_Time <- results(dds_filtered_full,contrast=c("Time","09","80"))
-summary(res_filtered_full_Time)
-pVal_time <- res_filtered_full_Time$padj
+res_full_Time <- results(dds_full_Wald,contrast=c("Time","09","80"))
+summary(res_full_Time)
+pVal_time <- res_full_Time$padj
 # Treatment
-res_filtered_full_Treatment <- results(dds_filtered_full,contrast=c("Treatment","400","2800"))
-summary(res_filtered_full_Treatment)
-pVal_treatment <- res_filtered_full_Treatment$padj
+res_full_Treatment <- results(dds_full_Wald,contrast=c("Treatment","400","2800"))
+summary(res_full_Treatment)
+pVal_treatment <- res_full_Treatment$padj
 
 pvals_df <- data.frame(location=row.names(gc),pVal_interaction,pVal_time,pVal_treatment)
 
@@ -150,3 +154,70 @@ gc[match("LOC111134661",row.names(gc)),]
 pvals_df[match("LOC111134661",row.names(gc)),]
 ```
 
+## DE specifically for individuals from TP9
+```{r}
+ga_tp9 <-  ga_round[,model$Time == "09"]
+dim(ga_tp9)
+head(ga_tp9)
+model_tp9 <- model[model$Time == "09",]
+dim(model_tp9)
+tp9 <- DESeqDataSetFromMatrix(countData = ga_tp9,
+                              colData = model_tp9,
+                              design = ~ Treatment)
+
+# Wald test using negative binomial
+dds_tp9_Wald <- DESeq(tp9,minmu = 80,test = "Wald")
+# Likelihood ratio test
+dds_tp9_LTR <- DESeq(tp9,minmu=80,test="LRT",reduced = ~1)
+
+# Treatment at timepoint 9 with Wald
+res_tp9 <- results(dds_tp9_Wald )
+summary(res_tp9)
+pVal_tp9 <- res_tp9$padj
+
+# Treatment at timepoint 9 with LRT
+res_tp9_lrt <- results(dds_tp9_LTR)
+summary(res_tp9_lrt)
+pVal_tp9_lrt <- res_tp9_lrt$padj
+
+pvals_tp9_df <- data.frame(location=row.names(gc),wald_p=pVal_tp9,lrt_p=pVal_tp9_lrt)
+
+gene_GE_tp9 <- merge(trans,pvals_tp9_df,by="location")
+gene_GE_tp9 <- gene_GE_tp9[order(gene_GE_tp9$wald_p),]
+kable(gene_GE_tp9[1:50,]) %>%
+  kable_styling()
+```
+
+## DE specifically for individuals from TP80
+```{r}
+ga_tp80 <-  ga_round[,model$Time == "80"]
+dim(ga_tp80)
+head(ga_tp80)
+model_tp80 <- model[model$Time == "80",]
+dim(model_tp80)
+tp80 <- DESeqDataSetFromMatrix(countData = ga_tp80,
+                              colData = model_tp80,
+                              design = ~ Treatment)
+
+# Wald test using negative binomial
+dds_tp80_Wald <- DESeq(tp80,minmu = 80,test = "Wald")
+# Likelihood ratio test
+dds_tp80_LTR <- DESeq(tp80,minmu=80,test="LRT",reduced = ~1)
+
+# Treatment at timepoint 9 with Wald
+res_tp80 <- results(dds_tp80_Wald )
+summary(res_tp80)
+pVal_interaction <- res_tp80$padj
+
+# Treatment at timepoint 9 with LRT
+res_tp80_lrt <- results(dds_tp80_LTR)
+summary(res_tp80_lrt)
+pVal_interaction_lrt <- res_tp80_lrt$padj
+
+pvals_tp80_df <- data.frame(location=row.names(gc),wald_p=pVal_tp9,lrt_p=pVal_tp9_lrt)
+
+gene_GE_tp80 <- merge(trans,pvals_tp80_df,by="location")
+gene_GE_tp80 <- gene_GE_tp80[order(gene_GE_tp80$wald_p),]
+kable(gene_GE_tp80[1:50,]) %>%
+  kable_styling()
+```

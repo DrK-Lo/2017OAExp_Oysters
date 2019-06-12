@@ -23,7 +23,7 @@ Using Wasabi to convert Salmon files to ```.h5``` file format for sleuth
 ```{r eval=FALSE}
 dir <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/salmon_RNA"
 setwd(dir)
-sfdirs <- file.path(dir,"run20180512", list.files("run20180512"))
+sfdirs <- file.path(dir,"run20190610", list.files("run20190610"))
 prepare_fish_for_sleuth(sfdirs)
 ```
 
@@ -40,7 +40,7 @@ model$Lane <- as.factor(model$lane)
 model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
 samp_names <- substr(model$sample_name,4,10)
 model <- dplyr::mutate(model,
-  path = file.path(dir,'/run20180512/',samp_names,'/abundance.h5',fsep = ""))
+  path = file.path(dir,'/run20180610/',samp_names,'/abundance.h5',fsep = ""))
 
 metadata <- dplyr::select(model,c("sample_name","Time","Treatment","SFV","Pop","Lane","path"))
 colnames(metadata)[1] <- "sample"
