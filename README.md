@@ -7,27 +7,25 @@ This repository was created to keep track of the code and preliminary analyses f
 
 ### [Notebook](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/notebook) 
 
-### Main Analysis (in progress)
+## Analysis (in progress)
 
-[STAR Pipeline](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/STAR_pipeline)
-  - [Gene Matrix Filtering](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/03A_CV17_RNA_countFilteringandAnalysis.md)
-  - [Gene Normalization](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/03B_CV17_RNA_countAnalysis.md)
-  - [DAPC Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04B_CV17_RNA_DAPC.md)
-  - [Targeted Gene Queries](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04C_CV17_RNA_targetGeneQuery.md)
-  - [RDA, DAPC, PERMANOVA(adonis), other Multivariate visualize and statistics](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04D_CV17_RNA_CCAandRDA.md)
-  - [DESeq Analysis for Differential Expression](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04E_CV17_RNA_DESeqAnalysis.md)
+### Transcriptomic Analysis
 
-[SALMON Pipeline](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/README.md)
-  - [Transcript Quantification]()
-  - [RDA, nMDS, PERMANOVA(adonis), other Multivariate visualize and statistics]()
-  - [Differential Expression - DESeq2]()
-  - [Differential Expression - Sleuth Analysis]()
-  - [Correlated Gene Networks]()
+1. **Mapping and Transcript Quantification**: This was done with two different pipelines, `STAR` and `salmon`.
+  - [STAR / RSEM Pipeline](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/STAR_pipeline)
+  - [SALMON Pipeline](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/README.md)
+2. [**Differential Gene Analysis**](): Three primary programs were used to estimate differential expression, `edgr-limma-voom`,`DESeq2`,`sleuth`
+  - [Edgr-limma-voom]()
+  - [DESeq2]()
+  - [Sleuth]()
+3. [**Gene Ontology**]()
 
-Phenotypes 
+### DNA methylation Analysis
+
+### Phenotypes 
   - [EPF Phenotype Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/AE17_epfPhenotype.md)
 
-[Water Chemistry]() 
+### [Water Chemistry]() 
 
 
 ### Extra 
