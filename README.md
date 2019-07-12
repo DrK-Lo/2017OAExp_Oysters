@@ -9,7 +9,7 @@ This repository was created to keep track of the code and preliminary analyses f
 
 ### Main Analysis (in progress)
 
-STAR Pipeline
+[STAR Pipeline](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/STAR_pipeline)
   - [Gene Matrix Filtering](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/03A_CV17_RNA_countFilteringandAnalysis.md)
   - [Gene Normalization](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/03B_CV17_RNA_countAnalysis.md)
   - [DAPC Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/STAR_pipeline/04B_CV17_RNA_DAPC.md)
