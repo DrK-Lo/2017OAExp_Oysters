@@ -43,7 +43,7 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
  * [Step 1.1: Create and index of potential transcripts](#"one.one")
  * [Step 1.2: Performing quasi mapping and quantification](#"one.two")
 
-**Step 1.1 - Create a Index of all transcripts** <a name="one.one"></a>
+#### **Step 1.1 - Create a Index of all transcripts** <a name="one.one"></a>
 
 
 Command line for running a Single Sample:
@@ -84,7 +84,7 @@ Command line code for running bash script
 
 ```
 
-**Step 1.2 - Performing quasi mapping and quantification <a name="one.two"></a>
+#### **Step 1.2 - Performing quasi mapping and quantification** <a name="one.two"></a>
 
 
 
