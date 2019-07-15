@@ -29,6 +29,50 @@ This pipeline takes advantage of a genome mapper STAR, which performs transcript
 
 ### Step 1 - Creating STAR index <a name="two"></a>
 
+For the oysters I used the reference genome from NCBI ([GCA_002022765.4 C_virginica-3.0](https://www.ncbi.nlm.nih.gov/genome/?term=crassostrea+virginica)) and for gene annotations I used the ones created by Kevin Johnson during the frogger workshop [LINK](https://drive.google.com/drive/u/0/folders/1KBAm4L5K2ZQ5dUOUfryk0BaB7fcA1RuL), which I converted from a `.gff` file formate to `.gtf` using [`gffread`](https://github.com/gpertea/gffread).
+
+Command line code for converting from `.gff` to `.gtf`:
+```
+gffread my.gff -T -o my.gtf
+```
+
+Sample bash code for creating an index in STAR:
+```
+!#/bin/bash
+
+# Prompts user to input a path where the files created will be stored and the name of the new folder
+echo "Please put in the base directory:"
+read base
+echo "Please put in the output folder name:"
+read output
+
+echo "Outputs saving to : " $base$output
+
+if [ -d "$base$output" ]; then
+        echo "Directory Already Exists, please rerun with unique output directory"
+        exit 1
+else
+    	echo "Directory Created"
+        mkdir "$base$output"
+fi
+
+# User selects the genome file
+echo "Select genome file (.fna format, should include entire path)"
+read genome
+
+#User selects the gene annotation file (in the gtf format)
+echo "Select gene annotation file (.gtf, should includ entire path)"
+read gene_annotation
+
+# Run actual indexing step
+STAR --runThreadN 32 \
+--runMode genomeGenerate \
+--genomeDir $base$output \
+--genomeFastaFiles $genome \
+--sjdbGTFfile $gene_annotation
+```
+
+
 ### Step 2 - Mapping with STAR <a name="three"></a>
 
 ### Step 3 - Running RSEM <a name="four"></a>
