@@ -1,0 +1,34 @@
+---
+title: "SRA Toolkit Tutorial"
+author: "adowneywall"
+date: "March 14, 2019"
+output: html_document
+---
+
+## What is `SRA Toolkit`?  
+  
+From NCBI:  
+```
+The SRA Toolkit by NCBI enables reading ("dumping") of sequencing files from the SRA database and writing ("loading") files into the .sra format.
+```  
+  
+To expand a bit further, SRA Toolkit allows users to downlaod, read and write files in the SRA (Sequence Read Archive) format. The SRA format is a one way in which NCBI stores sequence data obtained from next generation sequencing. 
+  
+## Downloading and Installing latest version (last update March 2019)
+  
+**Using wget**  
+  
+`wget "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-centos_linux64.tar.gz"`  
+
+if using Linux then unpack the file with  
+  
+`tar -xzf sratoolkit.current-centos_linux64.tar.gz`
+  
+**Using ```apt install```**
+  
+sudo apt install sra-toolkit  
+  
+[Latest instructions from there website](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=toolkit_doc&f=std)  
+  
+## Set `$PATH` to make it easier to call functions  
+

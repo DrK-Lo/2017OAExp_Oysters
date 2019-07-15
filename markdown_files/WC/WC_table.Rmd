@@ -1,0 +1,75 @@
+---
+title: "Water Chemistry"
+author: "adowneywall"
+date: "6/30/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+**Libraries**
+```{r}
+library(kableExtra)
+library(dplyr)
+```
+
+### Data
+```{r}
+wc <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/WC/AE17_pHSalinity_20180305.csv")
+wc_p <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/WC/AE17_EPF_Calcification_20190403(1).csv")
+
+# Removing 900 samples
+wc <- wc[wc$PCO2 != 900,]
+wc_p <- wc_p[wc_p$pCO2 != 900,]
+
+# Removing dates 
+wc_p <- wc_p[wc_p$sample_date < 20170901,]
+wc_p <- wc_p[!is.na(wc_p$sample_date),]
+
+# Columns to select
+s_col_p <- c("ID","shelf","tank","sample_date","pCO2","pH_meas","DIC","TA","pCO2_calc","Calcite")
+s_col <- c("Shelf","Tank","PCO2","Date_WQ","Temp","Sal_Corr","pH")
+```
+
+```{r}
+wc %>% group_by(shelf=Shelf,tank=Tank,Date_WQ,PCO2) %>% 
+  summarize(t_mean=mean(Temp),sal_mean=mean(Sal_Corr)) -> wc_red
+
+colnames(wc_red)[2] <- "sample_date"
+
+wc_p %>% group_by(shelf,tank,sample_date,pCO2) %>%
+  summarize(DIC_mean=mean(DIC),TA_mean=mean(TA),
+            pco2_mean=mean(pCO2_calc),
+            calcite_mean=mean(Calcite)) -> wc_p_red
+
+wc_red$Id <- paste0(wc_red$shelf,wc_red$tank,wc_red$Date_WQ)
+wc_p_red$Id <- paste0(wc_p_red$shelf,wc_p_red$tank,wc_p_red$sample_date)
+
+wc_m <- merge(x = wc_red,y = wc_p_red,by = c("Id"))
+
+wc_m$exp <- NULL
+wc_m$exp[wc_m$sample_date < 20170605] <- "acclimation"
+wc_m$exp[wc_m$sample_date > 20170604] <- "exp"
+
+wc_m %>% group_by(exp,PCO2) %>%
+  summarize(tmean=mean(t_mean),t_sd=sd(t_mean),
+            salmean=mean(sal_mean),sal_td=sd(sal_mean),
+            DICmean=mean(DIC_mean),DIC_sd=sd(DIC_mean),
+            TAmean=mean(TA_mean),TA_sd=sd(TA_mean),
+            pco2mean=mean(pco2_mean),pco2_sd=sd(pco2_mean),
+            calcitemean=mean(calcite_mean),calcite_sd=sd(calcite_mean)) -> wc_sum
+
+# Subset to just exposed 
+wc_exp <- wc_sum[wc_sum$exp == "exp",-1]
+colnames(wc_exp) <- c(" Treatment ",rep(c("mean","sd"),times=6))
+
+kable(wc_exp) %>%
+  kable_styling() %>%
+    add_header_above(c(" ", "Temperature" = 2,
+                       "Salinity" = 2,
+                       "DIC" = 2,
+                       "TA" = 2,
+                       "pCO2" = 2,
+                       "Calcite" = 2))
+
+```

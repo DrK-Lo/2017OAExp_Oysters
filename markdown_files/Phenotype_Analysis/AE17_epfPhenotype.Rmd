@@ -27,6 +27,7 @@ library(factoextra)
 ```{r}
 ### EPF fluid ###
 epf_cal <- read.csv(file = "~/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_EPF_Calcification_20190403.csv")
+epf_wDIC <- read.csv(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_EPF_DIC_20190707.csv")
 # Remove and NAs at end of dataframe
 epf_cal <- epf_cal[!is.na(epf_cal$ID),]
 # Making Date object
@@ -229,6 +230,23 @@ qqline(resid(whole_pCO2_tank))
 
 anova(whole_pCO2_tank)
 #Significant!
+```
+  
+### Pairwise T-tests for each experimental timepoint  
+  
+```{r}
+c_exp <- epf_exp[epf_exp$pCO2_fac == 400,]
+e_exp <- epf_exp[epf_exp$pCO2_fac == 2800,]
+
+pair_T <- NULL
+for (i in 1:length(unique(c_exp$timepoint))){
+  day1_c <- c_exp[c_exp$timepoint == unique(c_exp$timepoint[order(c_exp$timepoint)])[i],]
+  day1_e <- e_exp[e_exp$timepoint == unique(c_exp$timepoint[order(c_exp$timepoint)])[i],]
+  temp <- t.test(day1_c$EPF_pH,day1_e$EPF_pH)
+  pair_T <- c(pair_T,temp$p.value)
+}
+names(pair_T) <- unique(c_exp$timepoint[order(c_exp$timepoint)])
+pair_T
 ```
   
 ## Analysis of EPF pH  - Only the two treatments we analyzed for sequencing.  
@@ -468,21 +486,14 @@ Final bar plot has SE bars and significance levels based on pairwise comparison 
 ## Analysis of EPF pH, DIC, and Ca Saturation - All samples data with **Complete Carbonate Chemistry** (WARNING VERY LOW SAMPLE SIZE)  
 
 * This is data that we measured both the EPF pH and DIC of extract EPF Fluid in order to calculate the complete carbonate chemistry  
+```{r}
+#Reducing data to online those with DIC
+DICnum <- as.numeric(as.character(epf_wDIC$DIC))
 
-**Days : Day 0 (pre exposure), Day 9, Day 80**  
-```{r echo = FALSE}
-# Select specific columns and only keep rows with complete carbonate chemistry
-col_select <- c("ID","shelf","tank","pCO2_fac","DIC","TA","pCO2_calc","Calcite","pH_meas","sample_date","timepoint","timepoint_fac","EPF_pH","EPF_DIC_Start","EPF_Ca_Start")
-epf_cal %>% filter(!is.na(EPF_Ca_Start)) -> epf_s
-#select(col_select) %>%
-epf_s$timepoint_fac <-  factor(epf_s$timepoint_fac)
-levels(epf_s$timepoint_fac)  <-  c("Pre-Exposure","Day 9","Day 80")
+epf_wDIC$DICnum <- DICnum
+epf_wDIC_red <- epf_wDIC[!is.na(epf_wDIC$DICnum),]
 
-# Aggregating WC for experiment
-epf_s %>% filter(timepoint > 0) %>% group_by(pCO2_fac) %>%
-  summarize(DIC=mean(DIC),TA=mean(TA),pH = mean(pH_meas),act_pCO2 = mean(pCO2_calc),Calcite = mean(Calcite)) -> sum_WC
-```  
-
+```
 **Exploratory Plots**  
 ```{r echo=FALSE}
 #Color Scheme
@@ -492,8 +503,11 @@ trt_color <- c("deepskyblue3", "darkorange", "firebrick")
 give.n <- function(x){
    return(c(y = 7.9, label = length(x)))
 }
-ggplot(epf_s,aes(x=timepoint_fac,y=EPF_pH,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + 
-  geom_hline(yintercept= sum_WC$pH,col=trt_color,size=1) + 
+ggplot(epf_wDIC_red,aes(x=timepoint,y=epf_pH,group=interaction(treatment,timepoint),colour=as.factor(treatment))) + geom_boxplot()
+  
+ggplot(epf_wDIC_red,aes(x=timepoint,y=DICnum,group=interaction(treatment,timepoint),colour=as.factor(treatment))) + geom_boxplot()
+
+geom_hline(yintercept= sum_WC$pH,col=trt_color,size=1) + 
   geom_boxplot() + 
   scale_color_manual(values=trt_color) + 
   theme_bw() +
@@ -715,7 +729,7 @@ text(x = mean(bp[3:4]), y = 6.35, label = "Day 80", xpd = NA)
 text(x=-.15,y=8.2,label="B",cex = 2, xpd = NA)
 text(x = bp, y = seq_meanMat + seq_SEMat, pos = 3, lab = seq_labels, xpd = NA)
 box()
-```
+  ```
   
 Fig 1. EPF pH in different OA treatments over time. (A) Complete timeseries plotted with timepoint as a factor on the x-axis and standard error bars. (B) The two timepoints we have sequenced for gene expression and DNA methylation.  
 
@@ -729,43 +743,54 @@ treatSeq_SE <- aggregate(EPF_pH~timepoint_fac+pCO2_fac,ee_treat,FUN=SE)
 treat_SE_ctrl <- treatSeq_SE[treatSeq_SE$pCO2_fac == "400",]
 treat_SE_oa <- treatSeq_SE[treatSeq_SE$pCO2_fac == "2800",]
 
+# Environment mean
+c_mean <- mean(c_exp$pH_meas)
+e_mean <- mean(e_exp$pH_meas)
+
+pdf("/home/downeyam/Desktop/Plot3.pdf", width = 11.5, height = 5.5)
 par(mfrow=c(1,2))
-bp <- plot(treat_means_ctrl$EPF_pH~as.numeric(as.character(treat_means_ctrl$timepoint_fac)),ylab="EPF pH",xlab="Time (Days)",col="lightblue4",ylim = c(6.5,8.1))
-lines(treat_means_ctrl$EPF_pH~as.numeric(as.character(treat_means_ctrl$timepoint_fac)),col="lightblue4")
-arrows(x0 = as.numeric(as.character(treat_means_ctrl$timepoint_fac)), x1 = as.numeric(as.character(treat_means_ctrl$timepoint_fac)), y0 = c(treat_means_ctrl$EPF_pH - treat_SE_ctrl$EPF_pH), y1 = treat_means_ctrl$EPF_pH +
-treat_SE_ctrl$EPF_pH, angle = 90, len = 0.05, code = 3, xpd = NA, lwd = 2,col="lightblue3")
-
-points(treat_means_oa$EPF_pH~as.numeric(as.character(treat_means_oa$timepoint_fac)),col="tomato")
-lines(treat_means_oa$EPF_pH~as.numeric(as.character(treat_means_oa$timepoint_fac)),col="tomato")
-arrows(x0 = as.numeric(as.character(treat_means_oa$timepoint_fac)), x1 = as.numeric(as.character(treat_means_oa$timepoint_fac)), y0 = c(treat_means_oa$EPF_pH - treat_SE_oa$EPF_pH), y1 = treat_means_oa$EPF_pH +
-treat_SE_oa$EPF_pH, angle = 90, len = 0.05, code = 3, xpd = NA, lwd = 2,col="tomato")
-legend(x=45,y=8.15,legend = c("Control","OA"),col = c("lightblue3","tomato"),lty = 1, cex = 0.9,lwd = 2,bty = "n")
-text(x=-10,y=8.27,label="A",cex = 2, xpd = NA)
-box()
-
-# With outliers retained
-seq_means <- aggregate(EPF_pH~timepoint_fac+pCO2_fac,just_seq,FUN=mean)
-SE <- function(x){
-  sd(x)/(sqrt(length(x)))
-}
-seq_SE <- aggregate(EPF_pH~timepoint_fac+pCO2_fac,just_seq,FUN=SE)
-
-seq_labels <- multcompLetters(seq_pairwise$`timepoint_fac:pCO2_fac`[, "p adj"])$Letters
-seq_labels <- seq_labels[c(1,2,4,3)]
-
-seq_meanMat <- rbind(seq_means$EPF_pH[1:2],seq_means$EPF_pH[3:4])
-seq_SEMat <- rbind(seq_SE$EPF_pH[1:2],seq_SE$EPF_pH[3:4])
-
-bp <- barplot(seq_meanMat,ylim=c(6.5,8.1),col=c("lightblue","tomato"),ylab = "EPF pH",
-              xpd = FALSE,beside=TRUE)
-arrows(x0 = bp, x1 = bp, y0 = seq_meanMat - seq_SEMat, y1 = seq_meanMat +
-seq_SEMat, angle = 90, len = 0.05, code = 3, xpd = NA,lwd=2)
-text(x = bp, y = 6.45, label = c("Ctrl","OA","Ctrl","OA"), xpd = NA)
-text(x = mean(bp[1:2]), y = 6.35, label = "Day 9", xpd = NA)
-text(x = mean(bp[3:4]), y = 6.35, label = "Day 80", xpd = NA)
-text(x=-.15,y=8.2,label="B",cex = 2, xpd = NA)
-text(x = bp, y = seq_meanMat + seq_SEMat, pos = 3, lab = seq_labels, xpd = NA)
-box()
+  
+  bp <- plot(treat_means_ctrl$EPF_pH~as.numeric(as.character(treat_means_ctrl$timepoint_fac)),ylab="EPF pH",xlab="Time (Days)",col="lightblue4",ylim = c(6.5,8.1))
+    
+    abline(h=c_mean,col="lightblue4",lty=2)
+    abline(h=e_mean,col="tomato",lty=2)
+    
+    lines(treat_means_ctrl$EPF_pH~as.numeric(as.character(treat_means_ctrl$timepoint_fac)),col="lightblue4")
+    arrows(x0 = as.numeric(as.character(treat_means_ctrl$timepoint_fac)), x1 = as.numeric(as.character(treat_means_ctrl$timepoint_fac)), y0 = c(treat_means_ctrl$EPF_pH - treat_SE_ctrl$EPF_pH), y1 = treat_means_ctrl$EPF_pH +
+    treat_SE_ctrl$EPF_pH, angle = 90, len = 0.05, code = 3, xpd = NA, lwd = 2,col="lightblue3")
+    
+    points(treat_means_oa$EPF_pH~as.numeric(as.character(treat_means_oa$timepoint_fac)),col="tomato")
+    lines(treat_means_oa$EPF_pH~as.numeric(as.character(treat_means_oa$timepoint_fac)),col="tomato")
+    arrows(x0 = as.numeric(as.character(treat_means_oa$timepoint_fac)), x1 = as.numeric(as.character(treat_means_oa$timepoint_fac)), y0 = c(treat_means_oa$EPF_pH - treat_SE_oa$EPF_pH), y1 = treat_means_oa$EPF_pH +
+    treat_SE_oa$EPF_pH, angle = 90, len = 0.05, code = 3, xpd = NA, lwd = 2,col="tomato")
+    legend(x=45,y=8.15,legend = c("Control","OA"),col = c("lightblue3","tomato"),lty = 1, cex = 0.9,lwd = 2,bty = "n")
+    text(x=-10,y=8.27,label="A",cex = 2, xpd = NA)
+    box()
+  # With outliers retained
+  seq_means <- aggregate(EPF_pH~timepoint_fac+pCO2_fac,just_seq,FUN=mean)
+  SE <- function(x){
+    sd(x)/(sqrt(length(x)))
+  }
+  seq_SE <- aggregate(EPF_pH~timepoint_fac+pCO2_fac,just_seq,FUN=SE)
+  
+  seq_labels <- multcompLetters(seq_pairwise$`timepoint_fac:pCO2_fac`[, "p adj"])$Letters
+  seq_labels <- seq_labels[c(1,2,4,3)]
+  
+  seq_meanMat <- rbind(seq_means$EPF_pH[1:2],seq_means$EPF_pH[3:4])
+  seq_SEMat <- rbind(seq_SE$EPF_pH[1:2],seq_SE$EPF_pH[3:4])
+  
+  bp <- barplot(seq_meanMat,ylim=c(6.5,8.1),col=c("lightblue","tomato"),ylab = "EPF pH",
+                xpd = FALSE,beside=TRUE)
+  arrows(x0 = bp, x1 = bp, y0 = seq_meanMat - seq_SEMat, y1 = seq_meanMat +
+  seq_SEMat, angle = 90, len = 0.05, code = 3, xpd = NA,lwd=2)
+  text(x = bp, y = 6.45, label = c("Ctrl","OA","Ctrl","OA"), xpd = NA)
+  text(x = mean(bp[1:2]), y = 6.35, label = "Day 9", xpd = NA)
+  text(x = mean(bp[3:4]), y = 6.35, label = "Day 80", xpd = NA)
+  text(x=-.15,y=8.2,label="B",cex = 2, xpd = NA)
+  text(x = bp, y = seq_meanMat + seq_SEMat, pos = 3, lab = seq_labels, xpd = NA)
+  box()
+  
+  dev.off()
 ```
   
 Fig 2. EPF pH in different OA treatments over time. (A) Complete timeseries plotted with timepoint as a continuous variable on the x-axis and standard error bars. (B) The two timepoints we have sequenced for gene expression and DNA methylation.  

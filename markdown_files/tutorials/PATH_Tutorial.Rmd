@@ -1,0 +1,53 @@
+---
+title: "Making a PATH"
+author: "adowneywall"
+date: "March 14, 2019"
+output: html_document
+---
+
+##What is a `PATH`?  
+
+It is not uncommon that a program will say something like: "Add **X** to your `$PATH` variable". This begs the questions what exactly is the `$PATH` variable?  
+  
+The `$PATH` variable contains information on the pathways to different directories where executable programs are located.  The major benefit of 'Adding **X** to your 'PATH' variable' is that it eliminates the need to specify the absolute path to an executable located in directory **X**. Instead the name of the executable can be used directly in the command line, saving space and time. In some cases this might also be a requirement if a script you are running attempts to execute a particular executable program using only the name of the file (rather than include the absolute path).  
+
+### Here is a short example of how you can add to your `PATH` variable:  
+
+#### Lets create a small program (from Terminal):
+
+First making a new folder:
+```{bash,eval=FALSE}
+mkdir /home/username/newFolder
+  
+cd /home/username/newFolder  
+```
+  
+Next make your program by opening favorite text editor (e.g. `nano`) and adding the code below and saving as `simple_program.sh`:  
+```
+!/bin/bash
+echo "Hello World"
+```
+Make sure you set your permissions so that the file is executable:  
+```{bash, eval=FALSE}
+chmod +x simple_program.sh
+```
+Next you can test that it can be executed typing (in the command line):
+```{bash,eval=FALSE}
+./simple_program.sh
+```
+If it works you it should print ```Hello World```.
+   
+#### Now lets update to our ```PATH```variable to contain a pathway to our newly created program!  
+
+To update our```$PATH``` variable we we need to modify a folder called ```.bashrc``` located in our base directory.  
+  
+Lets open this file up using your favorite text editor. For example:  
+```{bash,eval=FALSE}
+nano ~/.bashrc
+```
+Next add the complete pathway to the folder with our new program follow by ```:$PATH```:
+```
+\export PATH=" /home/username/newFolder:$PATH"
+```
+Finally close and reopen terminal and the you should be able to run your program by simply typing ```simple_program``` from any directory (not just the one where the program is located)! 
+  
