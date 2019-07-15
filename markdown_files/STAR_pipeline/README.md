@@ -147,7 +147,8 @@ STAR maps trimmed reads to the index created in the previous steps.
 
 ### Coding and Scripts
 
-**Step 2.1** : Create TMUX session (do this once you've ssh'ed into the cluster not before):
+**Step 2.1** : Create TMUX session (Optional: do this once you've ssh'ed into the cluster not before):
+* This will take a long time to run, so it will be goo
 
 Command Line:
 ```
