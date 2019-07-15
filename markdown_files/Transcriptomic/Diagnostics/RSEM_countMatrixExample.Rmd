@@ -1,0 +1,49 @@
+---
+title: "RSEM_countMatrix"
+author: "adowneywall"
+date: "7/7/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rsem_c <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/results/2010610_RSEM_17005_test/RSEM.isoforms.results")
+sa_c <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20180512/17005/quant.sf")
+trans <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/transcriptome_fromGenome_table.RData")
+lab <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/GCF.gtf",header = FALSE)
+## Split up GTF file
+# transcript ID
+transcript_id <- sub(pattern=".*transcript_id\\s(.*?);.*",replacement="\\1",lab$V9)
+length(transcript_id)
+# gene ID
+gene_id <- sub(pattern=".*gene_id\\s(.*?);.*",replacement="\\1",lab$V9)
+head(gene_id)
+length(gene_id)
+#Location
+LOC <- sub(pattern=".*gene_name\\s(.*)\\;.*",replacement="\\1",lab$V9)
+head(lab$V9)
+lab <- cbind(lab,transcript_id=transcript_id,gene_id=gene_id,LOC=LOC)
+
+lab_sub <-  subset(lab,lab$V2 == "Gnomon")
+length(lab_sub$V1)
+lab_sub <- subset(lab_sub,lab_sub$V3 == "transcript")
+length(lab_sub$V1)
+
+(rsem_c$transcript_id,lab_sub$transcript_id)
+
+sc_m <- merge(sa_c,trans,by.x = "Name",by.y = "fullID")
+  ```
+
+
+```{r}
+sum(rsem_c$expected_count)
+sum(sa_c$NumReads)
+max(rsem_c$expected_count)
+max(sa_c$NumReads)
+
+```
