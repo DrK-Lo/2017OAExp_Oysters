@@ -1,4 +1,4 @@
-# Markdown files for analyzing oyster RNA data  
+# Markdown files for analyzing oyster 2017 OA exposure experiment 
 
 ## Folders  
 **```outdated/```**:  This folder contains previous versions of the bioinformatics pipeline and preliminary analysis. The bioinformatics script has since been broken in to several scripts (listed below) to improve clarity and allow for great pipeline flexibility.  
@@ -25,14 +25,3 @@
 - ```AE_epf_Phenotype.Rmd```: Markdown for the extra-pallial fluid (EPF) pH analysis. 
 
 **```extra/```**: Folder contains scripts ancillary to the gene expression pipeline. Example, a tutorial for set your your ```$PATH``` variable.
-  
-## General File structure for STAR Pipeline
-  
-**Note that only the file endings will be consistent between pipelines.**  
-  
-**```*_createRefGenome.Rmd```**: Walks through downloading and assembling the oyster reference genome from NCBI.  
-**```*_trimming.Rmd```**: Script that reads in raw RNA seq data and assembled reference genome and performs both the trimming and quality control steps.  
-**```*_ReadMapping.Rmd```**: Script that aligns trimmed reads to a reference genome.  
-**```*_Filtering.Rmd```**: Filtering step that removes aligned reads that fail a certain quality threshold (MAPQ level)  
-**```*_createcountMatrix.Rmd```**: Take the aligned reads that pass QC and generates a count matrix.  
-**```*_countAnalysis.Rmd```**: A brief work up of the count data (currently looks at global patterns of differential expression and individual loci significance).  
