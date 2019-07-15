@@ -11,7 +11,7 @@ This pipeline takes advantage of a genome mapper STAR, which performs transcript
 3. [Step 2 - Mapping with STAR](#three)
 4. [Step 3 - Running RSEM](#four)
 
-### Brief Description and Literature on Required Tools and Scripts <a name="one"></a>
+## Brief Description and Literature on Required Tools and Scripts <a name="one"></a>
 
 **Mapping**
 
@@ -27,16 +27,45 @@ This pipeline takes advantage of a genome mapper STAR, which performs transcript
 * [Github](https://deweylab.github.io/RSEM/)
 * [Publication](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-323)
 
-### Step 1 - Creating STAR index <a name="two"></a>
+## Step 1 - Creating STAR index <a name="two"></a>
 
-For the oysters I used the reference genome from NCBI ([GCA_002022765.4 C_virginica-3.0](https://www.ncbi.nlm.nih.gov/genome/?term=crassostrea+virginica)) and for gene annotations I used the ones created by Kevin Johnson during the frogger workshop [LINK](https://drive.google.com/drive/u/0/folders/1KBAm4L5K2ZQ5dUOUfryk0BaB7fcA1RuL), which I converted from a `.gff` file formate to `.gtf` using [`gffread`](https://github.com/gpertea/gffread).
+**Overview** STAR performing the mapping in two primary stages. First, you need to create an index which the actuals reads are mapped too. We are creating this index using the available genome on NCBI, `.fna` file, and annotating it with a gene anotations file, `.gtf` format. 
+
+**Additional Thoughts and Performance**
+* This step only needs to be done once, unless the genome or gene annotations have been updated.
+* Indexing should be relatively quick on a cluster (<10min)
+
+**Inputs**
+* Reference genome: from NCBI ([GCA_002022765.4 C_virginica-3.0](https://www.ncbi.nlm.nih.gov/genome/?term=crassostrea+virginica))
+* Gene annotations: created by Kevin Johnson during the frogger workshop [LINK](https://drive.google.com/drive/u/0/folders/1KBAm4L5K2ZQ5dUOUfryk0BaB7fcA1RuL), which I converted from a `.gff` file formate to `.gtf` using [`gffread`](https://github.com/gpertea/gffread).
+
+**Outputs**
+* Reference Star Folder: `/shared_lab/20180226_RNAseq_2017OAExp/RNA/references/star_ref2`
+
+**Coding and Scripts**
 
 Command line code for converting from `.gff` to `.gtf`:
 ```
 gffread my.gff -T -o my.gtf
 ```
 
-Sample bash code for creating an index in STAR:
+Command line code for creating STAR index for oyster:
+```
+downey-wall.a@comp5[references]# STAR_genomeCreate.sh 
+/shared_lab/20180226_RNAseq_2017OAExp/RNA/scripts/STAR_scripts/STAR_genomeCreate.sh: line 1: !#/bin/bash: No such file or directory
+Please put in the base directory:
+/shared_lab/20180226_RNAseq_2017OAExp/RNA/references/
+Please put in the output folder name:
+star_ref2
+Outputs saving to :  /shared_lab/20180226_RNAseq_2017OAExp/RNA/references/star_ref2
+Directory Created
+Select genome file (.fna format, should include entire path)
+/shared_lab/20180226_RNAseq_2017OAExp/RNA/references/genome/GCF_002022765.2_C_virginica-3.0_genomic.fna
+Select gene annotation file (.gtf, should includ entire path)
+/shared_lab/20180226_RNAseq_2017OAExp/RNA/references/gene_annotation/KM_CV_genome.gtf 
+```
+
+Bash code for bash script `STAR_genomeCreate.sh`:
 ```
 !#/bin/bash
 
@@ -73,6 +102,8 @@ STAR --runThreadN 32 \
 ```
 
 
-### Step 2 - Mapping with STAR <a name="three"></a>
+## Step 2 - Mapping with STAR <a name="three"></a>
+
+**Overview**: STAR maps trimmed reads to the index created in the previous steps
 
 ### Step 3 - Running RSEM <a name="four"></a>
