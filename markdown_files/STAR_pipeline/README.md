@@ -29,7 +29,8 @@ This pipeline takes advantage of a genome mapper STAR, which performs transcript
 
 ## Step 1 - Creating STAR index <a name="two"></a>
 
-**Overview** STAR performing the mapping in two primary stages. First, you need to create an index which the actuals reads are mapped too. We are creating this index using the available genome on NCBI, `.fna` file, and annotating it with a gene anotations file, `.gtf` format. 
+### Overview 
+STAR performing the mapping in two primary stages. First, you need to create an index which the actuals reads are mapped too. We are creating this index using the available genome on NCBI, `.fna` file, and annotating it with a gene anotations file, `.gtf` format. 
 
 **Additional Thoughts and Performance**
 * This step only needs to be done once, unless the genome or gene annotations have been updated.
@@ -42,7 +43,7 @@ This pipeline takes advantage of a genome mapper STAR, which performs transcript
 **Outputs**
 * Reference Star Folder: `/shared_lab/20180226_RNAseq_2017OAExp/RNA/references/star_ref2`
 
-**Coding and Scripts**
+### Coding and Scripts
 
 Command line code for converting from `.gff` to `.gtf`:
 ```
@@ -119,9 +120,12 @@ Jul 15 12:30:07 ... writing SAindex to disk
 Jul 15 12:30:12 ..... finished successfully
 ```
 
+--- 
+
 ## Step 2 - Mapping with STAR <a name="three"></a>
 
-**Overview**: STAR maps trimmed reads to the index created in the previous steps. 
+### Overview
+STAR maps trimmed reads to the index created in the previous steps. 
 
 **Additional Thoughts and Performance**
 * This will likely take a long time and require extensive RAM (>30GB), so will likely need to be done on a computing cluster.
@@ -141,16 +145,20 @@ Jul 15 12:30:12 ..... finished successfully
 
 **Output**:
 
-**Coding and Scripts**
+### Coding and Scripts
 
-**Command Line**
+**Step 2.1** : Create TMUX session (do this once you've ssh'ed into the cluster not before):
 
-Example of creating TMUX session (do this once you've ssh'ed into the cluster not before):
+Command Line:
 ```
 tmux new-session -s NAME_SESSION_HERE
 ```
 
-Start STAR mapping 1st Pass:
+---
+
+**Step 2.2** : Start STAR mapping 1st Pass
+
+Command Line:
 ```
 downey-wall.a@comp5[references]# STAR_1Pass_all.sh 
 Please put in raw file directory:
@@ -158,9 +166,26 @@ Please put in raw file directory:
 Please put in name of new folder for output
 run_20190715
 ```
+---
 
-Start STAR mapping 2nd Pass:
+**Step 2.3** :  Move output files from 1st pass and Create `m3` folder for 2nd Pass
 ```
+cd /pathway/to/output/folder
+mkdir m2
+mkdir m3
+mv *m2_* m2 
+```
+* This step is need because the second pass script is currently not super flexible to user input. In the future this step  will be removed.
+
+---
+
+**Step 2.4** : Start STAR mapping 2nd Pass
+
+Command Line:
+```
+downey-wall.a@comp5[references]# STAR_1Pass_all.sh
+Please put in raw file directory:
+/shared_lab/20180226_RNAseq_2017OAExp/RNA/rawfiles
 ```
 
 Dettach TMUX session to prevent accidental pipe breaking, using hot keys. 
@@ -213,6 +238,38 @@ for i in $( ls $raw/*.R1.* ); do
                 fi
         done
 done
-```       
+```
 
+Bash Code for the 2nd Pass, `STAR_2Pass_all.sh`:
+```
+#!/bin/bash
+
+echo "Please put in raw file directory:"
+read raw
+
+for i in $( ls $raw/*.R1.* ); do
+        for j in $( ls $raw/*.R2.* ); do
+                file1=$( echo $i | rev | cut -d'/' -f 1 | rev | cut -d'.' -f 1)
+                file2=$( echo $j | rev | cut -d'/' -f 1 | rev | cut -d'.' -f 1)
+                if [ "$file1" == "$file2" ]
+                then
+                    	m2_files=$( ls /shared_lab/20180226_RNAseq_2017OAExp/RNA/STAR_files/run_20190715/m2/*m2_SJ.out.tab)
+                        echo $i and $j
+                        echo RNA"$file1"_m3
+                        echo yes these files match
+                        echo $m2_files
+                        /shared_lab/scripts/STAR --runThreadN 19 \
+                        --genomeDir /shared_lab/20180226_RNAseq_2017OAExp/RNA/references/star_ref2 \
+                        --readFilesIn $i $j \
+                        --outSAMmapqUnique 40 \
+                        --outSAMtype BAM Unsorted SortedByCoordinate \
+                        --quantMode TranscriptomeSAM GeneCounts --limitSjdbInsertNsj 1500000 \
+                        --outFileNamePrefix /shared_lab/20180226_RNAseq_2017OAExp/RNA/STAR_files/run_20190715/m3/"$file1"_m3_ \
+                        --readFilesCommand zcat \
+                        --sjdbFileChrStartEnd $m2_files
+                fi
+        done
+done
+```
+**Note**: This script is currently not flexible and paths for the index folder, outputs, and splice junctions are all hard coded.
 ### Step 3 - Running RSEM <a name="four"></a>
