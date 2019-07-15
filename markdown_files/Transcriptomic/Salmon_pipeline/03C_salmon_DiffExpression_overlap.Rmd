@@ -1,0 +1,109 @@
+---
+title: "DESeq Gene and Transcript Comparison"
+author: "adowneywall"
+date: "6/12/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+### Data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+t_out <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/Salmon_Gene/run20190610_tranList_DESeq2Results.RData")
+g_out <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/Salmon_Gene/run20190610_geneList_DESeq2Results.RData")
+library(ggplot2)
+library(kableExtra)
+```
+
+### Significantly Differentially Expressed Transcripts
+```{r}
+# 
+# Day 09
+# Increased expression under OA 
+t_tp1_pos_num <- length(t_tp1_pos <- which(t_out$TP1_P<0.1 & t_out$TP1_Log2_FoldChange > 0))  
+# Decreased expression under OA
+t_tp1_neg_num <- length(t_tp1_neg <- which(t_out$TP1_P<0.1 & t_out$TP1_Log2_FoldChange < 0))  
+# Total differentially expressed isoform
+t_tp1 <-  c(t_tp1_pos, t_tp1_neg)  
+(t_tp1_num <-  t_tp1_pos_num + t_tp1_neg_num)
+t_tp1_diff <- t_out[t_tp1,]
+# Unique Genes
+(t_tp1_diff_uniqueG <- length(unique(t_tp1_diff$location)))
+
+# Day 80
+# Increased expression under OA 
+t_tp2_pos_num <- length(t_tp2_pos <- which(t_out$TP2_P<0.1 & t_out$TP2_Log2_FoldChange > 0))
+# Decreased expression under OA
+t_tp2_neg_num <- length(t_tp2_neg <- which(t_out$TP2_P<0.1 & t_out$TP2_Log2_FoldChange < 0))
+# Total differentially expressed isoform
+t_tp2 <-  c(t_tp2_pos, t_tp2_neg)
+(t_tp2_num <-  t_tp2_pos_num + t_tp2_neg_num)
+t_tp2_diff <- t_out[t_tp2,]
+# Unique Genes
+(t_tp2_diff_uniqueG <-length( unique(t_tp2_diff$location)))
+
+# Total across all timepoints
+length(unique(c(t_tp1, t_tp2)))
+# TP 9 up - TP 80 up
+length(na.omit(match(t_tp1_pos, t_tp2_pos)))
+# TP 9 up - TP 80 down
+length(na.omit(match(t_tp1_pos, t_tp2_neg)))
+# TP 9 down - TP 80 up
+length(na.omit(match(t_tp1_neg, t_tp2_pos)))
+# TP 9 down - TP 80 down
+length(na.omit(match(t_tp1_neg, t_tp2_neg)))
+# TP 9 unique
+# TP 80 unique
+```
+
+```{r eval=FALSE}
+# print_t_out_sig <-  print_t_out_sig[,c(2,1,3,5,6,7,8,9,10,11)]
+# names(print_t_out_sig)[1] <- "Gene"
+# names(print_t_out_sig)[2] <- "Transcript_ID"
+# names(print_t_out_sig)[3] <- "Predicted_Gene"
+# 
+# kable(print_t_out_sig) %>% 
+#         kable_styling()
+```
+
+### Gene level differential expression
+```{r}
+# Day 09
+# Increased expression under OA 
+g_tp1_pos_num <- length(g_tp1_pos <- which(g_out$TP1_P<0.1 & g_out$TP1_Log2_FoldChange > 0))  
+# Decreased expression under OA
+g_tp1_neg_num <- length(g_tp1_neg <- which(g_out$TP1_P<0.1 & g_out$TP1_Log2_FoldChange < 0))  
+# Total differentially expressed isoform
+g_tp1 <-  c(g_tp1_pos, g_tp1_neg)  
+(g_tp1_num <-  g_tp1_pos_num + g_tp1_neg_num)
+g_tp1_diff <- g_out[g_tp1,]
+# Unique Genes
+(g_tp1_diff_uniqueG <- length(unique(g_tp1_diff$location)))
+
+# Day 80
+# Increased expression under OA 
+g_tp2_pos_num <- length(g_tp2_pos <- which(g_out$TP2_P<0.1 & g_out$TP2_Log2_FoldChange > 0))
+# Decreased expression under OA
+g_tp2_neg_num <- length(g_tp2_neg <- which(g_out$TP2_P<0.1 & g_out$TP2_Log2_FoldChange < 0))
+# Total differentially expressed   isoform
+g_tp2 <-  c(g_tp2_pos, g_tp2_neg)
+(g_tp2_num <-  g_tp2_pos_num + g_tp2_neg_num)
+g_tp2_diff <- g_out[g_tp2,]
+# Unique Genes
+(g_tp2_diff_uniqueG <-length( unique(g_tp2_diff$location)))
+
+# Total across all timepoints
+length(unique(c(g_tp1, g_tp2)))
+# TP 9 up - TP 80 up
+length(na.omit(match(g_tp1_pos, g_tp2_pos)))
+# TP 9 up - TP 80 down
+length(na.omit(match(g_tp1_pos, g_tp2_neg)))
+# TP 9 down - TP 80 up
+length(na.omit(match(g_tp1_neg, g_tp2_pos)))
+# TP 9 down - TP 80 down
+length(na.omit(match(g_tp1_neg, g_tp2_neg)))
+# TP 9 unique
+# TP 80 unique
+```
+
