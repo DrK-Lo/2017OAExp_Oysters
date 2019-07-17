@@ -1,4 +1,4 @@
-# Keeping track of versions a parameters
+# Keeping track of versions and parameters for different analysis pipeline and runs
 
 I created a version control log for keeping track of the different versions of the mapping and analyses pipelines.
 
