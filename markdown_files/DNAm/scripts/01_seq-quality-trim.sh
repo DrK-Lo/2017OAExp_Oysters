@@ -1,6 +1,6 @@
 #!/bin/bash
 
-files = ls /shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles
+files = ls /shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp
 
 echo Files being trimmed: $files
 
