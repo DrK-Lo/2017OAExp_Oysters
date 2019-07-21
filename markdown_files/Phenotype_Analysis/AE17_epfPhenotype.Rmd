@@ -1,12 +1,11 @@
 ---
 title: "CV17 Extra Pallial Fluid Analysis"
-author: "adowneywall"
+author: "Alan Downey-Wall"
 date: "April 10, 2019"
-output: 
-  html_document:
-    keep_md: true
-editor_options: 
-  chunk_output_type: console
+  output: 
+    github_document
+  editor_options: 
+    chunk_output_type: console  
 ---
 
 ```{r setup, include=FALSE}
@@ -24,47 +23,7 @@ library(factoextra)
 ```
 
 ## Data Input and Formatting
-```{r}
-### EPF fluid ###
-epf_cal <- read.csv(file = "~/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_EPF_Calcification_20190403.csv")
-epf_wDIC <- read.csv(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_EPF_DIC_20190707.csv")
-# Remove and NAs at end of dataframe
-epf_cal <- epf_cal[!is.na(epf_cal$ID),]
-# Making Date object
-epf_cal$Sample_Date <- as.Date(as.character(epf_cal$sample_date),origin="%Y%m%d",format="%Y%m%d")
-# Removing samples outside of experiment (those for louises exp)
-epf_cal <- epf_cal[epf_cal$Sample_Date < "2017-08-25",]
-epf_cal <- epf_cal[!is.na(epf_cal$Sample_Date),]
-#aggreate final two timepoints
-epf_cal$Sample_Date[epf_cal$Sample_Date > "2017-08-20"] <-"2017-08-23"
-  
-# Convert Dates into timepoints (time prior to experiment exposure starting)
-epf_cal$timepoint <-  epf_cal$Sample_Date - as.Date("2017-06-04")
-epf_cal$timepoint_fac <-  as.factor(epf_cal$timepoint)
 
-## Deciding to treat time and treatment as factors
-# Aggregating data pre exposure levels to 400
-epf_cal$pCO2[epf_cal$timepoint < 0] <- 400
-#Convert to factor
-epf_cal$pCO2_fac <-  as.factor(epf_cal$pCO2)
-
-### Water Chemistry ###
-wc <-  read.csv(file="~/Github/2017OAExp_Oysters/input_files/WC/AE17_pHSalinity_20180305.csv")
-
-### Meta data with sample sequence info ###
-ss <- read.csv(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt")
-# Creates an ID column that matches with epf_cal dataframe ID
-ss$ID <- as.numeric(substr(ss$sample_name,4,10))
-### Data set with population information ###
-sp <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_Exp_2017_CollectionInfo_20190227.csv")
-# Subsetting to keep only relevant data
-sp_pop <- subset(sp,select=c(ID,pop))
-# Merge population data with phenotype data
-epf_cal <- merge(epf_cal,sp_pop,by="ID")
-
-#Subset data to include just those that were sequenced
-just_seq <- epf_cal[!is.na(match(epf_cal$ID,ss$ID)),]
-```
 
 ### **Sample Tables**
 
@@ -794,6 +753,146 @@ par(mfrow=c(1,2))
 ```
   
 Fig 2. EPF pH in different OA treatments over time. (A) Complete timeseries plotted with timepoint as a continuous variable on the x-axis and standard error bars. (B) The two timepoints we have sequenced for gene expression and DNA methylation.  
+
+## Creating RData files for phenotype and water chemistry data using raw data files
+```{r, eval=FALSE}
+### EPF fluid ###
+#epf_cal <- read.csv(file = "/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_EPF_Calcification_20190403.csv")
+
+# # Remove and NAs at end of dataframe
+# epf_cal <- epf_cal[!is.na(epf_cal$ID),]
+# # Making Date object
+# epf_cal$Sample_Date <- as.Date(as.character(epf_cal$sample_date),origin="%Y%m%d",format="%Y%m%d")
+# # Removing samples outside of experiment (those for louises exp)
+# epf_cal <- epf_cal[epf_cal$Sample_Date < "2017-08-25",]
+# epf_cal <- epf_cal[!is.na(epf_cal$Sample_Date),]
+# #aggreate final two timepoints
+# epf_cal$Sample_Date[epf_cal$Sample_Date > "2017-08-20"] <-"2017-08-23"
+#   
+# # Convert Dates into timepoints (time prior to experiment exposure starting)
+# epf_cal$timepoint <-  epf_cal$Sample_Date - as.Date("2017-06-04")
+# epf_cal$timepoint_fac <-  as.factor(epf_cal$timepoint)
+
+### EPF ALL CHEM AND RESPIRATION DATA SHEET ###
+epf_cal2 <- read.csv(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_Exp_2017_CalcificationInfo_20190321_JBR.csv")
+# Making Date object
+epf_cal2$Sample_Date <- as.Date(as.character(epf_cal2$sample_date),origin="%Y%m%d",format="%Y%m%d")
+# Removing samples outside of experiment (those for louises exp)
+epf_c <- epf_cal2[epf_cal2$Sample_Date < "2017-08-25",]
+# Remove an NA
+epf_c <- epf_c[!is.na(epf_c$Sample_Date),]
+# Creating a timepoint
+epf_c$timepoint <-  epf_c$Sample_Date - as.Date("2017-06-04")
+epf_c$timepoint_fac <-  as.factor(epf_c$timepoint)
+## Deciding to treat time and treatment as factors
+# Aggregating data pre exposure levels to 400
+epf_c$pCO2[epf_c$timepoint < 0] <- 400
+#Convert to factor
+epf_c$pCO2_fac <-  as.factor(epf_c$pCO2)
+
+#Select useful columns
+c_sel <- c("ID","Sample_Date","timepoint","timepoint_fac",
+           "WaterSample_ID","shelf","tank","pCO2","pCO2_fac",
+           "DIC","TA","pCO2_calc","Calcite","pH_meas",
+           "dry_end_meas","Daily_Pcnt_Change_Corrected")
+epf_c %>% dplyr::select(c_sel) -> epf_cf
+unique(epf_cf$Sample_Date)
+epf_cf$Date_Order <- NA
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-05-09")] <- 1
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-05-17")] <- 2
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-06-02")] <- 3
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-06-05")] <- 4
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-06-06")] <- 5
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-06-13")] <- 6
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-06-26")] <- 7
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-07-24")] <- 8
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-08-22")] <- 9
+epf_cf$Date_Order[epf_cf$Sample_Date==as.Date("2017-08-24")] <- 10
+epf_cf$Date_Tank <- paste0(epf_cf$Date_Order,"_",epf_cf$WaterSample_ID)
+### EPF DIC DATA SHEET ###
+
+epf_wDIC <- read.csv(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_EPF_DIC_20190707.csv")
+
+### Water Chemistry ###
+wc <-  read.csv(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/WC/AE17_pHSalinity_20180305.csv")
+# Making Date Column
+wc$Sample_Date <- as.Date(as.character(wc$Date_WQ),origin="%Y%m%d",format="%Y%m%d")
+# subsetting to only needed columns
+wc_sel <- c("Shelf","Tank","TankID","Sample_Date",
+            "PCO2","Sal_Corr","pH","Temp")
+wc %>% dplyr::select(wc_sel) -> wc_sub
+# These dates are for selecting the nearest wc sampling tp either on or proceeding the epf tp
+date_sel <- c("2017-05-08","2017-05-17","2017-06-02","2017-06-05","2017-06-06",
+              "2017-06-12","2017-06-26","2017-07-24","2017-08-21","2017-08-23")
+wc_sub <- wc_sub[which(wc_sub$Sample_Date %in% as.Date(date_sel)),]
+# Create order for Dates
+wc_sub$Date_Order <- NA
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-05-08")] <- 1
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-05-17")] <- 2
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-06-02")] <- 3
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-06-05")] <- 4
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-06-06")] <- 5
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-06-12")] <- 6
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-06-26")] <- 7
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-07-24")] <- 8
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-08-21")] <- 9
+wc_sub$Date_Order[wc_sub$Sample_Date==as.Date("2017-08-23")] <- 10
+wc_sub$Date_Tank <- paste0(wc_sub$Date_Order,"_",wc_sub$TankID)
+colnames(wc_sub)
+wc_sub %>% dplyr::select("Date_Tank",Tank_Salinity="Sal_Corr",Tank_pH="pH",Tank_temp="Temp")-> wc_f
+
+
+# Check to see the samples are evenly spread across tank and time (some missing values for last tps)
+table(epf_cf$WaterSample_ID,epf_cf$Date_Order)
+table(wc_sub$TankID,wc_sub$Date_Order)
+
+# Merge the oyster and chem data
+pheno_wc <- merge(epf_cf,wc_f,by="Date_Tank")
+
+### Data set with population information ###
+sp <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_Exp_2017_CollectionInfo_20190227.csv")
+
+# Making Date object
+sp$Sample_Date <- as.Date(as.character(sp$sample_date),origin="%Y%m%d",format="%Y%m%d")
+# Removing samples outside of experiment (those for louises exp)
+sp <- sp[sp$Sample_Date < "2017-08-25",]
+# Remove an NA
+sp <- sp[!is.na(sp$Sample_Date),]
+colnames(sp)
+sp_col <- c("ID","PopOrigin","length","width","wet_wgtcorr","dry_wgt")
+sp %>% dplyr::select(sp_col) -> sp_red
+
+pheno_wc <- merge(pheno_wc,sp_red,by="ID")
+# Dry Weight / Length Condition index
+pheno_wc$Len_Wgt_Index <- pheno_wc$dry_wgt / pheno_wc$length
+# Hand and Nell Condition Index : Dry Weight * 1000 / (Wet Wgt)
+pheno_wc$HN_Index <- (pheno_wc$dry_wgt * 1000)/(pheno_wc$wet_wgtcorr)
+
+### Meta data with sample sequence info ###
+seqSamples <- read.csv(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_EPF_DIC_20190707.csv")
+seqSamples <- seqSamples[!is.na(seqSamples$sample_index),]
+
+#subset full pheno_wc_Seq to just thoses we sequenced
+pheno_wc_Seq <- pheno_wc[which(pheno_wc$ID %in% seqSamples$ID),]
+#merge with sampleSeq datasheet
+sampleSeq_full <- merge(seqSamples,pheno_wc_Seq,by="ID")
+colnames(sampleSeq_full)
+sampleSeq_full %>%
+dplyr::select("ID","sample_name","sample_index","Day",
+              "treatment","pCO2_fac",tank="tank.x",shelf="shelf.x",
+              "population","PopOrigin",
+              "extraction_order","seq_order","lane",
+              "epf_pH",epf_DIC="DIC.x",epf_Salinity="Salinity",
+              env_pH="pH_meas",env_DIC="DIC.y",env_TA="TA",env_pCO2="pCO2_calc",env_Calcite="Calcite",
+              Calcification_perDay = "Daily_Pcnt_Change_Corrected",
+              "length","width",wet_wgt="wet_wgtcorr","dry_wgt",
+              "Len_Wgt_Index","HN_Index") -> sample_Seq_Final
+
+# Store full phenotype and water chemistry dataframe as RData for easier use
+saveRDS(pheno_wc,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/full_data_20190716.Rdata")
+# Store phenotype and wc data from just the 24 sequenced samples for easier use
+saveRDS(sample_Seq_Final,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/seq_data_20190716.Rdata")
+```
 
 ## Additional Analysis  
   
