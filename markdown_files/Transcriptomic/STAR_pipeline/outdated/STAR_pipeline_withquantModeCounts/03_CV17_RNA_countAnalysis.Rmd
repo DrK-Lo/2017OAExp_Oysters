@@ -1,0 +1,414 @@
+---
+title: "Data Normalization and Global Methylation Visualization"
+author: "Alan Downey-Wall"
+date: "5/30/2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=TRUE}
+library(knitr)
+#knitr::opts_knit$set(root.dir="~/Desktop/2017OAExp_Oysters")
+```
+
+## Preliminary Analysis of RNAseq count data
+
+### Load libraries and import data  
+This code uses the raw count data and the filtered SNP data from RNAseq to identify preliminary patterns in the data.
+Start by loading libraries required for the preliminary analysis. If the libraries do not properly load, make sure they are installed.  
+  
+```{r include=FALSE}
+#source("http://bioconductor.org/biocLite.R")
+if(!require("edgeR")) biocLite("edgeR")
+if(!require("limma")) biocLite("limma")
+if(!require("DESeq2")) biocLite("DESeq2")
+
+if(!require("pacman")) install.packages("pacman")
+library(pacman)
+```
+  
+#### **Necessary Packages**:  
+```{r}
+library(edgeR)
+library(limma)
+library(statmod)
+library(ggplot2)
+library(psych)
+library(DESeq2)
+library(kableExtra)
+```
+**Note**: ```edgeR``` and ```limma``` are both available through **bioconductor** rather than **CRAN**. To install these packages for the first time you will need to use ```biocLite()``` function (e.g. ```biocLite("limma")```). If you **do not** have bioconductor install, first run ```source("http://bioconductor.org/biocLite.R")``` for the latest first of ```biocLite```.
+
+#### ** GeneCount matrix and oyster metadata table**
+```{r echo=TRUE}
+# RNA count Matrix
+GeneCounts <- read.delim("~/Github/2017OAExp_Oysters/results/C_virginica_gene_count_final.txt",header=TRUE,sep="",row.names=1)
+
+# Total gene counts in data set
+sum(GeneCounts)
+
+# Number of total counts per individual
+(sum2 <- sapply(GeneCounts,sum))
+
+
+exons <- read.delim("~/Github/2017OAExp_Oysters/input_files/RNA/exon_count2.txt",header=TRUE,sep="",col.names = c("Locus","Gene","Count"))  
+genes <- as.character(exons$Gene)
+gene_split <- matrix(unlist(strsplit(genes,split = "-")),ncol=1)
+
+# Hard to see distribution of counts for all genes due to a handful of genes with high counts
+hist(exons$Count,breaks = 100000,main="Histogram will all Genes")
+# Hist. for genes with counts between 1-1000
+hist(exons$Count,xlim = c(0,1000),breaks=100000,main="Genes with counts between 1-1000")
+# Still a little hard so lets look at it closer still (1-100)
+hist(exons$Count,xlim = c(1,100),breaks=1000000,main="Genes with counts between 1-100")
+
+# Lots of genes with small counts
+# Table to look at proportion of reads in different size classes
+count_classes <- c(0,1,2,5,10,25,50,100,200,250,500,1000,5000,10000,20000)
+equal_greater_prob <- NULL
+diff_prob <- NULL
+for (i in 1:length(count_classes)) {
+  equal_greater_prob[i] <-length(exons$Count[exons$Count >= count_classes[i] ])/length(exons$Count)
+  if(i > 1){diff_prob[i] <- equal_greater_prob[c(i-1)] - equal_greater_prob[i]}
+  else{diff_prob[i] <- 0}
+}
+
+count_class_df <- data.frame (Max_Count = count_classes,
+                              Prob_Gene_less=equal_greater_prob,
+                              Prob_Gene_greater=1-equal_greater_prob,
+                              Prob_Change=diff_prob)
+
+kable(count_class_df)
+```
+
+#### **Oyster MetaData**  
+```{r echo=TRUE}
+# Oyster meta data
+model<-read.delim("~/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt",sep = ",",header=TRUE)
+head(model)
+```
+
+### Additional Loci Filtering  
+
+#### Examining Lane Bias and low read count
+
+Samples are spread across two lanes, to account for any potential lane bias, **genes with reads that appear disproportionally in one lane are removed**. Next, genes with **less than 10 reads** across all individuals are also removed. 
+```{r echo=TRUE}
+
+### Looking at lane specific effects
+# Isolate samples by lane
+GC_lane1 <- GeneCounts[,model$lane == 1]
+GC_lane2 <- GeneCounts[,model$lane == 2]
+# Sum counts for each lane at each locus
+GC_lane1_sum <- rowSums(GC_lane1)
+GC_lane2_sum <- rowSums(GC_lane2)
+# Ratio of the difference in read count between lanes for each gene feature 
+GC_diff <- c(abs(GC_lane1_sum - GC_lane2_sum)+0.0001)/ c(GC_lane1_sum + GC_lane2_sum+0.0001)
+hist(GC_diff)
+## Filter thresholds
+account_forLane <- subset(GeneCounts,GC_diff<0.95) # Remove loci that only appear in one of the lanes of seq
+account_forCount <- subset(account_forLane, rowSums(account_forLane) > 10) # Remove loci with fewer total counts than 50
+paste0(nrow(account_forCount)/nrow(GeneCounts)*100,"% of the loci remaining after adjusting for lane bias and removing loci with low read counts")
+```
+  
+Plot looking at each gene based on number of reads and difference in reads ratio between sequencing lanes. A ratio of **1** indicates all reads are in a single lane, while a ratio of 0 indicates an equal number of reads from each lane of sequencing. The read lines indicate the critical read count and lane bias values used as thresholds for filtering. The bottom right box represent gene features retained after filtering.
+```{r echo=TRUE}
+plot(GC_diff~c(GC_lane1_sum+GC_lane2_sum),xlim=c(0,1000),
+     main="Read count vs. Ratio of the difference in read count between lanes (per gene)",
+     xlab="Total Reads",
+     ylab="Difference Ratio")
+abline(h = 0.95,col="red") + abline(v = 30,col="red") 
+``` 
+  
+### Using CPM to further filter genes with low coverage
+
+One final filtering step, we want to filter out sequences with very low expression. Therefore, we will **only keep** sequences with more than **0.5 counts per million mapped reads across all 24 samples**. To do this we calculate the counts per million (CPM) per gene per indivdual. Then, if all individuals have a CPM greater than 0.5 for the gene, it is retained.   
+```{r}
+## Function CPM in package edgeR, takes countMatrix and normalizes it as counts per million
+# Without removing exceptionally high read loci
+perMilReads <- cpm(GeneCounts)
+
+# Example of how cpm calculates the number of reads per million bases
+GeneCounts$RNA17019[1]/sum(GeneCounts$RNA17019)*1*10^{6} # Manually calculate read per million at first locus in sample RNA17019
+perMilReads[1,dimnames(perMilReads)[[2]] == "RNA17019"] # Calculate read per million at first locus in sample RNA17019 using cpm
+
+## Only keep a locus if it was at least 0.5 million reads for all 24 individuals
+keep <- row.names(perMilReads[rowSums(perMilReads>0.5) >=24,])
+
+
+# Counts per million on pre filtered dataset (considering lane bias)
+perMilReads_alt <- cpm(account_forCount) # cpm on pre filtered dataset
+keep2 <- rowSums(perMilReads_alt>0.5) >=24
+
+## Quantile normalization, this looks much like cpm but also adjusts for the number of reads at each locus
+rowSum <- rowSums(account_forCount)
+perMilReads_alt_quantile <- cpm(account_forCount)/rowSum # quantile on pre-filtered dataset
+perMilReads_quantile <- cpm(GeneCounts)/rowSum # quantile adjustment
+
+## Simple summary of the different filtering and normalization approaches
+# Average perMillion read (across individuals) at each locus - vector of averages for all loci
+avg_perMilRead_perlocus <- rowMeans(perMilReads)
+avg_perMilRead_alt_perlocus <- rowMeans(perMilReads_alt)
+avg_perMilRead_quantile_perlocus <- rowMeans(perMilReads_quantile)
+avg_perMilRead_alt_quantile_perlocus <- rowMeans(perMilReads_alt_quantile)
+
+# Standard Deviation of perMillion read (across individuals) at each locus - vector of averages for all loci
+sd_perMilRead_perlocus <- apply(perMilReads,1,function(x){sd(x)})
+sd_perMilRead_alt_perlocus <- apply(perMilReads_alt,1,function(x){sd(x)})
+sd_perMilRead_quantile_perlocus <- apply(perMilReads_quantile,1,function(x){sd(x)})
+sd_perMilRead_alt_quantile_perlocus <- apply(perMilReads_alt_quantile,1,function(x){sd(x)})
+
+# Combining 
+perMil_sum <- cbind(name="perMil",avgRead=avg_perMilRead_perlocus,sd=sd_perMilRead_perlocus)
+perMil_q_sum <- cbind(name="perMil_q",avgRead=avg_perMilRead_alt_perlocus,sd=sd_perMilRead_alt_perlocus)
+perMil_alt_sum <- cbind(name="perMil_alt",avgRead=avg_perMilRead_quantile_perlocus,sd=sd_perMilRead_quantile_perlocus)
+perMil_alt_q_sum <- cbind(name="perMil_alt_q",avgRead=avg_perMilRead_alt_quantile_perlocus,sd=sd_perMilRead_alt_quantile_perlocus)
+
+filter_table_summary <-  data.frame(rbind(perMil_sum,perMil_q_sum,perMil_alt_sum,perMil_alt_q_sum))
+
+#boxplot(as.numeric(as.character(avgRead))~name,data=filter_table_summary,ylim=c(0,50)))
+
+# This is the final filtered gene count matrix
+GeneReduce2 <- account_forCount[row.names(account_forCount) == keep,]
+```
+
+Save subset in new dataframe and log transform counts.  
+```{r}
+# Without log transformation
+y <- GeneReduce2
+#y<- account_forCount+0.01 #GeneCounts[keep,]
+hist(rowMeans(y),breaks = 100,xlab = "Mean Count", main = "Histogram of mean counts for each locus") 
+
+# With log2 transformation
+yLog<- log2(y)
+hist(rowMeans(yLog),breaks=100,xlab= "Mean log Count",main = "Histogram of log transformed mean counts for each locus")
+pairs.panels(yLog[,1:6])
+pairs.panels(yLog[,7:12])
+pairs.panels(yLog[,13:18])
+pairs.panels(yLog[,19:24])
+```
+  
+**Note**: *The log transformed data shown illustrates how transforming data in this way helps will the heavily skewed RNA expression data. However, we will actually be log transforming the untransformed values at a later step using the package ```limm```, so we will proceed with the untransformed values for the time being.*  
+  
+**Number of remaining loci after filtering:**  
+```{r}
+# Number of total loci
+nrow(y)
+percent_retained <- nrow(y)/nrow(GeneCounts)*100
+print(paste("Percent retained:", percent_retained))
+```
+  
+** Notes on filtering**: The percent retained (~11%) is much lower than the Wong paper received (~48%). May need to assess and compare methods to get count matrix.  
+
+### Preparing metadata for use in RNA analysis  
+
+Sorting metadata table by individual to correspond with the count matrix:
+```{r}
+model <- model[order(model$sample_name), ]
+# Needed to make sure the factor level (below) gets assigned properly to each individual
+```
+
+Create a factor that represents the treatments in the data. In this case that is the two different pCO2 levels at the two timepoints:  
+```{r}
+f <- paste(paste0("CO2_", model$treatment), paste0("T_",model$timepoint),sep=".")
+f <- factor(f)
+trt <- factor(model$treatment)
+time <- factor(model$timepoint)
+```
+
+Create a model matrix of samples x treatment:  
+```{r}
+design <-model.matrix(~0+f)
+colnames(design) <- levels(f)
+write.csv(design,"/home/downeyam/Github/2017OAExp_Oysters/results/model_design.csv")
+
+model$Treatment <- factor(model$treatment)
+model$Time <- factor(model$timepoint)
+
+#Alternate design matrix (outdated)
+# design2 <- model.matrix(~ 0 + trt_factor + tp_factor, data=model, 
+#     contrasts.arg=list(trt_factor=diag(nlevels(model$trt_factor)), 
+#             tp_factor=diag(nlevels(model$tp_factor))))
+```
+
+#### Scatter Plot for visualizing correlation between environment (Treatment),time, and trait (EPF), as well as the four treatment x time combinations.
+```{r}
+# Scatter plot for the trait and treatment combinations
+pairs.panels(model[,c(17,18,16)])  
+
+# Scatter plot based on mean counts for the 4 different treatment-time combinations
+
+D1_TE <- rowMeans(yLog[,design[,1] == 1]) # Day 9 - Treatment 2800
+D1_TC <- rowMeans(yLog[,design[,3] == 1]) # Day 9 - Treatment 500
+D2_TE <- rowMeans(yLog[,design[,2] == 1]) # Day 80 - Treatment 2800
+D2_TC <- rowMeans(yLog[,design[,4] == 1]) # Day 80 - Treatment 500
+
+countTreatAvg_mat <- data.frame(Day09_2800=D1_TE,Day09_500=D1_TC,Day80_2800=D2_TE,Day80_500=D2_TC)
+
+pairs.panels(countTreatAvg_mat,
+             hist.col = "#00AFBB")
+```
+  
+### Create DGE Object and estimate the normalization factor  
+  
+**Turn count Matrix into a DGEList object **   
+```{r}
+dge <- DGEList(counts=y, group=f)
+```
+**```DGElist()```**: a function in edgeR that creates a ```edgeR``` specific ````DGELIST``` object that is a list with two elments.  The first element is your count Matrix (labeled ```counts```) and the second is a metadata dataframe for each sample (labeled ```samples```). You should be able to access each item either using standard list notation (i.e. ```dge[[1]]``` for count Matrix) or the the labeled element notation (i.e. dge$counts for count Matrix). The first item should always be the count Matrix and the second will be the dataframe of your metadata.  
+
+  1) ```$counts```: count Matrix  
+  
+  2) ```$samples```: dataframe containing a row for each sample in you data and columns for the sample and three columns:  
+  
+    i) ```group```: the group ID : based on number of factor levels determined above from the metadata  
+    ii) ```lib.size```: library size  
+    iii) ```norm.factors```: normalization factor  
+  
+  
+**Normalizing data for between sample comparison - TMM normalization**  
+Yet another way we need to consider normalizing our data is to account for between sample variability in library size. One strategy for this is the **trimmed mean of M value method (TMM)** by Robinson and Oshlack (2010). 
+  
+Here we can implement this normalization through the package ```edgeR``` using the function ```calcNormFactors``` with ```method=c("TMM")```:  
+```{r}
+dgeNorm<- calcNormFactors(dge,method=("TMM"))
+```
+  
+This will estimate a new normalization factor, ```norm.factors``` in your ```samples``` dataframe, which it attempts to adjust mean read count This updated our normalization factor for each sample based on it's library size. **Notice that the count matrix itself has not changed**, this will happen in the next section using the packaged ```limma```.
+  
+To see a full description of this method please reference the original paper. [(Robinson and Oshlack 2010)](http://evowiki.haifa.ac.il/images/f/f5/A_scaling_normalization_method_for_differential_expression_%28TMM%29.pdf)  
+  
+### Final count matrix Transformations  
+
+#### Using ```Voom``` in the ```limma``` package to transform data yet again.  
+Voom transform the count data using voomWithQualityWeights function. Voom transformation log normalizes the cpm data. Given that we a passing the DGEList that has already computed the normalization factors we can specify the ```lib.size``` and specify the ```normalization.method = "none"```  
+
+```{r}
+v1 <- voomWithQualityWeights(dgeNorm, design=design, lib.size=dgeNorm$samples$lib.size, normalize.method="none", plot = TRUE)
+```
+  
+### Including blocking variable in count matrix transformation  
+  
+**Problem**: Our original meta data contains additional information about difference between samples that is not currently being utilized. This included at least one additional fixed fixed  factor (population), as well as random and blocking factors (the tank each oyster was sampled from). This latter can be accounted for in voom tranformation by inputting the blocking variable within the the function ```voomWithQualityWeights``` by using the arguement ```block=model$blockVariable```. In addition, the degreee of correlation between you blocking variable and your fixed factors (your design from above) should be inputted into the function. This can be estimated using ```duplicateCorrelation```.  
+The benefit of incorporating the blocking variable is that it allows for there to be different variance between biological replicates, rather than calculating variance on a per-individual basis. In the Wong paper they considered samples taken from the same pCO2 vessel as a biological replicate. Here we consider any oyster taken from the same tank (tankID from unique shelf and tank combo) as biological replicates.  
+  
+**Step 1:** run ```duplicateCorrelation``` using your original ```voom``` object, your fixed factor ```design```, and a vector with your blocking variable IDs. This function attempts to find the correlation between each locus in your count matrix and the block factor provided. It will output a list contain a vector of all correaltions - ```atanh.correlations``` -  for each locus, and a mean correlation across all loci, ```consensus```. The ```consensus``` scalar is what we will need to include when we perform the transformation again.  
+  
+**Step 2:** rerun ```voomWithQualityWeights``` but also include the blocking variable and mean blocking correalation.  
+  
+```{r}
+# This is not quite a linear regression with only block as a predictor for each locus *** Figure out with this is doing (some sort of linear mixed model)
+corfit <- duplicateCorrelation(v1,design,block=model$tankID)
+
+v2 <- voomWithQualityWeights(dgeNorm,design,plot=TRUE,lib.size=dge$samples$lib.size,block=model$tankID,normalize.method="none",correlation=corfit$consensus)
+
+write.csv(v2$E,file = "/home/downeyam/Github/2017OAExp_Oysters/results/finalNormalizedExpMatrix.csv",row.names = T)
+```
+  
+### Writing ```.csv``` and ```.Rdata``` files for normalized count matrices
+
+**Log transformed countMatrix**
+```{r echo=TRUE}
+write.csv(yLog,file = "/home/downeyam/Github/2017OAExp_Oysters/results/logNormalizedCountMatrix.csv",row.names = T)  
+```
+
+**Sample normalized countMatrix using limma ``voomWithQualityWeights()`` function**  
+```{r echo=TRUE}
+saveRDS(v1,"/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedObject.RData")
+write.csv(v1$E,file = "/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedCountMatrix.csv",row.names = T)  
+```
+  
+**Sample normalized countMatrix using limma ``voomWithQualityWeights()`` function w/ blocking variable**  
+```{r echo=TRUE}
+saveRDS(v2,"/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedwBlockObject.RData")
+write.csv(v2$E,file = "/home/downeyam/Github/2017OAExp_Oysters/results/voomNormalizedwBlockCountMatrix.csv",row.names = T)  
+```
+  
+  
+### Visualizing Global RNA count data  
+
+#### MDS (multi-dimensional scaling) plots  
+Similar to PCAs. It will help visualize the expression profiles of each values in 2D space. Points closer together have more similar expression profiles than those further apart.  
+
+**Original untransformed count matrix**  
+```{r}
+# Specify colors you would like to use for the four treatments
+colors <- rainbow(length(levels(f)),alpha = 1)  
+
+# The plot parameters below are specific to this data, will likely need to change if working
+# with other RNAseq data
+plotMDS(dgeNorm, labels=rownames(dgeNorm$samples),cex=0.8, col=colors[f], xlim=c(-0.8, 0.8), ylim=c(-0.8, 0.8))
+legend("bottomleft", legend = c(levels(dgeNorm$samples$group)), cex=0.8, col = colors, lty = c(1, 1, 1, 1))
+```
+  
+**Transformed count matrix - using voom**  
+```{r}
+plotMDS(v1, labels=rownames(v1$targets),cex=0.8, col=colors[f], xlim=c(-2, 1.8), ylim=c(-1.5, 1.5))
+legend("bottomleft", legend = c(levels(v1$targets$group)), cex=0.8, col = colors, lty = c(1, 1, 1, 1))
+```
+  
+**Transformed count matrix - using voom and tankID as blocking factor**  
+```{r}
+plotMDS(v2, labels=rownames(v2$targets),cex=0.8, col=colors[f], xlim=c(-2, 1.5), ylim=c(-1.5, 1.5))
+legend("bottomleft", legend = c(levels(v2$targets$group)), cex=0.8, col = colors, lty = c(1, 1, 1, 1))
+```
+  
+**PCA Plot - using voom and tankID as blocking factor**  
+```{r}
+# Perform PCA on normalized data that considered tank as a blocking variable
+pca_comp <- prcomp(t(na.omit(v2$E)))
+pca <- as.data.frame(pca_comp$x)
+pca_summary <- summary(pca_comp)
+
+# % variation explained
+var_PC1 <- pca_summary$importance[2,1]*100
+var_PC2 <- pca_summary$importance[2,2]*100
+
+model$timepoint[model$timepoint=="3"] <- "09"
+model$timepoint[model$timepoint=="6"] <- "80"
+
+color_pop <- rainbow(length(unique(model$population))) # colors for population 
+color_treat <- rainbow(length(unique(model$treatment))) # colors for treatment
+color_time <- rainbow(length(unique(model$timepoint))) # colors for time
+
+shapes <- c(as.character(model$treatment)) # Setting shapes of points based on treatment
+
+# PCA with colors for time
+pcaplot <- ggplot(pca, aes(x=PC1, y=PC2,colour=shapes, size=I(4), shape=as.factor(model$timepoint))) + geom_point()
+pcaplot <- pcaplot + scale_colour_manual(values=c("firebrick3","deepskyblue4")) #$color as.character(color_pca$color)c("red","blue","green")
+pcaplot <- pcaplot + theme_bw() + labs(x=paste0("PC1 (",var_PC1,"% explained)"),y=paste0("PC2 (",var_PC2,"% explained)"),colour="Treatment",shape="Day")
+pcaplot + theme(panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank(), 
+                axis.title=element_text(size=14),
+                legend.text=element_text(size=14),
+                panel.background = element_blank(), 
+                axis.line = element_line(color = "black"), 
+                axis.text.y = element_text(angle = 90), 
+                legend.key = element_blank())
+ggsave("/home/downeyam/Github/2017OAExp_Oysters/figures/pca.png",width=30,height=18,unit="cm")
+
+```
+
+**Scree Plot of PCA**
+```{r}
+plot(pca_summary$importance[2,]~c(1:length(pca_summary$importance[2,])),xlab="PC",ylab="Variance explained by PC")
+```
+  
+Looks a little suspicious, only the first two PCs explains that much more of the variation than subsequent pcs.  
+
+### Script Outputs  
+
+The post filtered, normalize count Matrices were generated and saved in the ``results`` folder. 
+  
+These include three count matrices:  
+  1) A **log transformed countMatrix**: ``logNormalizedCountMatrix.csv``  
+  2) A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function**: ``voomNormalizedCountMatrix.csv``  
+  3) A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function w/ blocking variable**: ``voomNormalizedwBlockCountMatrix.csv``  
+  
+Also saved are the objects generated by limma normalization as an ``.RData`` file:  
+  1) A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function**: ``voomNormalizedObject.RData``  
+  2) A **sample normalized countMatrix using limma ``voomWithQualityWeights()`` function w/ blocking variable**: ``voomNormalizedwBlockObject.RData``  
+
+**Next**: Analysis of individual gene associations with ``04A_CV17_RNA_geneExpression.Rmd``
+
