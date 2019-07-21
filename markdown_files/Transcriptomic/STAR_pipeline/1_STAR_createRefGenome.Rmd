@@ -1,0 +1,86 @@
+---
+title: "Reading in reference genome and transcriptomes"
+output: 
+  github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+```
+
+### Download Eastern Oyster Genome from NCBI  
+  
+Download oyster genome from NCBI using ```wget```.
+
+Bash script:
+```{bash, eval=FALSE}
+## This is OPTIONAL: if you want to CHANGE DIRECTORIES you can specify where with the command below.
+#cd /home/Github/Temp_Download
+
+# wget will then download the genome from the NCBI website to your current directory.
+wget --recursive -e robots=off --reject "index.html" --no-host-directories --no-parent https://ftp.ncbi.nih.gov/genomes/Crassostrea_virginica/ 
+```
+**Note**: Downloading the genome may take several minutes.
+  
+### Move, uncompress, and assemble genome files   
+
+Once downloaded you might want to rename or move your files from one destination to another. This can be done using the core utility: **```mv```**. The simple syntax is first providing the source path for the file or folder you wish to move, followed by the destination path where you want the folder end up. The user can also use this utility to rename files or folders.
+
+Bash script:  
+```{bash, eval=FALSE}
+#mv /path/way/to/source/FILEFOLDER /path/way/to/destination/FILEFOLDER
+mv /home/downeyam/Github/2017OAExp_Oysters/markdown_files/genomes/Crassostrea_virginica /home/downeyam/Github/2017OAExp_Oysters/Genome 
+#Use rm to remove the emtpy folder 'genomes' after moving the files into your destination directory
+rm -rf /home/downeyam/Github/2017OAExp_Oysters/markdown_files/genomes
+```
+
+When assembling genomes from a reference genome off NCBI you want to move into the ```Assembled_chromosomes/seq``` folder. Using ```cd``` or 'change directory'
+
+Bash Script
+```{bash, eval=FALSE}
+cd /home/downeyam/Github/2017OAExp_Oysters/Genome/Assembled_chromosomes/seq
+# Note: if this is coded in rmarkdown files (as it is here), this will only change the directory within this bash chunk.
+```
+  
+  
+#### Uncompressing files and folders with ```zcat``` and using ```sed``` to rapidly filter and transform text  
+
+A simple tool for uncompressing your data is ```zcat```, it takes one or more compressed files (i.e. those that end in ```.gz```) and uncompresses them. This will be important for any files download from online respositories, since they will likely be compressed.
+
+Bash script:
+```{bash,eval=FALSE}
+cd /home/downeyam/Github/2017OAExp_Oysters/Genome/Assembled_chromosomes/seq
+zcat 6565_ref_C_virginica-3.0_chrMT.fa.gz 6565_ref_C_virginica-3.0_chr[0-9]*.fa.gz | sed 's/ref|//g' | sed 's/| Crass/  Crass/g' > /home/downeyam/Github/2017OAExp_Oysters/genome.fasta
+```
+  
+### Creating a genome file from a simple .fasta file
+
+Create a genome file to use with bedtools sorting
+
+**Samtools**:  Samtools is a set of utilities that manipulate alignments in the BAM format. It imports from and exports to the SAM (Sequence Alignment/Map) format, does sorting, merging and indexing, and allows to retrieve reads in any regions swiftly.
+  
+Create ``genome.file`` using ``samTools``:  
+```{bash, eval=FALSE}
+cd /home/downeyam/Github/2017OAExp_Oysters
+# Creates a separate file with all of the chromosom indices - save in the local directory as genome.fasta.fai
+samtools faidx genome.fasta
+#This will will take the index from the genome.fasta.fai and extract just the name and length of each feature. 
+mawk -v OFS='\t' {'print $1,$2'} genome.fasta.fai > genome.file
+```
+  
+Change to the genome features file (GFF) directory and set up link to genome file:  
+```{bash, eval=FALSE}
+cd /home/downeyam/Github/2017OAExp_Oysters/Genome/GFF
+#Creates a link (doesnt actually move the file) for the genome.file, so that it can be referenced later
+ln -s /home/downeyam/Github/2017OAExp_Oysters/Genome/Assembled_chromosomes/seq/genome.file .
+```
+
+### Script Outputs
+From this script you have produced a ``Genome`` folder within your project directory. This contains all unprocessed data about the genome split into separate chromosomes, the transcriptome, and any available proteiomic data. We also createsd a ``genome.fasta`` file that contains the sequence data for all chromosomes. 
+
+**Next**: ``01B_CV17_Alignment_trimmingAndAlignment.Rmd`` - This script will trim sequence reads from an actual dataset of reads then align those reads to this reference genome.
+
+
+

@@ -1,0 +1,117 @@
+---
+title: "01C CV17 ReadMapping W STAR"
+output: 
+  github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+### Map Reads to Genome
+Make sure you are still in the RNA subdirectory. Create a link to the reference genome (the code below is different from original code from EecSeq bioinformatics pipeline because of naming above) and a link to the gff file. Also make sure to create a `./genome` directory. Make sure STAR is installed on your system. You may need to specify path to STAR. Make sure you get ouput when calling STAR, otherwise you need to install it on your system (see here: https://github.com/alexdobin/STAR for installation instructions)  
+
+```{bash, eval=FALSE}
+cd /home/downeyam/Github/2017OAExp_Oysters/RNA
+# creates file links needed to run STAR
+ln -s /home/downeyam/Github/2017OAExp_Oysters/Genome/Assembled_chromosomes/seq/genome.fasta
+reference.fasta
+ln -s /home/downeyam/Github/2017OAExp_Oysters/Genome/GFF/ref_C_virginica-3.0_top_level.gff3 
+top.gff
+mkdir genome
+# This should be adjusted to the correct path where you downloaded STAR
+/shared_lab/scripts/STAR
+```
+
+#### **Create genome files (genome index) with STAR aligner**
+```{bash, eval=FALSE}
+STAR --runMode genomeGenerate --runThreadN 64 --genomeDir ./genome --genomeFastaFiles
+reference.fasta --sjdbGTFfile top.gff --sjdbGTFtagExonParentTranscript Parent 
+--sjdbOverhang 149
+```
+The code above is fairly self explanatory. We are creating a genome index from the reference genome in our genome directory, specifying our annotations, which are in gff format. The `--sjdbGTFtagExonParentTranscript Parent` argument is required for gff3 annotation formats (the format of our top.gff file). The `--sjdbOverhang 149` specifies that the genomic sequence must be 149 bp in length around the annotated junction to be used in constructing the splice junctions database. Ideally, the length is readlength-1, hence 150-1=149.
+
+To map our reads, we will use the STAR aligner. STAR uses a 2-pass mapping system where we first map each individual sample to the genome, and then we conduct a second mapping pass for all samples (see \'Multi-sample 2-pass mapping\' in the STAR manual)
+
+Run STAR in dual-pass mode.  
+
+#### **First Pass**
+
+**Single Sample**:
+```{bash, eval=FALSE}
+STAR --runThreadN 32 --genomeDir ./genome/ --readFilesIn  17005_R1_001.fastq.gz
+17005_R2_001.fastq.gz  --outFilterMatchNminOverLread 0.17 --outFilterScoreMinOverLread 
+0.17 --outSAMmapqUnique 40 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix 
+RNA17005_m2  --readFilesCommand zcat
+```
+The `--limitSjdbInsertNsj` argument specifies the maximum number of junction to be inserted to the genome on the fly at the mapping stage. I had to increase this from the default of 1000000 for the aligner to properly work. The `--outFilterMatchNminOverLread` and `--outFilterScoreMinOverLread` specifies that the alignment will be output if the number of matched bases is higher than or equal to this value (normalized to the read length, which in this case is sum of mates' lengths for paired-end reads; 0.17 allows reads that align at least 51 (0.17 is 51% of 300) of their bases to the 300 bp of mates' lengths) and whether the score is higher than or equal to this value, respectively. These values should be the same. The `--outSAMmapqUnique 40` argument specifies that the MAPQ value for the sam output should have a max of 40 (there are different threshold depending on the aligners).
+
+
+
+**OR Create a bash scripts called ```STAR_runAll.sh``` with the following code**:
+```{bash, eval=FALSE}
+#!/bin/bash
+
+for i in $( ls $1*_R1_* ); do
+        for j in $( ls $1*_R2_* ); do
+                file1=$( echo $i | rev | cut -d'/' -f 1 | rev | cut -d'_' -f 1)
+                file2=$( echo $j | rev | cut -d'/' -f 1 | rev | cut -d'_' -f 1)
+                if [ "$file1" == "$file2" ]
+                then
+                    	echo $i and $j
+                        echo RNA"$file1"_m2
+                        echo yes these files match
+                        /shared_lab/scripts/STAR \
+                        --runThreadN 32 \
+                        --genomeDir ./$2genome/ \
+                        --readFilesIn $i $j \
+                        --limitSjdbInsertNsj 1620452 \
+                        --outFilterMatchNminOverLread 0.17 \
+                        --outFilterScoreMinOverLread 0.17 \
+                        --outSAMmapqUnique 40 \
+                        --outSAMtype BAM SortedByCoordinate \
+                        --outFileNamePrefix $3RNA"$file1"_m2 \
+                        --readFilesCommand zcat
+                fi
+        done*
+done
+```
+  
+Run this line in the terminal
+```{r eval=FALSE}
+STAR_runALL /raw /RNA /RNA/new_output_folder_name
+```
+  
+#### **Second Pass**  
+Now run the second pass, running the following code:
+```{bash, eval=FALSE}
+/shared_lab/scripts/STAR --runThreadN 32 --genomeDir ./genome/ --readFilesIn  17005_R1_001.fastq.gz 17005_R2_001.fastq.gz  --limitSjdbInsertNsj 1620452 --outFilterMatchNminOverLread 0.17 --outFilterScoreMinOverLread 0.17 --outSAMmapqUnique 40 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix RNA17005_m3  --readFilesCommand zcat --sjdbFileChrStartEnd ./RNA17005_m2SJ.out.tab ./RNA17007_m2SJ.out.tab ./RNA17013_m2SJ.out.tab ./RNA17019_m2SJ.out.tab ./RNA17069_m2SJ.out.tab ./RNA17070_m2SJ.out.tab ./RNA17072_m2SJ.out.tab ./RNA17079_m2SJ.out.tab ./RNA17090_m2SJ.out.tab ./RNA17094_m2SJ.out.tab ./RNA17099_m2SJ.out.tab ./RNA17108_m2SJ.out.tab ./RNA17122_m2SJ.out.tab ./RNA17130_m2SJ.out.tab ./RNA17142_m2SJ.out.tab ./RNA17145_m2SJ.out.tab ./RNA17162_m2SJ.out.tab ./RNA17174_m2SJ.out.tab ./RNA17176_m2SJ.out.tab ./RNA17178_m2SJ.out.tab ./RNA17181_m2SJ.out.tab ./RNA17203_m2SJ.out.tab ./RNA17211_m2SJ.out.tab ./RNA17213_m2SJ.out.tab
+```
+
+... changing the `--readFilesIn` argument to each individual, OR by using a for loop once again:
+```{bash, eval=FALSE}
+#!/bin/bash
+
+for i in $( ls $1*_R1_* ); do
+        for j in $( ls $1*_R2_* ); do
+                file1=$( echo $i | rev | cut -d'/' -f 1 | rev | cut -d'_' -f 1)
+                file2=$( echo $j | rev | cut -d'/' -f 1 | rev | cut -d'_' -f 1)
+                if [ "$file1" == "$file2" ]
+                then
+                    	m2_files=$( ls $4*m2SJ.out.tab)
+                        echo $i and $j
+                        echo RNA"$file1"_m3
+                        echo yes these files match
+                        echo $m2_files
+                        /shared_lab/scripts/STAR --runThreadN 32 \
+                        --genomeDir ./$2genome/ \
+                        --readFilesIn $i $j --limitSjdbInsertNsj 1620452 \
+                        --outFilterMatchNminOverLread 0.17 \
+                        --outFilterScoreMinOverLread 0.17 \
+                        --outSAMmapqUnique 40 --outSAMtype BAM SortedByCoordinate \
+                        --outFileNamePrefix $3RNA"$file1"_m3  --readFilesCommand zcat \
+                        --sjdbFileChrStartEnd "$m2_files"
+                fi
+        done
+done
+```
+
+The first pass of STAR finds splice junction loci and the second pass aligns spliced reads with short overhangs across the junctions that were identified in the first pass.
