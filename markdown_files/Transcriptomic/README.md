@@ -2,8 +2,7 @@
 
 ## Folders
 
-* **Generally ordered by position in RNAseq workflow**
-* Letters, `A`, indicate differential analyses at the same step.
+**Generally ordered by position in RNAseq workflow** Letters, `A`, indicate differential analyses at the same step.
 
 **`1A_Salmon_pipeline/`**:  This folder contains scripts for a pipeline to look at differential expression in RNA seq data using a work flow that utilizes:
 - ```Salmon``` to map reads to quantify transcripts using reference transcriptome  
