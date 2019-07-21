@@ -1,7 +1,7 @@
 # Salmon Pipeline
 
 ## Overview  
-This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and gene) level quantification from RNA-seq data. The leverages the output of Salmon for use in some basic multivariate visualization (RDA, DAPC) and inference based (PERMANOVA) analyses, as well as individual transcript, gene, and isoform level association tests (implemented in both DESeq2 and Sleuth).
+This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and gene) level quantification from RNA-seq data. It creates a standard estimated gene count matrix, which can be used for standard downstream analysis.
 
 ### Inputs
 1) Raw read data (formated as `.fastq` or `.fastq.gz` or `fq.gz`)
@@ -58,7 +58,6 @@ This is with a simple one line code and will only take a few minutes on a server
 salmon index -t pathways/and/nameOfTranscriptome.fa.gz -i /pathways/and/nameofFolderForStoringIndex
 ```
 
-
 #### **Step 1.2 - Performing quasi mapping and quantification** <a name="one.two"></a>
 
 Command line for running a Single Sample:
@@ -66,13 +65,25 @@ Command line for running a Single Sample:
 > salmon quant -i index -l IU -1 lib_1_1.fq lib_2_1.fq -2 lib_1_2.fq lib_2_2.fq --validateMappings -o out
 ```
 
-Bash Script for running multiple samples
+Command line for bash script for running list of samples in a folder:
+```
+> quant_Salmon.sh /pathway/to/rawfiles /pathway/to/SalmonResultsDirectory /newFolderForResults
+```
+Script needs three things
+	1) A complete pathway to folder with raw files
+	2) A pathway to the directory where salmon outputs are stored
+	3) A **new** folder name that will be created in the directory to store outputs that are generated
+
+Bash Script of `quant_Salmon.sh` script
 ```
 #!/bin/bash
 
 cd $2;
+mkdir $3;
 
+echo "Creating folder $3 for output"
 echo "Saving in directory $2"
+echo "Retrieving fastq files from $1 directory"
 
 for fn in $(ls $1/*R1_001.fastq.gz);
 do
@@ -80,7 +91,7 @@ samp=$(echo ${fn} | rev | cut -d'/' -f 1 | rev | cut -d'_' -f 1)
 echo "Processing Sample ${samp}"
 echo "$1/${samp}_R1_001.fastq.gz"
 
-salmon quant -i oyster_index_from_genome \
+salmon quant -i index/oyster_index \
         -l A \
 	-1 $1/${samp}_R1_001.fastq.gz \
         -2 $1/${samp}_R2_001.fastq.gz \
@@ -90,16 +101,13 @@ salmon quant -i oyster_index_from_genome \
         --numBootstraps 1000 \
         --gcBias \
         --seqBias \
-        -o run20180512/${samp}
+        -o $3/${samp}
 done
 ```
 
-Command line code for running bash script
-```
+### Step 2 - Creating a Gene Count Matrix <a name="three"></a>
 
-```
-
-### Step 2 - Formating Salmon Outputs <a name="three"></a>
+Creating a gene count matrix was done using the R package `tximport`. This was performed using a custom script, which was developed to run on a remote cluster and execute the `tximport` on a list of samples from a directory and assemble them into a single count matrix. The specified directory should have a list of quant.sf formated files, which are required for the tximport function.
 
 ### Step 3 - Gene Aggregation <a name="four"></a>
 
