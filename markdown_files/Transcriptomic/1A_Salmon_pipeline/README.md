@@ -20,9 +20,9 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
     * [Step 1.1: Create and index of potential transcripts](#one.one)
     * [Step 1.2: Perform quasi mapping and quantification](#one.two)
 4. [Step 2 - Formating Salmon Outputs](#three)
-5. [Step 3 - Gene Aggregation](#four)
-6. [Step 4 - Creating a Transcript to Gene Reference](#five)
-
+    * [Step 2.1: Create a list of transcript and gene levels IDs](#two.one)
+    * [Step 2.2: Use `tximport` to created scaled count matrices](#two.two)
+    * [Step 2.3: Use `wasabi` to create an `.h5` file](#two.three)
 
 ### Brief Description and Literature on Required Tools and Scripts <a name="one"></a>
 
@@ -185,7 +185,7 @@ tranAggr <- tximport(files_input,
 * `txOut = TRUE` : indicates you want transcript level adundance estimates
 * `countsFromAbundance = "dtuScaledTPM"` : scaled using the median transcript length among isoforms of a gene, and then the library size
 
-[Full R script]()
+[Full R script](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/src/transcriptome_scripts/salmon_scripts/R/salmon_countMatrix.R)
 
 
 **NOTE** :  This script also will take your `tximport` list and convert it into a `DESeq obj` and store the output. This can also be created later, but may be convienent since the `tximport` object is large and may not be easily manipulated on a local machine (by comparison the DESeq object is much smaller).
@@ -205,7 +205,7 @@ dir <- "/shared_lab/20180226_RNAseq_2017OAExp/RNA/salmon_files"
 sfdirs <- filepaths("/shared_lab/20180226_RNAseq_2017OAExp/RNA/salmon_files/run20190610",list.files("/shared_lab/20180226_RNAseq_2017OAExp/RNA/salmon_files/run20190610"))
 prepare_fish_for_sleuth(sfdirs)
 ```
-[Full R script]()
+[Full R script](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/src/transcriptome_scripts/salmon_scripts/R/R_sleuth.R)
 
 * **NOTE** : Script also contains additional code for performing sleuth analysis, which require a metadata file that contains sample information.
 
