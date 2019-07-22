@@ -5,10 +5,11 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 
 ### Inputs
 1) Raw read data (formated as `.fastq` or `.fastq.gz` or `fq.gz`)
-2) Transcriptome File (reference trasncriptome; `.gff` or `.gtf` ideally; [NCBI LINK for oyster](https://www.ncbi.nlm.nih.gov/genome/?term=crassostrea+virginica))
+2) Transcriptome File (reference trasncriptome; `.fna` or `.fa` ideally; [NCBI LINK for oyster](https://www.ncbi.nlm.nih.gov/genome/?term=crassostrea+virginica))
+3) Gene Annotation File (annotation for each gene; `.gff` or `.gtf` ideally; [NCBI LINK for oyster](https://www.ncbi.nlm.nih.gov/genome/?term=crassostrea+virginica))
 
 ### Primary Outputs
-1) Tab delimited gene and transcript files (matrix, Transcript X # of Samples)
+1) Tab delimited gene and transcript matrix (matrix, Transcript X # of Samples)
 2) `.h5` file for each individual which can be used by sleuth for differential expression.
 
 ## Table of Contents 
@@ -17,7 +18,7 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 2. [Quick Thoughts and Disclaimers before starting](#dis)
 3. [Step 1 - Mapping and Transcript Quantification](#two)
     * [Step 1.1: Create and index of potential transcripts](#one.one)
-    * [Step 1.2: Performing quasi mapping and quantification](#one.two)
+    * [Step 1.2: Perform quasi mapping and quantification](#one.two)
 4. [Step 2 - Formating Salmon Outputs](#three)
 5. [Step 3 - Gene Aggregation](#four)
 6. [Step 4 - Creating a Transcript to Gene Reference](#five)
@@ -51,9 +52,9 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 
 **Overview** : Steps takes the raw reads (those after trimming and QC) and partially maps them to a list of reference transcripts (created from the NCBI transcriptome). Next, it probabilistically estimates the abundance of each transcript for each sample.
 
-**Steps** : Mapping and Quantification is done using the two-phase approach. 
+**Steps** 
  * [Step 1.1: Create and index of potential transcripts](#one.one)
- * [Step 1.2: Performing quasi mapping and quantification](#one.two)
+ * [Step 1.2: Perform quasi mapping and quantification](#one.two)
 
 **Required Input**
 1) Raw read data (formated as `.fastq` or `.fastq.gz` or `fq.gz`)
@@ -75,7 +76,7 @@ salmon index -t pathways/and/nameOfTranscriptome.fa.gz -i /pathways/and/nameofFo
 * This will only take a few minutes on a server. 
 * Note this only needs to happen once, and you will continue to reference it in the next command for each sample
 
-#### **Step 1.2 - Performing quasi mapping and quantification** <a name="one.two"></a>
+#### **Step 1.2 - Perform quasi mapping and quantification** <a name="one.two"></a>
 
 Command line for running a Single Sample:
 ```
@@ -86,10 +87,12 @@ Command line for bash script for running list of samples in a folder:
 ```
 > quant_Salmon.sh /pathway/to/rawfiles /pathway/to/SalmonResultsDirectory /newFolderForResults
 ```
-Script needs three things
-	1) A complete pathway to folder with raw files
-	2) A pathway to the directory where salmon outputs are stored
-	3) A **new** folder name that will be created in the directory to store outputs that are generated
+
+Script needs three things:
+    
+    1) A complete pathway to folder with raw files
+    2) A pathway to the directory where salmon outputs are stored.
+    3) A **new** folder name that will be created in the directory to store outputs that are generated
 
 Bash Script of `quant_Salmon.sh` script
 ```
@@ -122,17 +125,88 @@ salmon quant -i index/oyster_index \
 done
 ```
 
-### Step 2 - Creating a Gene Count Matrix <a name="three"></a>
+### Step 2 - Creating a Gene Count Matrix and `.h5` file <a name="three"></a>
 
-Creating a gene count matrix was done using the R package `tximport`. This was performed using a custom script, which was developed to run on a remote cluster and execute the `tximport` on a list of samples from a directory and assemble them into a single count matrix. The specified directory should have a list of quant.sf formated files, which are required for the tximport function.
+**Overview** : Create a gene count matrix using the R package `tximport` using a custom script. In addition, convert the standard salmon output into an `.h5` formated file so that it can be used by sleuth to perform differential expression analysis.
 
-### Step 3 - Gene Aggregation <a name="four"></a>
+**Steps** 
+ * [Step 2.1: Create a list of transcript and gene levels IDs](#two.one)
+ * [Step 2.2: Use `tximport` to created scaled count matrices](#two.two)
+ * [Step 2.3: Use `wasabi` to create an `.h5` file](#two.three)
 
-### Step 4 - Transcript to Gene Reference <a name="five"></a>
+**Step Input**
+1) Raw read data (formated as `.fastq` or `.fastq.gz` or `fq.gz`)
+2) Transcriptome File (reference trasncriptome; `.fna` or `.fa` ideally; [NCBI LINK for oyster](https://www.ncbi.nlm.nih.gov/genome/?term=crassostrea+virginica))
+3) Gene Annotation File (annotation for each gene; `.gff` or `.gtf` ideally; [NCBI LINK for oyster](https://www.ncbi.nlm.nih.gov/genome/?term=crassostrea+virginica))
 
-### Additional Description of Tools <a name="six"></a>
+#### **Step 2.1: Create a list of transcript and gene levels IDs** <a name="two.one"></a>
+
+`tximport` command needs a reference file that can link the transcript ID with the geneID. Here we create a data.frame based on the NCBI reference transcriptome which is formatted appropriately for `tximport`, using a custom script.
+
+[Script Markdown](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Transcriptomic/RNAseq_Additional/transcriptomeReferenceFile_generation.md)
+
+**2.1 Outputs**
+* .RData file with a correctly formated data.frame for linking transcript and gene level IDs
 
 
+#### **Step 2.2: Use `tximport` to created scaled count matrices** <a name="two.two"></a>
 
+Scaled estimates are created for each sample using the command `tximport` from the packaged `tximport` in R.
+
+**Inputs**
+* The `trgene` obj in the gene level estimate is the `.RData` dataframe from the previous step
+* `files_input` can be a single or list of `quant.sf` files from a single or group of samples.
+
+**Output**
+* R list object that contains five items
+    1) `counts` : Counts based on scaling approach 
+    2) `abundance` : Abundance 
+    3) `length` : Length of each transcript
+    4) `countsFromAbundance` : Scaling method 
+
+Example code for **Gene-level** Estimation :
+```
+geneAggr <- tximport(files_input,
+            type = "salmon",
+            countsFromAbundance = "lengthScaledTPM",
+            tx2gene = tr2gene)
+```
+* `countsFromAbundance = "lengthScaledTPM"` : Scales coutns using the average transcript length over samples and then the library size (this works for gene level quantification).
+
+Example code for **Transcript-level** Estimation : 
+```
+tranAggr <- tximport(files_input,
+         type = "salmon",
+         countsFromAbundance = "dtuScaledTPM",
+         txOut = TRUE,
+	 tx2gene = tr2gene)
+```
+
+* `txOut = TRUE` : indicates you want transcript level adundance estimates
+* `countsFromAbundance = "dtuScaledTPM"` : scaled using the median transcript length among isoforms of a gene, and then the library size
+
+[Full R script]()
+
+
+**NOTE** :  This script also will take your `tximport` list and convert it into a `DESeq obj` and store the output. This can also be created later, but may be convienent since the `tximport` object is large and may not be easily manipulated on a local machine (by comparison the DESeq object is much smaller).
+
+#### **Step 2.3: Use `wasabi` to create an `.h5` file** <a name="two.three"></a>
+
+To perform differential expression using `sleuth` with the outputs from `Salmon`, `wasabi` was used to create a `.h5` object from the `quant.sf` file.
+
+R script
+```
+library(wasabi)
+library(dplyr)
+
+#Using Wasabi to convert Salmon files to ```.h5``` file format for sleuth
+
+dir <- "/shared_lab/20180226_RNAseq_2017OAExp/RNA/salmon_files"
+sfdirs <- filepaths("/shared_lab/20180226_RNAseq_2017OAExp/RNA/salmon_files/run20190610",list.files("/shared_lab/20180226_RNAseq_2017OAExp/RNA/salmon_files/run20190610"))
+prepare_fish_for_sleuth(sfdirs)
+```
+[Full R script]()
+
+* **NOTE** : Script also contains additional code for performing sleuth analysis, which require a metadata file that contains sample information.
 
 
