@@ -16,6 +16,8 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 1. [Brief Description and Literature on Required Tools and Scripts](#one)
 2. [Quick Thoughts and Disclaimers before starting](#dis)
 3. [Step 1 - Mapping and Transcript Quantification](#two)
+    * [Step 1.1: Create and index of potential transcripts](#one.one)
+    * [Step 1.2: Performing quasi mapping and quantification](#one.two)
 4. [Step 2 - Formating Salmon Outputs](#three)
 5. [Step 3 - Gene Aggregation](#four)
 6. [Step 4 - Creating a Transcript to Gene Reference](#five)
@@ -47,16 +49,31 @@ This pipeline takes advantage of a new tool, Salmon, for rapid transcript (and g
 
 ### Step 1 - Mapping and Transcript Quantification <a name="two"></a>
 
-**Summary** : Mapping and Quantification is done using the two-phase approach. 
- * [Step 1.1: Create and index of potential transcripts](#"one.one")
- * [Step 1.2: Performing quasi mapping and quantification](#"one.two")
+**Overview** : Steps takes the raw reads (those after trimming and QC) and partially maps them to a list of reference transcripts (created from the NCBI transcriptome). Next, it probabilistically estimates the abundance of each transcript for each sample.
+
+**Steps** : Mapping and Quantification is done using the two-phase approach. 
+ * [Step 1.1: Create and index of potential transcripts](#one.one)
+ * [Step 1.2: Performing quasi mapping and quantification](#one.two)
+
+**Required Input**
+1) Raw read data (formated as `.fastq` or `.fastq.gz` or `fq.gz`)
+2) Transcriptome File (reference trasncriptome; `.gff` or `.gtf` ideally; [NCBI LINK for oyster](https://www.ncbi.nlm.nih.gov/genome/?term=crassostrea+virginica))
+
+**Output**
+1) `quant.sf` : Salmons transcript count output format
+2) A unique folder for each individual that will also include a number of summary and auxilary files.
 
 #### **Step 1.1 - Create a Index of all transcripts** <a name="one.one"></a>
 
-This is with a simple one line code and will only take a few minutes on a server. Note this only needs to happen once, and you will continue to reference it in the next command for each sample:
+Create a index of all potential transcripts with the function `salmon index`.
+
+Example Code:
 ``` 
 salmon index -t pathways/and/nameOfTranscriptome.fa.gz -i /pathways/and/nameofFolderForStoringIndex
 ```
+
+* This will only take a few minutes on a server. 
+* Note this only needs to happen once, and you will continue to reference it in the next command for each sample
 
 #### **Step 1.2 - Performing quasi mapping and quantification** <a name="one.two"></a>
 
