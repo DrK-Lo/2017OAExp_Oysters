@@ -50,7 +50,7 @@ for i in $( ls /shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp/17*R
         done
 done
 ```
-[File Link]()
+[File Link](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/DNAm/scripts/01_seq-quality-trim.sh)
 
 Outputs were saved in the same directory. Example of file output: `17203_DNAm_R1.fastq.gz`
 
