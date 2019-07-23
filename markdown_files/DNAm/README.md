@@ -56,3 +56,18 @@ done
 Outputs were saved in the same directory. Example of file output: `17203_DNAm_R1.fastq.gz`
 
 ### Preparing genome with Bismark for sample mapping
+
+A bisulfite converted genoem was prepared using the current C. virginica genome available NCBI using the `bismark_genome_preparation` command in `bismark` and `hisat2` as the aligner (it's splice aware compared to bowtie).
+
+Code:
+```
+bismark_genome_preparation --hisat2 --genomic_composition --path_to_aligner /home/downey-wall.a/software/hisat2-2.1.0 --parallel 10 --verbose /shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/genome > bismark_genomePrepartion_log.txt
+```
+
+**Outputs**
+* Folder : `/shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/bsgenome/wHiSAT`
+    * `bismark_genomePrepartion_log.txt` : Command output log when using the `--verbose` flag.
+    * `genomic_nucleotide_frequencies.txt` :  Text file with occurances of nucleotides in genome
+    * `Bisulfite_Genome` : Folder with conversion information and locations
+
+## Aligning Reads
