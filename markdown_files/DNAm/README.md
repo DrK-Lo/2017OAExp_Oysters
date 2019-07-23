@@ -1,10 +1,8 @@
-# Folder for all DNA Methylation Analysis
-
-[Link to Roberts raw data](https://robertslab.github.io/sams-notebook/2019/06/26/Data-Received-C.virginica-Mantle-MBD-BSseq-from-ZymoResearch.html)
+# DNA Methylation Analysis
 
 ### Step One - Downloading the Data
 
-Data was sent to the Roberts lab after sequencing and stored on their server [(Link for details)](). Below is the code used to download the data from their server:
+Data was sent to the Roberts lab after sequencing and stored on their server [(Link for details)](https://robertslab.github.io/sams-notebook/2019/06/26/Data-Received-C.virginica-Mantle-MBD-BSseq-from-ZymoResearch.html). Below is the code used to download the data from their server:
 ```
 FILL IN CODE 
 ```
