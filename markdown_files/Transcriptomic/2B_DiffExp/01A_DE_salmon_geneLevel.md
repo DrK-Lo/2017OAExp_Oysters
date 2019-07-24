@@ -1,22 +1,9 @@
----
-title: "Differential Expression with Salmon Gene level outputs with DESeq2"
-output: 
-  github_document
-editor_options: 
-  chunk_output_type: console
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(DESeq2)
-library(ashr)
-library(kableExtra)
-library(plyr)
-library(dplyr)
-```
+Differential Expression with Salmon Gene level outputs with DESeq2
+================
 
 ### **Data**
-```{r eval=FALSE}
+
+``` r
 # Meta Data
 model<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.csv", header=TRUE)
 model$Treatment <- as.factor(model$treatment)
@@ -36,7 +23,8 @@ trans <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/transc
 ```
 
 **Outdated Count Matrix approach**
-```{r eval=FALSE}
+
+``` r
 ### Gene-level abundances - scaled by isoform length
 # Outdated matrix
 ga <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610_counts/geneMatrixAbundance_default.RData")
@@ -47,9 +35,9 @@ ga_filter <- ga_round[rowSums(ga_round)>1,]
 dim(ga_filter)
 ```
 
-### **Full Model** ~ Lane + Pop + shelf + Treatment + Time + Treatment:Time 
+### **Full Model** ~ Lane + Pop + shelf + Treatment + Time + Treatment:Time
 
-```{r eval=FALSE}
+``` r
 # Full Model
 # full <- DESeqDataSetFromMatrix(countData = ga_round,
 #                               colData = model,
@@ -71,9 +59,10 @@ g_full_Treatment <- results(g_full_Wald,contrast=c("Treatment","400","2800"))
 summary(g_full_Treatment)
 g_pVal_treatment <- g_full_Treatment$padj
 ```
-  
-#### Combining the summary statistics of expression and DE (log2Fold change + adjP) for each contrast.  
-```{r eval=FALSE}
+
+#### Combining the summary statistics of expression and DE (log2Fold change + adjP) for each contrast.
+
+``` r
 pvals_df <- data.frame(location=row.names(ga),
                          baseMean_Expression = res_full$baseMean,
                          Interaction_Log2_FoldChange=res_full$log2FoldChange,
@@ -87,33 +76,39 @@ gene_GE <- merge(trans,pvals_df,by="location")
 gene_GE <- gene_GE[!duplicated(gene_GE$location), ]
 saveRDS(gene_GE,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610/gene_full_DESeq2Results.RData")
 ```
-  
-**Top Twenty Genes Associated with Treatment**  
-```{r eval=FALSE}
+
+**Top Twenty Genes Associated with Treatment**
+
+``` r
 gene_GE_trt <- gene_GE[order(gene_GE$Treatment_P),]
 kable(gene_GE_trt[1:20,]) %>%
   kable_styling()
 ```
-  
-**Top Twenty Genes Associated with Time**  
-```{r eval=FALSE}
+
+**Top Twenty Genes Associated with Time**
+
+``` r
 gene_GE_t <- gene_GE[order(gene_GE$Time_P),]
 kable(gene_GE_t[1:20,]) %>%
   kable_styling()
 ```
 
-**Top Twenty Genes Associated with Time:Treatment** 
-```{r eval=FALSE}
+**Top Twenty Genes Associated with Time:Treatment**
+
+``` r
 gene_GE_ttrt <- gene_GE[order(gene_GE$Interaction_P),]
 kable(gene_GE_ttrt[1:20,]) %>%
   kable_styling()
 ```
-  
-### **Alt Full Model** ~ Lane + Pop + Shelf + SFV 
- 
- * SFV =  a groups factor with each Time+Treatment as a separate level. This allows specific contrasts for each time point and treatment.  
- 
-```{r eval=FALSE}
+
+### **Alt Full Model** ~ Lane + Pop + Shelf + SFV
+
+  - SFV = a groups factor with each Time+Treatment as a separate level.
+    This allows specific contrasts for each time point and treatment.
+
+<!-- end list -->
+
+``` r
 design(g_obj) <- ~ Lane + Pop + shelf + SFV
 g_SFV_Wald <- DESeq(g_obj,minmu = 80,test = "Wald")
 
@@ -134,10 +129,10 @@ g_SFV_E <- results(g_SFV_Wald,contrast=c("SFV","09.2800","80.2800"))
 summary(g_SFV_E)
 g_SFV_pVal_E <- g_SFV_E$padj
 ```
-  
-#### Combining the summary statistics of expression and DE (log2Fold change + adjP) for each contrast.  
 
-```{r eval=FALSE}
+#### Combining the summary statistics of expression and DE (log2Fold change + adjP) for each contrast.
+
+``` r
 pvals_df <- data.frame(location=row.names(ga),
                          baseMean_Expression = g_SFV_TP1$baseMean,
                          TP1_Log2_FoldChange=g_SFV_TP1$log2FoldChange,
@@ -165,8 +160,11 @@ saveRDS(gene_GE_order,"/home/downeyam/Github/2017OAExp_Oysters/results/Salmon_Ge
 ```
 
 #### Kable Table Code for top 50 DEGs from either timepoint
-(work in progress)
-```{r eval=FALSE}
+
+(work in
+progress)
+
+``` r
 labels <- c("Location","Gene ID","Predicted Function","mean Expression","Day 09 : Treatment FoldChange (log2)","Day 80 : Treatment FoldChange (log2)","Baseline FoldChange (log2)","Day 80 P","Day 09 P","Baseline P")
 names(gene_GE_order) <- labels
 
@@ -178,10 +176,20 @@ kableExtra::save_kable(tb,file="/home/downeyam/Github/2017OAExp_Oysters/notebook
 
 ### Timepoint Specific DE analysis
 
-**Description**: Here we look are if there is differential expression due to treatment for each timepoint separately (this is perhaps not the best way to handle the data, but appears to be the most common approach for timeseries RNAseq datasets). Also we can look at DE using two different approaches. The `test = "Wald"` test, which is the default above and is based on using a GLM with a logarithmic link (negative binomial) to test for a significant effect of the variable of interest. Alternatively, I also ran the `test = "LRT"` test, which performs a likelihood ratio test where the two models being tested in this case are either with (full model) or without (simple model) treatment (PCO2).
+**Description**: Here we look are if there is differential expression
+due to treatment for each timepoint separately (this is perhaps not the
+best way to handle the data, but appears to be the most common approach
+for timeseries RNAseq datasets). Also we can look at DE using two
+different approaches. The `test = "Wald"` test, which is the default
+above and is based on using a GLM with a logarithmic link (negative
+binomial) to test for a significant effect of the variable of interest.
+Alternatively, I also ran the `test = "LRT"` test, which performs a
+likelihood ratio test where the two models being tested in this case are
+either with (full model) or without (simple model) treatment (PCO2).
 
-### DEGs specifically for individuals from **TP9**  
-```{r eval=FALSE}
+### DEGs specifically for individuals from **TP9**
+
+``` r
 ga_tp9 <-  ga_filter[,model$Time == "09"]
 dim(ga_tp9)
 head(ga_tp9)
@@ -215,7 +223,8 @@ kable(gene_GE_tp9[1:50,]) %>%
 ```
 
 ### DEGs specifically for individuals from **TP80**
-```{r eval=FALSE}
+
+``` r
 ga_tp80 <-  ga_filter[,model$Time == "80"]
 dim(ga_tp80)
 head(ga_tp80)
@@ -247,4 +256,3 @@ gene_GE_tp80 <- gene_GE_tp80[order(gene_GE_tp80$wald_p),]
 kable(gene_GE_tp80[1:50,]) %>%
   kable_styling()
 ```
-  

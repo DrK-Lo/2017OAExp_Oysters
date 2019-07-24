@@ -1,21 +1,9 @@
----
-title: "Differential Expression with Salmon Transcript level outputs with DESeq2"
-output: 
-  github_document
-editor_options: 
-  chunk_output_type: console
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(DESeq2)
-library(ashr)
-library(kableExtra)
-library(dplyr)
-```
+Differential Expression with Salmon Transcript level outputs with DESeq2
+================
 
 ### **Data**
-```{r eval=FALSE}
+
+``` r
 # Meta Data
 model<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt", header=TRUE)
 model$Treatment <- as.factor(model$treatment)
@@ -40,8 +28,9 @@ t_obj <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon
 trans <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/transcriptome_table.RData")
 ```
 
-### **Full Model** - Lane, Pop, Treatment, Time, Treatment:Time as factors  
-```{r eval=FALSE}
+### **Full Model** - Lane, Pop, Treatment, Time, Treatment:Time as factors
+
+``` r
 ### Full Model
 # Outdated
 # full <- DESeqDataSetFromMatrix(countData = ga_round,
@@ -76,32 +65,38 @@ tran_GE <- merge(trans,t_pvals_df,by.x="fullID",by.y="location")
 saveRDS(tran_GE,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20180512/transcript_DESeq2Results.RData")
 ```
 
-**Top Twenty Genes Associated with Treatment** 
-```{r eval=FALSE}
+**Top Twenty Genes Associated with Treatment**
+
+``` r
 tran_GE_trt <- tran_GE[order(tran_GE$Treatment_P),]
 kable(tran_GE_trt[1:20,]) %>%
   kable_styling()
 ```
 
-**Top Twenty Genes Associated with Time** 
-```{r eval=FALSE}
+**Top Twenty Genes Associated with Time**
+
+``` r
 tran_GE_t <- tran_GE[order(tran_GE$Time_P),]
 kable(tran_GE_t[1:20,]) %>%
   kable_styling()
 ```
 
-**Top Twenty Genes Associated with Time:Treatment** 
-```{r eval=FALSE}
+**Top Twenty Genes Associated with Time:Treatment**
+
+``` r
 tran_GE_ttrt <- tran_GE[order(tran_GE$Interaction_P),]
 kable(tran_GE_ttrt[1:20,]) %>%
   kable_styling()
 ```
 
-### **Alt Full Model** ~ Lane + Pop + Shelf + SFV 
- 
- * SFV =  a groups factor with each Time+Treatment as a separate level. This allows specific contrasts for each time point and treatment.  
- 
-```{r eval=FALSE}
+### **Alt Full Model** ~ Lane + Pop + Shelf + SFV
+
+  - SFV = a groups factor with each Time+Treatment as a separate level.
+    This allows specific contrasts for each time point and treatment.
+
+<!-- end list -->
+
+``` r
 design(t_obj) <- ~ Lane + Pop + shelf + SFV
 t_SFV_Wald <- DESeq(t_obj,minmu = 80,test = "Wald")
 
@@ -134,9 +129,9 @@ ordered_FC_full[ordered_val_full[1]]
 plotCounts(t_SFV_Wald, gene=ordered_val_full[1], intgroup="SFV",normalized = FALSE)
 ```
 
-#### Combining the summary statistics of expression and DE (log2Fold change + adjP) for each contrast.  
+#### Combining the summary statistics of expression and DE (log2Fold change + adjP) for each contrast.
 
-```{r eval=FALSE}
+``` r
 pvals_df <- data.frame(fullID=row.names(ta),
                          baseMean_Expression = t_SFV_TP1$baseMean,
                          TP1_Log2_FoldChange=t_SFV_TP1$log2FoldChange,
@@ -174,10 +169,20 @@ saveRDS(tran_final_order,"/home/downeyam/Github/2017OAExp_Oysters/results/Salmon
 
 ### Timepoint Specific DE analysis
 
-**Description**: Here we look are if there is differential expression due to treatment for each timepoint separately (this is perhaps not the best way to handle the data, but appears to be the most common approach for timeseries RNAseq datasets). Also we can look at DE using two different approaches. The `test = "Wald"` test, which is the default above and is based on using a GLM with a logarithmic link (negative binomial) to test for a significant effect of the variable of interest. Alternatively, I also ran the `test = "LRT"` test, which performs a likelihood ratio test where the two models being tested in this case are either with (full model) or without (simple model) treatment (PCO2).
+**Description**: Here we look are if there is differential expression
+due to treatment for each timepoint separately (this is perhaps not the
+best way to handle the data, but appears to be the most common approach
+for timeseries RNAseq datasets). Also we can look at DE using two
+different approaches. The `test = "Wald"` test, which is the default
+above and is based on using a GLM with a logarithmic link (negative
+binomial) to test for a significant effect of the variable of interest.
+Alternatively, I also ran the `test = "LRT"` test, which performs a
+likelihood ratio test where the two models being tested in this case are
+either with (full model) or without (simple model) treatment (PCO2).
 
-### DEGs specifically for individuals from **TP9**  
-```{r eval=FALSE}
+### DEGs specifically for individuals from **TP9**
+
+``` r
 ta_tp9 <-  ta_filter[,model$Time == "09"]
 dim(ta_tp9)
 head(ta_tp9)
@@ -211,7 +216,8 @@ kable(gene_GE_tp9[1:50,]) %>%
 ```
 
 ### DEGs specifically for individuals from **TP80**
-```{r eval=FALSE}
+
+``` r
 ta_tp80 <-  ta_filter[,model$Time == "80"]
 dim(ta_tp80)
 head(ta_tp80)
