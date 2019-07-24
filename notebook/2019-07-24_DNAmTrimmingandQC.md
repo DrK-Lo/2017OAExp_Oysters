@@ -1,9 +1,9 @@
 # Performing trimming and QC on raw MBD-BSeq reads
 
-Trimming and QC was performed on the concatenated read files using `trim_galore`. The parameters were selected based on the script Yaamini used for processing the 2016 oysters gonadal tissue experiment. This includes a 10 bp trim on either end of the read and the remaining parameters are left as default.
+Trimming and QC was performed on the concatenated read files using `trim_galore`. The parameters were selected based on the [script Yaamini](https://github.com/epigeneticstoocean/paper-gonad-meth/blob/master/code/01-seq-quality-trim.sh) used for processing the 2016 oysters gonadal tissue experiment. This includes a 10 bp trim on either end of the read and the remaining parameters are left as default.
 
 **Modifications to Original Script**
-* I modified the original script created by Yaamini by using a `for` loop to cycle through each sample (R1 and R2) and perform the trim_galore command for each pair of reads.
+* I modified the original script created by Yaamini by using a `for` loop to cycle through each sample (R1 and R2) and performing the trim_galore command for each pair of reads.
 
 **Potential Issues**
 * I noticed that it is taking a long time to process each sample (it's been running for ~1.5-2 days and it hasn't finished processing all 24 samples). I am not sure if this normal, but seems like a long time for trimming and QC.
