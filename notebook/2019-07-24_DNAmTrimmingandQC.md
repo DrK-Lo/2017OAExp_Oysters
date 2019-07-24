@@ -44,4 +44,4 @@ done
 ```
 
 **Screen Shot of log outputs for two samples with different adapters identified**
-![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/notebook/img/Screenshot%20from%202019-07-24%2007-12-34.png)
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/notebook/img/Screenshot%20from%202019-07-24%2007-12-34.png) 
