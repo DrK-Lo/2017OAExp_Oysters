@@ -12,6 +12,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr,quietly = TRUE)
 library(kableExtra,quietly = TRUE)
+library(ggplot2,quietly = TRUE)
 ```
 
 ## Overview
@@ -80,7 +81,10 @@ for (i in 4:ncol(bam_star_isoforms)){
 # Merging dataframes
 corr_df_whole <- rbind.data.frame(corr_df,corr_df_iso)
 
-kableExtra::kable(corr_df_whole) %>% kableExtra::kable_styling()
+(store_table <- kableExtra::kable(corr_df_whole) %>% kableExtra::kable_styling())
 ```
 
-
+```{r eval=FALSE}
+setwd("/home/downeyam/Github/2017OAExp_Oysters/notebook/img")
+save_kable(store_table,"RSEM_methodComp_table_20190726.png")
+```
