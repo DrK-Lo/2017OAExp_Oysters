@@ -98,7 +98,7 @@ close(fileConn)
 # Save only those identified by Gnomon
 combine_Gnomon <- combine[line$V2 == 'Gnomon']
 fileConn<-file(paste0(fn_simple,"_edit_Gnomon.gtf"))
-writeLines(combine_Gnomo,fileConn)
+writeLines(combine_Gnomon,fileConn)
 close(fileConn)
 
 # Save only not identified by RefSeq
@@ -107,4 +107,11 @@ fileConn<-file(paste0(fn_simple,"_edit_noRefSeq.gtf"))
 writeLines(combine_noRefSeq,fileConn)
 close(fileConn)
 
-  
+# Save everything except Genomom
+combine_noGnomonSeq <- combine[line$V2 != 'Gnomon']
+fileConn<-file(paste0(fn_simple,"_edit_noGnomon.gtf"))
+writeLines(combine_noGnomonSeq,fileConn)
+close(fileConn)
+length(line$V3[line$V3 == "transcript"])
+length(unique(new_mat[,2]))
+length(new_mat[,2])
