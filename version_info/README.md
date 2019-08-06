@@ -4,6 +4,7 @@ Contains details for the specifications and parameters used for each step of the
 
 ### STAR PIPELINE
 
+[run20190726 FINAL](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/version_info/STARrun_20190726.md)
 
 ### SALMON PIPELINE
 
