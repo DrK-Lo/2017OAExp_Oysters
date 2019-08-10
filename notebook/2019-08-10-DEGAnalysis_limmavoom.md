@@ -44,14 +44,19 @@ rsem <- DGEList(rsem_order)
 ### Step One : Filtering and Normalization*
 * Filtering removed genes with limited to no expression
   * CRITERIA: removed individuals that have less than 1 count per million (CPM) in less than have the total number of samples.
-* Normalization was done with the `limma` function : `calcNormFactors()`
+* Normalization estimates done with the `limma` function : `calcNormFactors()`
+* Actual normalization done with `voom` function:
+ * Description: Transform count data to log2-counts per million (logCPM), estimate the mean-variance relationship and use this to compute appropriate observational-level weights
 
 **Code**
 ```
 keep_rsem <- rowSums(cpm(rsem)>1) >= (0.5 * 24)
 rsem_red <- rsem[keep_rsem, ]
 rsem_red <- calcNormFactors(rsem_red)
+rsem_out <- voom(rsem_red, design,plot=TRUE)
 ```
+Diagnostic Plot
+~[](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/notebook/img/voom_RSEM_meanVarPlot.png)
 
 ### DEG Analysis using basic planned comparisons
 
@@ -69,26 +74,37 @@ rsem_red <- calcNormFactors(rsem_red)
 3) 400 - 2800
 4  400_Day09 - 400_Day80
 
-Standard Design Model in `limma`
+Custom Design Model in `limma`
 ```
-design <- model.matrix(~Treatment*Time)
-```
-
-Expanded Design
-| coefficient | Comparison | Interpretation |
-|:-----------:|:----------:|:--------------:|
-| Intercept | 400.09 | Baseline level of unexposed at Day 09 |
-| Treatment09 | 400.09-2800.09 | Difference between exposures at Day 09 |
-| Time400 | 400.09-400.80 | Effect of duration (9 vs 80) in unexposed |
-| Treatment09:Time400 | (2800.80 - 2800.09)-(400.80-400.09) | Interaction |
-
-**Run the model (count matrix, model design)**
-```
-rsem_fit <- lmFit(rsem_out, design)
+#Creat new factor levels (one for each level combination)
+meta$SFV <- as.factor(paste0("D",meta$SFV))
+#Levels: D09.2800 D09.400 D80.2800 D80.400
+#Make new design matrix
+design_contr <- model.matrix(~0+meta$SFV)
+#Rename columns
+colnames(design_contr) <- levels(meta$SFV)
 ```
 
-*NOTE*: Not all planned comparisons are achieved when running the standard model.
+Fit linear model with the various single factor variables
+```
+#Fit lm model
+rsem_fit_contr <- lmFit(rsem_out, design_contr)
+```
 
-Using contrasts to examine all specific comparisons.
+Create specific contrasts and refit model
+```
+#Create specific contrasts
+rsem_contr_mat <- makeContrasts(
+  CvE_D9 = D09.2800-D09.400,
+  CvE_D80 = D80.2800-D80.400,
+  C_D9vD80 = D09.400-D80.400,
+  Diff = (D09.2800-D09.400)- (D80.2800-D80.400),
+  levels=design_contr
+)
+#Refit with contrasts
+rsem_fit2_contr <- contrasts.fit(rsem_fit_contr,rsem_contr_mat)
+#Run in eBayes
+rsem_fit2_contr <- eBayes(rsem_fit2_contr)
+```
 
 
