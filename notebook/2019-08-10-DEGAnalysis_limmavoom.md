@@ -106,5 +106,9 @@ rsem_fit2_contr <- contrasts.fit(rsem_fit_contr,rsem_contr_mat)
 #Run in eBayes
 rsem_fit2_contr <- eBayes(rsem_fit2_contr)
 ```
-
-
+Examining results
+```
+topTable(rsem_fit2_contr)
+rsem_results_contr <- decideTests(rsem_fit2_contr)
+vennDiagram(rsem_results_contr)
+```
