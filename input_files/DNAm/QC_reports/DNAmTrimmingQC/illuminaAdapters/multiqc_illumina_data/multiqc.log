@@ -1,0 +1,190 @@
+[2019-08-18 11:47:47,018] multiqc                                            [DEBUG  ]  No MultiQC config found: /home/downey-wall.a/.conda/envs/salmon/lib/python3.6/site-packages/multiqc_config.yaml
+[2019-08-18 11:47:47,018] multiqc                                            [DEBUG  ]  No MultiQC config found: /home/downey-wall.a/.multiqc_config.yaml
+[2019-08-18 11:47:47,018] multiqc                                            [DEBUG  ]  No MultiQC config found: multiqc_config.yaml
+[2019-08-18 11:47:47,018] multiqc                                            [DEBUG  ]  Command used: /home/downey-wall.a/.conda/envs/salmon/bin/multiqc .
+[2019-08-18 11:47:47,857] multiqc                                            [DEBUG  ]  Latest MultiQC version is v1.7
+[2019-08-18 11:47:47,857] multiqc                                            [INFO   ]  This is MultiQC v1.7
+[2019-08-18 11:47:47,857] multiqc                                            [DEBUG  ]  Command     : /home/downey-wall.a/.conda/envs/salmon/bin/multiqc .
+[2019-08-18 11:47:47,858] multiqc                                            [DEBUG  ]  Working dir : /shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/groupSample_illuminaAdapter_20190726
+[2019-08-18 11:47:47,858] multiqc                                            [INFO   ]  Template    : default
+[2019-08-18 11:47:47,858] multiqc                                            [INFO   ]  Searching '.'
+[2019-08-18 11:47:47,859] multiqc                                            [DEBUG  ]  Analysing modules: custom_content, conpair, peddy, methylQA, phantompeakqualtools, qualimap, preseq, quast, qorts, rna_seqc, rsem, rseqc, busco, goleft_indexcov, disambiguate, supernova, deeptools, sargasso, verifybamid, mirtrace, happy, homer, macs2, theta2, snpeff, gatk, htseq, bcftools, featureCounts, dedup, damageprofiler, picard, prokka, samblaster, samtools, bamtools, jellyfish, vcftools, longranger, stacks, bbmap, bismark, biscuit, hicexplorer, hicup, hicpro, salmon, kallisto, slamdunk, star, hisat2, tophat, bowtie2, bowtie1, kat, leehom, adapterRemoval, clipandmerge, cutadapt, flexbar, trimmomatic, skewer, sortmerna, biobloomtools, fastq_screen, afterqc, fastp, fastqc, minionqc, clusterflow, bcl2fastq, interop, flash
+[2019-08-18 11:47:47,859] multiqc                                            [DEBUG  ]  Using temporary directory for creating report: /tmp/tmpdym0uy8g
+[2019-08-18 11:47:48,058] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17122_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,104] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17142_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,104] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17005_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,105] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17005_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,105] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17142_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,200] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17145_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,201] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17007_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,202] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17007_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,250] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17145_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,298] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17162_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,298] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17013_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,299] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17013_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,346] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17162_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,392] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17174_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,393] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17019_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,393] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17019_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,440] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17174_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,487] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17176_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,487] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17069_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,488] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17069_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,535] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17176_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,582] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17178_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,583] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17070_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,583] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17070_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,631] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17178_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,679] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17181_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,679] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17072_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,680] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17072_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,727] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17181_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,773] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17203_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,774] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17079_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,774] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17079_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,821] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17203_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,869] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17211_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,869] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17090_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,870] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17090_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:48,917] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17211_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:48,964] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17213_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:49,006] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17094_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:49,007] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17094_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:49,055] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17213_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:49,103] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17099_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:49,103] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17099_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:49,196] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17108_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:49,197] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17108_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:49,290] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17122_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:49,381] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17130_DNAm_R1_val_1.fq.gz
+[2019-08-18 11:47:49,382] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17130_DNAm_R2_val_2.fq.gz
+[2019-08-18 11:47:50,246] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17005_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,247] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17005_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,248] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17007_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,249] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17007_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,250] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17013_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,252] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17013_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,253] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17019_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,254] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17019_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,255] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17069_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,256] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17069_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,258] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17070_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,259] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17070_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,260] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17072_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,261] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17072_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,262] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17079_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,264] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17079_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,265] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17090_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,266] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17090_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,267] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17094_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,268] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17094_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,270] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17099_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,271] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17099_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,272] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17108_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,273] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17108_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,274] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17122_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,276] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17122_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,277] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17130_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,278] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17130_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,279] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17142_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,281] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17142_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,282] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17145_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,283] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17145_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,284] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17162_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,285] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17162_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,287] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17174_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,288] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17174_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,289] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17176_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,290] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17176_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,291] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17178_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,293] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17178_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,294] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17181_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,295] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17181_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,296] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17203_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,297] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17203_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,299] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17211_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,300] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17211_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,301] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17213_DNAm_R1_val_1_fastqc.html
+[2019-08-18 11:47:50,302] multiqc                                            [DEBUG  ]  Ignoring file as matched an ignore pattern: 17213_DNAm_R2_val_2_fastqc.html
+[2019-08-18 11:47:50,604] multiqc                                            [DEBUG  ]  No samples found: custom_content
+[2019-08-18 11:47:50,608] multiqc                                            [DEBUG  ]  No samples found: conpair
+[2019-08-18 11:47:50,611] multiqc                                            [DEBUG  ]  No samples found: peddy
+[2019-08-18 11:47:50,618] multiqc                                            [DEBUG  ]  No samples found: methylQA
+[2019-08-18 11:47:50,621] multiqc                                            [DEBUG  ]  No samples found: phantompeakqualtools
+[2019-08-18 11:47:50,625] multiqc                                            [DEBUG  ]  No samples found: qualimap
+[2019-08-18 11:47:50,629] multiqc                                            [DEBUG  ]  No samples found: preseq
+[2019-08-18 11:47:50,632] multiqc                                            [DEBUG  ]  No samples found: quast
+[2019-08-18 11:47:50,636] multiqc                                            [DEBUG  ]  No samples found: qorts
+[2019-08-18 11:47:50,640] multiqc                                            [DEBUG  ]  No samples found: rna_seqc
+[2019-08-18 11:47:50,643] multiqc                                            [DEBUG  ]  No samples found: rsem
+[2019-08-18 11:47:50,649] multiqc                                            [DEBUG  ]  No samples found: rseqc
+[2019-08-18 11:47:50,652] multiqc                                            [DEBUG  ]  No samples found: busco
+[2019-08-18 11:47:50,656] multiqc                                            [DEBUG  ]  No samples found: goleft_indexcov
+[2019-08-18 11:47:50,660] multiqc                                            [DEBUG  ]  No samples found: disambiguate
+[2019-08-18 11:47:50,663] multiqc                                            [DEBUG  ]  No samples found: supernova
+[2019-08-18 11:47:50,669] multiqc                                            [DEBUG  ]  No samples found: deeptools
+[2019-08-18 11:47:50,673] multiqc                                            [DEBUG  ]  No samples found: sargasso
+[2019-08-18 11:47:50,676] multiqc                                            [DEBUG  ]  No samples found: verifybamid
+[2019-08-18 11:47:50,680] multiqc                                            [DEBUG  ]  No samples found: mirtrace
+[2019-08-18 11:47:50,683] multiqc                                            [DEBUG  ]  No samples found: happy
+[2019-08-18 11:47:50,688] multiqc                                            [DEBUG  ]  No samples found: homer
+[2019-08-18 11:47:50,691] multiqc                                            [DEBUG  ]  No samples found: macs2
+[2019-08-18 11:47:50,695] multiqc                                            [DEBUG  ]  No samples found: theta2
+[2019-08-18 11:47:50,698] multiqc                                            [DEBUG  ]  No samples found: snpeff
+[2019-08-18 11:47:50,703] multiqc                                            [DEBUG  ]  No samples found: gatk
+[2019-08-18 11:47:50,706] multiqc                                            [DEBUG  ]  No samples found: htseq
+[2019-08-18 11:47:50,710] multiqc                                            [DEBUG  ]  No samples found: bcftools
+[2019-08-18 11:47:50,713] multiqc                                            [DEBUG  ]  No samples found: featureCounts
+[2019-08-18 11:47:50,717] multiqc                                            [DEBUG  ]  No samples found: dedup
+[2019-08-18 11:47:50,720] multiqc                                            [DEBUG  ]  No samples found: damageprofiler
+[2019-08-18 11:47:50,727] multiqc                                            [DEBUG  ]  No samples found: picard
+[2019-08-18 11:47:50,731] multiqc                                            [DEBUG  ]  No samples found: prokka
+[2019-08-18 11:47:50,734] multiqc                                            [DEBUG  ]  No samples found: samblaster
+[2019-08-18 11:47:50,739] multiqc                                            [DEBUG  ]  No samples found: samtools
+[2019-08-18 11:47:50,743] multiqc                                            [DEBUG  ]  No samples found: bamtools
+[2019-08-18 11:47:50,746] multiqc                                            [DEBUG  ]  No samples found: jellyfish
+[2019-08-18 11:47:50,751] multiqc                                            [DEBUG  ]  No samples found: vcftools
+[2019-08-18 11:47:50,755] multiqc                                            [DEBUG  ]  No samples found: longranger
+[2019-08-18 11:47:50,758] multiqc                                            [DEBUG  ]  No samples found: stacks
+[2019-08-18 11:47:50,764] multiqc                                            [DEBUG  ]  No samples found: bbmap
+[2019-08-18 11:47:50,768] multiqc                                            [DEBUG  ]  No samples found: bismark
+[2019-08-18 11:47:50,772] multiqc                                            [DEBUG  ]  No samples found: biscuit
+[2019-08-18 11:47:50,776] multiqc                                            [DEBUG  ]  No samples found: hicexplorer
+[2019-08-18 11:47:50,779] multiqc                                            [DEBUG  ]  No samples found: hicup
+[2019-08-18 11:47:50,783] multiqc                                            [DEBUG  ]  No samples found: hicpro
+[2019-08-18 11:47:50,786] multiqc                                            [DEBUG  ]  No samples found: salmon
+[2019-08-18 11:47:50,790] multiqc                                            [DEBUG  ]  No samples found: kallisto
+[2019-08-18 11:47:50,793] multiqc                                            [DEBUG  ]  No samples found: slamdunk
+[2019-08-18 11:47:50,797] multiqc                                            [DEBUG  ]  No samples found: star
+[2019-08-18 11:47:50,800] multiqc                                            [DEBUG  ]  No samples found: hisat2
+[2019-08-18 11:47:50,804] multiqc                                            [DEBUG  ]  No samples found: tophat
+[2019-08-18 11:47:50,807] multiqc                                            [DEBUG  ]  No samples found: bowtie2
+[2019-08-18 11:47:50,811] multiqc                                            [DEBUG  ]  No samples found: bowtie1
+[2019-08-18 11:47:50,814] multiqc                                            [DEBUG  ]  No samples found: kat
+[2019-08-18 11:47:50,818] multiqc                                            [DEBUG  ]  No samples found: leehom
+[2019-08-18 11:47:50,821] multiqc                                            [DEBUG  ]  No samples found: adapterRemoval
+[2019-08-18 11:47:50,825] multiqc                                            [DEBUG  ]  No samples found: clipandmerge
+[2019-08-18 11:47:50,968] multiqc.modules.cutadapt.cutadapt                  [INFO   ]  Found 48 reports
+[2019-08-18 11:47:51,009] multiqc                                            [DEBUG  ]  No samples found: flexbar
+[2019-08-18 11:47:51,014] multiqc                                            [DEBUG  ]  No samples found: trimmomatic
+[2019-08-18 11:47:51,019] multiqc                                            [DEBUG  ]  No samples found: skewer
+[2019-08-18 11:47:51,024] multiqc                                            [DEBUG  ]  No samples found: sortmerna
+[2019-08-18 11:47:51,029] multiqc                                            [DEBUG  ]  No samples found: biobloomtools
+[2019-08-18 11:47:51,033] multiqc                                            [DEBUG  ]  No samples found: fastq_screen
+[2019-08-18 11:47:51,038] multiqc                                            [DEBUG  ]  No samples found: afterqc
+[2019-08-18 11:47:51,042] multiqc                                            [DEBUG  ]  No samples found: fastp
+[2019-08-18 11:47:52,111] multiqc.modules.fastqc.fastqc                      [INFO   ]  Found 48 reports
+[2019-08-18 11:47:52,828] multiqc                                            [DEBUG  ]  No samples found: minionqc
+[2019-08-18 11:47:52,830] multiqc                                            [DEBUG  ]  No samples found: clusterflow
+[2019-08-18 11:47:52,833] multiqc                                            [DEBUG  ]  No samples found: bcl2fastq
+[2019-08-18 11:47:52,836] multiqc                                            [DEBUG  ]  No samples found: interop
+[2019-08-18 11:47:52,838] multiqc                                            [DEBUG  ]  No samples found: flash
+[2019-08-18 11:47:52,906] multiqc                                            [INFO   ]  Compressing plot data
+[2019-08-18 11:47:53,572] multiqc                                            [INFO   ]  Report      : multiqc_report.html
+[2019-08-18 11:47:53,572] multiqc                                            [INFO   ]  Data        : multiqc_data
+[2019-08-18 11:47:53,573] multiqc                                            [DEBUG  ]  Moving data file from '/tmp/tmpdym0uy8g/multiqc_data/multiqc_cutadapt.txt' to '/shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/groupSample_illuminaAdapter_20190726/multiqc_data'
+[2019-08-18 11:47:53,575] multiqc                                            [DEBUG  ]  Moving data file from '/tmp/tmpdym0uy8g/multiqc_data/multiqc_fastqc.txt' to '/shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/groupSample_illuminaAdapter_20190726/multiqc_data'
+[2019-08-18 11:47:53,577] multiqc                                            [DEBUG  ]  Moving data file from '/tmp/tmpdym0uy8g/multiqc_data/multiqc_general_stats.txt' to '/shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/groupSample_illuminaAdapter_20190726/multiqc_data'
+[2019-08-18 11:47:53,580] multiqc                                            [DEBUG  ]  Moving data file from '/tmp/tmpdym0uy8g/multiqc_data/multiqc_sources.txt' to '/shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/groupSample_illuminaAdapter_20190726/multiqc_data'
+[2019-08-18 11:47:53,582] multiqc                                            [DEBUG  ]  Moving data file from '/tmp/tmpdym0uy8g/multiqc_data/multiqc_data.json' to '/shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/groupSample_illuminaAdapter_20190726/multiqc_data'
+[2019-08-18 11:47:53,717] multiqc                                            [INFO   ]  MultiQC complete
