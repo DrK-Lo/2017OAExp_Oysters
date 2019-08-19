@@ -57,12 +57,12 @@ Outputs were saved in the same directory. Example of file output: `17203_DNAm_R1
 
 A bisulfite converted genome was prepared using the current *C. virginica* genome available NCBI using the `bismark_genome_preparation` command in `bismark`:  and `hisat2` as the aligner (it's splice aware compared to bowtie).
 
-Code for bowtie2 (splice aware aligner:
+Code for bowtie2:
 ```
 bismark_genome_preparation --bowtie2 --genomic_composition --parallel 10 --verbose /shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/genome > bismark_genomePrepartion_bowtie2_log.txt
 ```
 
-Code for hisat2 (splice aware aligner:
+Code for hisat2 (splice aware aligner):
 ```
 bismark_genome_preparation --hisat2 --genomic_composition --path_to_aligner /home/downey-wall.a/software/hisat2-2.1.0 --parallel 10 --verbose /shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/genome > bismark_genomePrepartion_hisat2_log.txt
 ```
