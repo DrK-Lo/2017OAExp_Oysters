@@ -55,17 +55,43 @@ Outputs were saved in the same directory. Example of file output: `17203_DNAm_R1
 
 ### Preparing genome with Bismark for sample mapping
 
-A bisulfite converted genoem was prepared using the current C. virginica genome available NCBI using the `bismark_genome_preparation` command in `bismark` and `hisat2` as the aligner (it's splice aware compared to bowtie).
+A bisulfite converted genome was prepared using the current *C. virginica* genome available NCBI using the `bismark_genome_preparation` command in `bismark`:  and `hisat2` as the aligner (it's splice aware compared to bowtie).
 
-Code:
+Code for bowtie2 (splice aware aligner:
 ```
-bismark_genome_preparation --hisat2 --genomic_composition --path_to_aligner /home/downey-wall.a/software/hisat2-2.1.0 --parallel 10 --verbose /shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/genome > bismark_genomePrepartion_log.txt
+bismark_genome_preparation --bowtie2 --genomic_composition --parallel 10 --verbose /shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/genome > bismark_genomePrepartion_bowtie2_log.txt
+```
+
+Code for hisat2 (splice aware aligner:
+```
+bismark_genome_preparation --hisat2 --genomic_composition --path_to_aligner /home/downey-wall.a/software/hisat2-2.1.0 --parallel 10 --verbose /shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/genome > bismark_genomePrepartion_hisat2_log.txt
 ```
 
 **Outputs**
-* Folder : `/shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/bsgenome/wHiSAT`
-    * `bismark_genomePrepartion_log.txt` : Command output log when using the `--verbose` flag.
-    * `genomic_nucleotide_frequencies.txt` :  Text file with occurances of nucleotides in genome
-    * `Bisulfite_Genome` : Folder with conversion information and locations
+* Path : `/shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/bsgenome/`
+    * Hisat2 folder : `wHiSAT`
+    * Bowtie2 folder : `wBowtie2`
+      * `bismark_genomePrepartion_log.txt` : Command output log when using the `--verbose` flag.
+      * `genomic_nucleotide_frequencies.txt` :  Text file with occurances of nucleotides in genome
+      * `Bisulfite_Genome` : Folder with conversion information and locations
 
 ## Aligning Reads
+
+### Step 1: Running Bismark (below shown using Bowtie2)
+Code:
+```
+#!/bin/bash
+
+trimmed_files="/shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/singleSample_trimScript_20190719/20190719_fastqc_trim_10bp_Cvirginica_MBD"
+genome="/shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/bsgenome/wBowtie2/"
+
+find ${trimmed_files}/*R1*.fq.gz | xargs basename -s _DNAm_R1_val_1.fq.gz | xargs -I{} bismark \
+--non_directional \
+- p 20 \
+- score_min L,0,-1.2 \
+--genome ${genome} \
+-1 ${trimmed_files}/{}_DNAm_R1_val_1.fq.gz \
+-2 ${trimmed_files}/{}_DNAm_R2_val_2.fq.gz \
+-o /shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/singleSample_trimScript_20190719/bismark \
+```
+
