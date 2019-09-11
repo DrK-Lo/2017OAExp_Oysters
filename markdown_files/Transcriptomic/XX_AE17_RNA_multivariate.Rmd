@@ -1,0 +1,398 @@
+---
+title: "02 Salmon Pipeline"
+author: "adowneywall"
+date: "6/11/2019"
+output: 
+  html_document:
+    keep_md: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DESeq2)
+library(edgeR)
+library(ashr)
+library(vegan)
+library(sf)
+library(adegenet)
+library(ggplot2)
+library(ape)
+```
+
+## **Script Description**  
+
+**Brief Overview** : This script performs a series of basic multivariate approaches to explore the whole genome expression profiles of the 24 oyster RNAseq samples. In partiular this includes:
+* A permanova (implemented in the package vegan, called adonis)  
+* An RDA (implemented in vegan)
+* A DAPC with a focus on treatment(implemented in adegenet)
+
+## **Data**  
+
+Steps:  
+* Read in dataframe with metadata for each samples including, treatment, time, population, lane of sequencing, and variable that contains each unique combination level between treatment and time.  
+* Read in gene (or transcript) abundance matrix generated from the '01_salmon_countMatrix.Rmd' script.  
+* Remove uninformative genes from count matrix.  
+
+### Current files
+```{r}
+## Meta Data for the Model
+model<-readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
+
+#### Transcript File ####
+tran <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/STAR_gnomon_tximportGeneFile.RData")
+# Gene File
+gene <- tran[!duplicated(tran$GENEID),]
+rm(tran)
+# This is the filtered count matrix
+RSEM <-  readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_mapping/RSEM_output/RSEM_gene_Summary.Rdata")
+# Separate out RSEM counts and rename rows with LOC ID
+rsem_c <- RSEM$Count
+rm(RSEM)
+#Rename loci
+loc_rsem <- gene$GENEID[match(row.names(rsem_c),gene$gene_id)]
+row.names(rsem_c) <- loc_rsem
+#Remove low variation (or no variation) loci (needed for downstream stuff to work)
+keep_rsem <- rowSums(cpm(rsem_c)>1) >= (0.5 * 24)
+rsem_red <- rsem_c[keep_rsem, ]
+#counts_Rdat <- readRDS(file = "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Normalized_CountMatrix/Scenario1_normalizedVoom.RData")
+#log2(seq(0,1,by=0.01))
+counts <- cpm(rsem_red)
+gc_reduce <-  counts #log2(counts+1)
+```
+
+### Outdated files (2019-08-12)
+gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610_counts/geneMatrixAbundance_default.RData")
+gc_reduce <- gc[rowSums(gc)>100,]
+gc_reduce <- gc_reduce[rowMeans(gc_reduce)<10000,]
+
+tc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610_counts/tranMatrixAbundance_default.RData")
+tc_reduce <- tc[rowSums(tc)>40,]
+tc_reduce <- tc_reduce[rowSums(tc_reduce)<10000,]
+
+
+# Based on Gene (and isoform) level data
+
+### PERMANOVA (implements using adonis from vegan package)
+
+* Testing for statistic differential between treatment, time, and treatment:time  
+
+```{r}
+test <- t(scale(t(gc_reduce)))
+test2 <- test + abs(min(test))
+hist(rowMeans(test))
+hist(rowMeans(test2))
+mean(test2[1,])
+sd(gc_reduce[,1])
+
+(out_gc <- adonis(t(gc_reduce)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
+(out_gc <- adonis(t(test2)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
+(out_gc <- adonis((test2)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
+?adonis()
+#(out_tc <- adonis(t(tc_reduce)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
+```
+
+### Plotting data with RDA  
+
+### Plot in multivariate space with RDA (treatment and time)
+```{r}
+
+#prin_comp<-rda(t(test2),scale = TRUE)
+prin_comp<-rda(t(test2))
+sum_pri <- summary(prin_comp)
+pca_scores<-scores(prin_comp)
+colnames(gc_reduce)
+#pca <- prcomp(t(gc_reduce))
+pca <- prcomp(t(test2))
+eigs <- pca$sdev^2
+
+color_comb <- c("lightblue4","royalblue3","tomato","darkred") # colors for population 
+model$colors <- "" 
+model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
+model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
+model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
+model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
+model$pch <- 16
+model$pch[model$colors == color_comb[2] | model$colors == "darkred"] <- 10
+
+ordiplot(prin_comp,type="n",
+         xlab=paste0("PC1  (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2  (",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
+
+orditorp(prin_comp,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = model$pch)
+#ordiellipse(prin_comp,model$SFV,conf=0.90,col = color_comb,lwd = 3)
+ordispider(prin_comp,model$SFV,col = color_comb,lwd=2.5)
+legend(x=c(4,14),y=c(12,17),
+       legend = c("Day 09 : Ambient",
+                  "Day 80 : Ambient",
+                  "Day 09 : 2800",
+                  "Day 80 : 2800"),
+       pch = c(16,10,16,10),col=color_comb,xpd = .25)
+text(x = 6 ,y = -5, 
+     paste0("P_Treatment = ",round(out_gc$aov.tab$`Pr(>F)`[1],3),"*"),pos = 4)
+text(x = 6 ,y = -6, 
+     paste0("P_Time = ",round(out_gc$aov.tab$`Pr(>F)`[2],5),"*"),pos=4)
+text(x = 6 ,y = -7, 
+     paste0("P_Interaction = ",round(out_gc$aov.tab$`Pr(>F)`[5],3)),pos=4)
+```
+
+### Plot colored by population  
+```{r}
+ordiplot(prin_comp,type="n",
+         xlab=paste0("PC1 ",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2 ",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
+orditorp(prin_comp,display="sites",labels = FALSE,col=model$Pop,cex = 2,pch = 16)
+legend(x=100,y=100,legend = c("Ipswich","Rowley 1","Rowley 2"),pch = 16,col=unique(model$Pop),xpd = .25)
+```
+  
+### Cumulative Variance Plot  
+```{r}
+out <- prcomp(gc_reduce)
+vars <- apply(out$x, 2, var)  
+props <- vars / sum(vars)
+cumsum(props)
+plot(cumsum(props)*100~c(1:24),ylab=c("Cumulative Variance (%)"),xlab=c("PCs"))
+```
+
+### TWO STEP DAPC: first create discriminant function from TP 9 samples and predict coordinates on df for day 80 samples.  
+  
+**Creating DF by treatment with first timepoint**  
+```{r}
+early_time_counts <- test2[,model$Day == 9]
+early_time_counts <- gc_reduce[,model$Day == 9]
+early_time_meta <- model[model$Day == 9,]
+
+dapc_treatment_10<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=8,n.da=2)
+# PCs = 8
+# clusters = 1
+early_time_meta$dt <- unlist(dapc_treatment_10$ind.coord[,1])
+
+ggplot(early_time_meta,aes(dt,fill=as.factor(treatment),colour=as.factor(treatment))) + 
+  geom_density(alpha=0.1) + xlim(-15,15) + 
+  labs(title="Discriminant Function for Treatment on Day 9 (based on 8 PCs)",
+       x="Discriminant function 1",
+       colour="Treatment",
+       fill="Treatment") +
+  theme_bw() +
+  scale_color_manual(values=c("deepskyblue2","firebrick1")) +
+  scale_fill_manual(values=c("deepskyblue2","firebrick1"))
+```
+
+Looking at which genes are driving the patterns between the two treatments
+```{r}
+#contrib_treatment <- loadingplot(dapc_treatment_10$var.contr, axis=1,thres=.05, lab.jitter=1)
+```
+
+Looking at the most important locus based on loading
+```{r}
+# head(gc)
+# gc_majorLoading <- gc[row.names(gc) == "LOC111102518",]
+# majorLoading_counts <- as.data.frame(cbind(Trt=model$Treatment,Time=model$Time,SFV=model$SFV,Pop=model$Pop,(LOC111104151=gc_majorLoading)))
+# 
+# ggplot(majorLoading_counts,aes(x=as.factor(SFV),y=log10(LOC111104151))) + geom_boxplot() + 
+#   labs(x= c("SFV"))
+```
+
+**Mapping 
+Day 80 samples**  
+```{r}
+late_time_counts <- test2[,model$Day == 80]
+late_time_counts <- gc_reduce[,model$Day == 80]
+late_time_meta <- model[model$Day == 80,]
+
+predict_values <- predict.dapc(dapc_treatment_10,t(late_time_counts))
+late_time_meta$dt <-unlist(predict_values$ind.scores[,1])
+
+whole_meta<- rbind(early_time_meta,late_time_meta)
+
+ggplot(whole_meta,aes(dt,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+  geom_density(alpha=0.1) + xlim(-12,12) + 
+  labs(x="Discriminant function 1",
+       colour="Day.Treatment",
+       fill="Day.Treatment") +
+  theme_bw() +
+  scale_color_manual(values=c("lightblue4","blue4","tomato","darkred")) +
+  scale_fill_manual(values=c("lightblue4","blue4","tomato1","darkred"))
+
+D9_400 <- whole_meta[whole_meta$SFV == "09.400",]
+D9_400_Density <- density(D9_400$dt)
+D9_2800 <- whole_meta[whole_meta$SFV == "09.2800",]
+D9_2800_Density <- density(D9_2800$dt)
+D80_400 <- whole_meta[whole_meta$SFV == "80.400",]
+D80_400_Density <- density(D80_400$dt)
+D80_2800 <- whole_meta[whole_meta$SFV == "80.2800",]
+D80_2800_Density <- density(D80_2800$dt)
+
+plot(D9_400_Density, main="",xlim=c(-10,7),ylim=c(0,0.9),
+     xlab="Discriminant Function 1")
+polygon(D9_400_Density, col=alpha("lightblue",0.8), border="lightblue")
+polygon(D9_2800_Density, col=alpha("tomato",0.8), border="red3")
+polygon(D80_400_Density, col=alpha("blue",0.9), 
+        border="blue",density = 20,cex=100)
+polygon(D80_2800_Density, col=alpha("red3",0.9),
+        border="red3",density = 20,angle=0,cex=5)
+legend(x=c(-10,-4.3),y=c(0.9,0.73),legend=c("Day 09 : Ambient","Day 09 : 2800 ","Day 80 : Ambient","Day 80 : 2800"),
+       fill = c(alpha("lightblue",0.8),alpha("tomato",0.8),alpha("blue",0.7),alpha("red3",0.7)),
+       density = c(1000,1000,50,50),angle = c(0,0,45,0))
+```
+
+### DAPC based on combined time*treatment factor  
+  
+**Creating DF by treatment with first timepoint**  
+```{r}
+dapc_SFV_10<-dapc(t(gc),model$SFV,n.pca=8,n.da=3)
+# PCs = 10
+# clusters = 3
+output <- data.frame(Trt=model$Treatment,Time=model$Time,dapc_SFV_10$ind.coord)
+
+ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.factor(interaction(Trt,Time)))) + 
+  geom_point(aes(size=5)) + #geom_density(alpha=0.1) + #xlim(-28,28) + 
+  labs(title="DAPC for Treatment*Time Combination",
+       x="Discriminant function 1",
+       y="Discriminant function 2",
+       colour="Treatment",
+       fill="Treatment") +
+    theme_bw() +
+  scale_color_manual(values=c("deepskyblue2","firebrick1","blue4","darkred")) +
+  scale_fill_manual(values=c("deepskyblue2","firebrick1","blue4","darkred"))
+```
+
+Looking at contribution of individual genes
+```{r}
+contrib_SFV <- loadingplot(dapc_SFV_10$var.contr, axis=2,thres=.07, lab.jitter=1)
+```
+
+## Final figure
+```{r}
+par(mfrow=c(2,1))
+dim(gc_reduce)
+prin_comp<-rda(t(gc_reduce),scale = TRUE)
+
+color_comb <- c("lightblue4","royalblue3","tomato","darkred") # colors for population 
+model$colors <- "" 
+model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
+model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
+model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
+model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
+model$pch[model$colors == color_comb[1]] <- 16
+model$pch[model$colors == color_comb[3]] <- 17
+model$pch[model$colors == color_comb[2]] <- 1
+model$pch[model$colors == color_comb[4]] <- 2
+
+ordiplot(prin_comp,type="n",
+         xlab=paste0("PC1  (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2  (",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
+orditorp(prin_comp,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = model$pch)
+#ordiellipse(prin_comp,model$SFV,conf=0.90,col = color_comb,lwd = 3)
+ordispider(prin_comp,
+           model$SFV,
+           col = color_comb,
+           lwd=2.5)
+
+legend(x=c(4,16),y=c(10.2,17),
+       legend = c("Day 09 : Ambient",
+                  "Day 80 : Ambient",
+                  "Day 09 : 2800",
+                  "Day 80 : 2800"),
+       pch = c(16,1,17,2),
+       col=color_comb,
+       xpd = .25,bty="n",
+       cex=1.2)
+text(x = 6 ,y = -4.6, 
+     paste0("P_Treatment = ",round(out_gc$aov.tab$`Pr(>F)`[1],3),"*"),pos = 4)
+text(x = 6 ,y = -6.2, 
+     paste0("P_Time = ",round(out_gc$aov.tab$`Pr(>F)`[2],5),"*"),pos=4)
+text(x = 6 ,y = -7.8, 
+     paste0("P_Interaction = ",round(out_gc$aov.tab$`Pr(>F)`[5],3)),pos=4)
+
+text(x = -25 ,y = 20, 
+     "A",cex = 2.2,xpd=NA)
+late_time_counts <- gc_reduce[,model$Day == 80]
+late_time_meta <- model[model$Day == 80,]
+
+predict_values <- predict.dapc(dapc_treatment_10,t(late_time_counts))
+late_time_meta$dt <-unlist(predict_values$ind.scores[,1])
+
+whole_meta<- rbind(early_time_meta,late_time_meta)
+
+D9_400 <- whole_meta[whole_meta$SFV == "09.400",]
+D9_400_Density <- density(D9_400$dt)
+D9_2800 <- whole_meta[whole_meta$SFV == "09.2800",]
+D9_2800_Density <- density(D9_2800$dt)
+D80_400 <- whole_meta[whole_meta$SFV == "80.400",]
+D80_400_Density <- density(D80_400$dt)
+D80_2800 <- whole_meta[whole_meta$SFV == "80.2800",]
+D80_2800_Density <- density(D80_2800$dt)
+
+plot(D9_400_Density, main="",xlim=c(-10,7),ylim=c(0,0.9),
+     xlab="Discriminant Function 1",cex=1.2)
+polygon(D9_400_Density, col=alpha("lightblue",0.8), border="lightblue")
+polygon(D9_2800_Density, col=alpha("tomato",0.8), border="red3")
+polygon(D80_400_Density, col=alpha("royalblue3",0.9), 
+        border="royalblue3",density = 20,cex=100)
+polygon(D80_2800_Density, col=alpha("red3",0.9),
+        border="red3",density = 20,angle=0,cex=5)
+legend(x=c(-10,-4.9),y=c(0.9,0.65),bty="n",cex=1.2,
+       legend=c("Day 09 : Ambient",
+                "Day 80 : Ambient",
+                "Day 09 : 2800 ",
+                "Day 80 : 2800"),
+       fill = c(alpha("lightblue",0.8),
+                alpha("royalblue3",0.7),
+                alpha("tomato",0.8),
+                alpha("red3",0.7)),
+       density = c(1000,
+                   50,
+                   1000,
+                   50),
+       angle = c(0,
+                 45,
+                 0,
+                 0))
+text(x = -11.88 ,y = 1.03, 
+     "B",cex = 2.2,xpd=NA)
+```
+
+# Based on Transcript level data
+
+### PERMANOVA (implements using adonis from vegan package)
+
+* Testing for statistic differential between treatment, time, and treatment:time  
+
+```{r}
+(out <- adonis(t(tc_reduce)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
+```
+
+### Plotting data with RDA with isoform data
+
+### Plot in multivariate space with RDA (treatment and time)
+```{r}
+prin_comp<-rda(t(tc_reduce), scale=FALSE)
+sum_pri <- summary(prin_comp)
+pca_scores<-scores(prin_comp)
+
+pca <- prcomp(t(tc_reduce))
+eigs <- pca$sdev^2
+
+head(sum_pri$species)
+color_comb <- c("deepskyblue2","blue4","firebrick1","darkred") # colors for population 
+model$colors <- "" 
+model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
+model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
+model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
+model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
+
+ordiplot(prin_comp,type="n",
+         xlab=paste0("PC1 ",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2 ",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
+orditorp(prin_comp,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = 16,)
+#ordiellipse(prin_comp,model$SFV,conf=0.90,col = color_comb,lwd = 3)
+ordispider(prin_comp,model$SFV,col = color_comb,lwd=2.5)
+legend(x=100,y=150,legend = c("Day09_Control","Day80_Control","Day09_OA","Day80_OA"),pch = 16,col=color_comb,xpd = .25)
+text(x = -538 ,y = -300, paste0("Adonis P_Treatment = ",out$aov.tab$`Pr(>F)`[1],"*"))
+text(x = -550 ,y = -360, paste0("Adonis P_Duration = ",out$aov.tab$`Pr(>F)`[2],"*"))
+text(x = -540 ,y = -420, paste0("Adonis P_Interaction = ",out$aov.tab$`Pr(>F)`[5]))
+```
+
+

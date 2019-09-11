@@ -1,0 +1,77 @@
+---
+title: "DE in Biominerlization Genes"
+author: "adowneywall"
+date: "6/12/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(ggplot2)
+gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20180512_gene_countMatrix_.RData")
+```
+### A few targeted gene queries  
+
+**Carbonic Anhydrase**  
+```{r}
+### Carbonic Anhydrase  
+# All potential carbonic anhydrase gene locations based on CV genome on NCBI 
+ca_LOC <- c("LOC111134699",
+  "LOC111133036",
+  "LOC111130107",
+  "LOC111134700",
+  "LOC111123083",
+  "LOC111113402",
+  "LOC111137424",
+  "LOC111117514",
+  "LOC111114059",
+  "LOC111112162",
+  "LOC111133640",
+  "LOC111134104",
+  "LOC111133247",
+  "LOC111130106",
+  "LOC111127254",
+  "LOC111127093",
+  "LOC111122701",
+  "LOC111120606",
+  "LOC111120607",
+  "LOC11125708")
+
+# Subset for locations matching known carbonic anhydrase genes
+match(ca_LOC,row.names(gc),nomatch = FALSE)
+out_ca <- match(ca_LOC,row.names(gc))
+out_ca <- out_ca[!is.na(out_ca)]
+ca_data <- data.frame(t(as.matrix(gc[out_ca,])))
+ca_data$Treatment <- model$Treatment
+ca_data$Day <- model$Day
+pvals_df[out_ca,]
+
+ggplot(ca_data,aes(x=interaction(Treatment,Day),y=log2(ca_data[,1]))) + geom_boxplot()
+ggplot(ca_data,aes(x=interaction(Treatment,Day),y=ca_data[,2])) + geom_boxplot()
+ggplot(ca_data,aes(x=interaction(Treatment,Day),y=ca_data[,3])) + geom_boxplot()
+ggplot(ca_data,aes(x=interaction(Treatment,Day),y=ca_data[,4])) + geom_boxplot()
+ggplot(ca_data,aes(x=interaction(Treatment,Day),y=ca_data[,5])) + geom_boxplot()
+ggplot(ca_data,aes(x=interaction(Treatment,Day),y=ca_data[,6])) + geom_boxplot()
+ggplot(ca_data,aes(x=interaction(Treatment,Day),y=log2(ca_data[,7]))) + geom_boxplot()
+```
+
+**Calbindin**
+```{r}
+gc[match("LOC111136252",row.names(gc)),]
+#pvals_df[match("LOC111136252",row.names(gc)),]
+
+out_ca <- match("LOC111136252",row.names(gc))
+out_ca <- out_ca[!is.na(out_ca)]
+ca_data <- data.frame(as.matrix(t(gc[out_ca,])))
+ca_data$Treatment <- model$Treatment
+ca_data$Day <- model$Day
+ggplot(ca_data,aes(x=interaction(Treatment,Day),y=log2(ca_data[,1]))) + geom_boxplot()
+```
+
+**EGF**
+```{r}
+gc[match("LOC111134661",row.names(gc)),]
+pvals_df[match("LOC111134661",row.names(gc)),]
+
+```

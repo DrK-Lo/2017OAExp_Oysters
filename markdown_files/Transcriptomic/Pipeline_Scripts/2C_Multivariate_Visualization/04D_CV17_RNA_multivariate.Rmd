@@ -1,0 +1,170 @@
+---
+title: "multivariate Visualization"
+author: "adowneywall"
+date: "6/11/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DESeq2)
+library(ashr)
+library(vegan)
+library(sf)
+library(adegenet)
+library(ggplot2)
+```
+
+## **Script Description**  
+
+**Brief Overview** : This script performs a series of basic multivariate approaches to explore the whole genome expression profiles of the 24 oyster RNAseq samples. In partiular this includes:
+* A permanova (implemented in the package vegan, called adonis)  
+* An RDA (implemented in vegan)
+* A DAPC with a focus on treatment(implemented in adegenet)
+
+## **Data**  
+
+Steps:  
+* Read in dataframe with metadata for each samples including, treatment, time, population, lane of sequencing, and variable that contains each unique combination level between treatment and time.  
+* Read in gene (or transcript) abundance matrix generated from the '01_salmon_countMatrix.Rmd' script.  
+* Remove uninformative genes from count matrix.  
+
+```{r}
+## Meta Data for the Model
+model<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/metadata_cvirginica_rna_meta.txt", header=TRUE)
+model$Treatment <- as.factor(model$treatment)
+model$Time <- as.character(model$timepoint)
+model$Time[model$Time == "3"] <- "09"
+model$Time[model$Time == "6"] <- "80"
+model$Time <- as.factor(model$Time)
+model$Pop <- as.factor(model$population)
+model$Lane <- as.factor(model$lane)
+model$SFV <-  interaction(model$Time,model$Treatment) # Creates single factor variable for combination of time and treatment
+
+gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_pipeline/rawCounts/run20190610_GeneCountMatrix_unstranded.rds")
+```
+
+## PERMANOVA (implements using adonis from vegan package)
+
+* Testing for statistic differential between treatment, time, and treatment:time  
+
+```{r}
+(out <- adonis(t(gc)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
+```
+
+## Plotting data with RDA  
+
+### Plot in multivariate space with RDA (treatment and time)
+```{r}
+prin_comp<-rda(t(gc), scale=FALSE)
+sum_pri <- summary(prin_comp)
+pca_scores<-scores(prin_comp)
+
+pca <- prcomp(t(gc))
+eigs <- pca$sdev^2
+
+head(sum_pri$species)
+color_comb <- c("deepskyblue2","blue4","firebrick1","darkred") # colors for population 
+model$colors <- "" 
+model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
+model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
+model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
+model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
+
+ordiplot(prin_comp,type="n",
+         xlab=paste0("PC1 ",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2 ",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
+orditorp(prin_comp,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = 16,)
+#ordiellipse(prin_comp,model$SFV,conf=0.90,col = color_comb,lwd = 3)
+ordispider(prin_comp,model$SFV,col = color_comb,lwd=2.5)
+legend(x=100,y=150,legend = c("Day09_Control","Day80_Control","Day09_OA","Day80_OA"),pch = 16,col=color_comb,xpd = .25)
+text(x = -538 ,y = -300, paste0("Adonis P_Treatment = ",out$aov.tab$`Pr(>F)`[1],"*"))
+text(x = -550 ,y = -360, paste0("Adonis P_Duration = ",out$aov.tab$`Pr(>F)`[2],"*"))
+text(x = -540 ,y = -420, paste0("Adonis P_Interaction = ",out$aov.tab$`Pr(>F)`[5]))
+```
+
+### Plot colored by population  
+```{r}
+ordiplot(prin_comp,type="n",
+         xlab=paste0("PC1 ",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2 ",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
+orditorp(prin_comp,display="sites",labels = FALSE,col=model$Pop,cex = 2,pch = 16)
+legend(x=100,y=100,legend = c("Ipswich","Rowley 1","Rowley 2"),pch = 16,col=unique(model$Pop),xpd = .25)
+```
+
+### Cumulative Variance Plot  
+```{r}
+out <- prcomp(t(gc))
+vars <- apply(out$x, 2, var)  
+props <- vars / sum(vars)
+cumsum(props)
+plot(cumsum(props)~c(1:24))
+```
+
+### TWO STEP DAPC: first create discriminant function from TP 9 samples and predict coordinates on df for day 80 samples.  
+  
+**Creating DF by treatment with first timepoint**  
+```{r}
+early_time_counts <- gc[,model$Day == 9]
+early_time_meta <- model[model$Day == 9,]
+
+dapc_treatment_10<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=8,n.da=2)
+# PCs = 8
+# clusters = 1
+early_time_meta$dt <- unlist(dapc_treatment_10$ind.coord[,1])
+
+ggplot(early_time_meta,aes(dt,fill=as.factor(treatment),colour=as.factor(treatment))) + 
+  geom_density(alpha=0.1) + xlim(-15,15) + 
+  labs(title="Discriminant Function for Treatment on Day 9 (based on 8 PCs)",
+       x="Discriminant function 1",
+       colour="Treatment",
+       fill="Treatment") +
+  theme_bw() +
+  scale_color_manual(values=c("deepskyblue2","firebrick1")) +
+  scale_fill_manual(values=c("deepskyblue2","firebrick1"))
+```
+
+**Mapping Day 80 samples**  
+```{r}
+late_time_counts <- gc[,model$Day == 80]
+late_time_meta <- model[model$Day == 80,]
+
+predict_values <- predict.dapc(dapc_treatment_10,t(late_time_counts))
+late_time_meta$dt <-unlist(predict_values$ind.scores[,1])
+
+whole_meta<- rbind(early_time_meta,late_time_meta)
+
+ggplot(whole_meta,aes(dt,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+  geom_density(alpha=0.1) + xlim(-15,15) + 
+  labs(title="Discriminant Function for Treatment on Day 9 - Mapped with Day 80 Samples",
+       x="Discriminant function 1",
+       colour="Day.Treatment",
+       fill="Day.Treatment") +
+  theme_bw() +
+  scale_color_manual(values=c("deepskyblue2","blue4","firebrick1","darkred")) +
+  scale_fill_manual(values=c("deepskyblue2","blue4","firebrick1","darkred"))
+```
+
+### DAPC based on combined time*treatment factor  
+  
+**Creating DF by treatment with first timepoint**  
+```{r}
+dapc_SFV_10<-dapc(t(gc),model$SFV,n.pca=8,n.da=3)
+# PCs = 10
+# clusters = 3
+output <- data.frame(Trt=model$Treatment,Time=model$Time,dapc_SFV_10$ind.coord)
+
+ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.factor(interaction(Trt,Time)))) + 
+  geom_point(aes(size=5)) + #geom_density(alpha=0.1) + #xlim(-28,28) + 
+  labs(title="DAPC for Treatment*Time Combination",
+       x="Discriminant function 1",
+       y="Discriminant function 2",
+       colour="Treatment",
+       fill="Treatment") +
+    theme_bw() +
+  scale_color_manual(values=c("deepskyblue2","firebrick1","blue4","darkred")) +
+  scale_fill_manual(values=c("deepskyblue2","firebrick1","blue4","darkred"))
+```
