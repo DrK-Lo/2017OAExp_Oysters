@@ -1,0 +1,149 @@
+---
+title: "AE17 Final Carbonate Chemistry Analysis"
+author: "adowneywall"
+date: "8/11/2019"
+output: 
+    github_document
+editor_options: 
+    chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(mgcv)
+library(dplyr)
+library(car)
+library(lme4)
+library(lmerTest)
+library(kableExtra)
+library(multcomp)
+library(multcompView)
+library(factoextra)
+source("/home/downeyam/R/basicR_functions.R")
+```
+
+**RData version of data**
+```{r Data read in and configuration}
+epf_wDIC_red <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryFullCarbChemData_without81.RData")
+```
+
+## Subsetting data for only days we sequenced (09 v 80 - All treatments)
+
+**NOTE**: Tried random effects models but found they either led toa singular fit (over fitting problem) or they were not significant and removed. Presented below are only the best models identifies via model selection (LRT) and after making sure all assumptions were met and all include simple linear model with **Treatment**, **Time**, and **Treatment:Time** as explainatory factors. Also note that both **Treatment** and **Time** were handled as factors, and a type III ANOVA was performed due to sample/unequal sample sizes among groups.
+
+### EPF pH
+```{r}
+par(mfrow=c(1,1))
+
+epf_wDIC_red <- epf_wDIC_red[epf_wDIC_red$timepoint != 81,]
+epf_wDIC_red <- epf_wDIC_red[epf_wDIC_red$timepoint != 22,]
+epf_wDIC_red$timepoint_fac <- as.factor(epf_wDIC_red$timepoint)
+
+
+mode_pH_f <- lm(EPF_pH ~ pCO2_fac*timepoint_fac,data=epf_wDIC_red)
+Anova(mode_pH_f,type=3)
+# Significant interaction
+
+(pH_seq_pairwise <- TukeyHSD(aov(EPF_pH~timepoint_fac*pCO2_fac, data=epf_wDIC_red)))
+plot(pH_seq_pairwise$`timepoint_fac:pCO2_fac`)
+```
+
+### Analysis DIC 
+```{r}
+mod_ca <- lm(log(EPF_DIC)~pCO2_fac*timepoint_fac,data=epf_wDIC_red)
+Anova(mod_ca,type=3)
+#Nothing significant
+
+(DIC_seq_pairwise <- TukeyHSD(aov(log(EPF_DIC)~timepoint_fac*pCO2_fac, data=epf_wDIC_red)))
+plot(DIC_seq_pairwise$`timepoint_fac:pCO2_fac`)
+```
+
+### Analysis Ca Calcite
+```{r}
+mod_ca <- lm(EPF_Calcite_Calc~pCO2_fac*timepoint_fac,data=epf_wDIC_red)
+Anova(mod_ca,type=3)
+#Significant by treatment and interaction
+
+(Ca_seq_pairwise <- TukeyHSD(aov(EPF_Calcite_Calc~timepoint_fac*pCO2_fac, data=epf_wDIC_red)))
+plot(Ca_seq_pairwise$`timepoint_fac:pCO2_fac`)
+```
+
+## Figures for sequenced samples
+```{r echo=FALSE, fig.height=10}
+par(mfrow=c(3,1),mar=c(5,5.5,2,1),oma=c(3,2,2,0))
+
+### Calcite #####
+treatSeq_means <- aggregate(EPF_Calcite_Calc~pCO2_fac+timepoint,epf_wDIC_red,FUN=mean)
+treatSeq_SE <- aggregate(EPF_Calcite_Calc~pCO2_fac+timepoint,epf_wDIC_red,FUN=se)
+treatSeq_SE$ci <- treatSeq_SE$EPF_Calcite_Calc*1.96
+
+seq_labels <- multcompLetters(pH_seq_pairwise$`timepoint_fac:pCO2_fac`[, "p adj"])$Letters
+seq_labels <- seq_labels[c(1,2,4,3)]
+
+bp <- barplot(treatSeq_means$EPF_Calcite_Calc,ylim=c(0,35),
+              col=c("lightblue4","goldenrod","tomato"),
+              ylab = "EPF Calcite",
+              xpd = FALSE,cex.axis = 2,cex.lab = 1.8)
+#xlab(cex=2)
+abline(h=1,lty=2,cex=2)
+arrows(x0 = bp, x1 = bp,
+       y0 = treatSeq_means$EPF_Calcite - treatSeq_SE$ci,
+       y1 = treatSeq_means$EPF_Calcite + treatSeq_SE$ci,
+       angle = 90, len = 0.1, code = 3, xpd = NA,cex=3)
+text(x=-.7,y=40,label="A",cex = 3, xpd = NA)
+#text(x = bp, y = -2.5, label = c("Control","OA\n1000","OA\n2800","Control","OA\n1000","OA\n2800"), xpd = NA,cex=1.8)
+#text(x = mean(bp[1:3]), y = -7, label = "Day 9", xpd = NA,cex=1.8)
+#text(x = mean(bp[4:6]), y = -7, label = "Day 80", xpd = NA,cex=1.8)
+text(x = bp, y = 40, label = c("n=2","n=3","n=3","n=1","n=3","n=3"), xpd = NA,cex=1.8)
+box()
+#text(x = bp, y = treatSeq_means$EPF_Calcite + treatSeq_SE$EPF_Calcite, pos = 3, lab = seq_labels, xpd = NA)
+
+### EPF pH #####
+treatSeq_means <- aggregate(EPF_pH~pCO2_fac+timepoint,epf_wDIC_red,FUN=mean)
+treatSeq_SE <- aggregate(EPF_pH~pCO2_fac+timepoint,epf_wDIC_red,FUN=se)
+treatSeq_SE$ci <- treatSeq_SE$EPF_pH*1.96
+seq_labels <- multcompLetters(pH_seq_pairwise$`timepoint_fac:pCO2_fac`[, "p adj"])$Letters
+seq_labels <- seq_labels[c(6,2,4,1,3,5)]
+
+bp <- barplot(treatSeq_means$EPF_pH,ylim=c(6.5,8.1),
+              col=c("lightblue4","goldenrod","tomato"),
+              ylab = "EPF pH",
+              xpd = FALSE,cex.axis = 1.8,cex.lab=1.8)
+arrows(x0 = bp, x1 = bp,
+       y0 = treatSeq_means$EPF_pH - treatSeq_SE$ci,
+       y1 = treatSeq_means$EPF_pH + treatSeq_SE$ci,
+       angle = 90, len = 0.1, code = 3, xpd = NA)
+text(x=-.7,y=8.3,label="B",cex = 3, xpd = NA)
+#text(x = bp, y = 6.4, label =  c("Control","OA\n1000","OA\n2800","Control","OA\n1000","OA\n2800"), xpd = NA,cex=1.8)
+#text(x = mean(bp[1:3]), y = 6.2, label = "Day 9", xpd = NA,cex=1.8)
+#text(x = mean(bp[4:6]), y = 6.2, label = "Day 80", xpd = NA,cex=1.8)
+box()
+text(x = bp, y = treatSeq_means$EPF_pH + treatSeq_SE$ci, pos = 3, lab = seq_labels, xpd = NA,cex=1.8)
+
+### DIC ####
+treatSeq_means <- aggregate(EPF_DIC~pCO2_fac+timepoint,epf_wDIC_red,FUN=mean)
+treatSeq_SE <- aggregate(EPF_DIC~pCO2_fac+timepoint,epf_wDIC_red,FUN=se)
+treatSeq_SE$ci <- treatSeq_SE$EPF_DIC*1.96
+seq_labels <- multcompLetters(DIC_seq_pairwise$`timepoint_fac:pCO2_fac`[, "p adj"])$Letters
+seq_labels <- seq_labels[c(1,2,4,3)]
+
+bp <- barplot(treatSeq_means$EPF_DIC,ylim = c(0,50000),
+              col=c("lightblue4","goldenrod","tomato"),
+              ylab = "EPF DIC",
+              xpd = FALSE,cex.axis = 1.8,cex.lab=1.8)
+arrows(x0 = bp, x1 = bp,
+       y0 = treatSeq_means$EPF_DIC - treatSeq_SE$ci,
+       y1 = treatSeq_means$EPF_DIC + treatSeq_SE$ci,
+       angle = 90, len = 0.1, code = 3, xpd = NA)
+text(x=-.7,y=58000,label="C",cex = 3, xpd = NA)
+text(x = bp, y = -8000, label = c("Control","OA\n1000","OA\n2800","Control","OA\n1000","OA\n2800"), xpd = NA,cex=1.8)
+text(x = mean(bp[1:3]), y = -20000, label = "Day 9", xpd = NA,cex=1.8)
+text(x = mean(bp[4:6]), y = -20000, label = "Day 80", xpd = NA,cex=1.8)
+box()
+#text(x = bp, y = treatSeq_means$EPF_DIC + treatSeq_SE$EPF_DIC, pos = 3, lab = seq_labels, xpd = NA)
+#table(epf_wDIC_red$timepoint_fac,epf_wDIC_red$pCO2_fac)
+```
+
+
+

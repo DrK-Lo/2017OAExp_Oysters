@@ -1,0 +1,149 @@
+---
+title: "Water Chemistry"
+author: "adowneywall"
+date: "6/30/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+**Libraries**
+```{r}
+library(kableExtra)
+library(dplyr)
+```
+
+### Data
+```{r}
+#wc <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/WC/AE17_pHSalinity_20190811.csv")
+#wc_p <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/WC/AE17_EPF_Calcification_20190403(1).csv")
+wc <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/WC/AdultExp2017_CarbonCalc_20180327_edit.csv")
+
+
+# Removing 900 samples
+wc <- wc[wc$PCO2 != 900,]
+wc_p <- wc_p[wc_p$pCO2 != 900,]
+
+# Removing dates 
+wc_p <- wc_p[wc_p$sample_date < 20170901,]
+wc_p <- wc_p[!is.na(wc_p$sample_date),]
+
+# Columns to select
+s_col_p <- c("ID","shelf","tank","sample_date","PCO2","pH_meas","DIC","TA","pCO2_calc","Calcite")
+s_col <- c("Shelf","Tank","PCO2","Date_WQ","Temp","Sal_Corr","pH")
+```
+
+```{r}
+wc %>% group_by(Date_WQ,PCO2) %>% 
+  summarize(t_mean=mean(Temp),sal_mean=mean(Sal_Corr),
+            pH_mean=mean(pH_scaleFree),pH_sd=sd(pH_scaleFree)) -> wc_red
+
+colnames(wc_red)[2] <- "sample_date"
+
+wc_p %>% group_by(shelf,tank,sample_date,pCO2) %>%
+  summarize(DIC_mean=mean(DIC),TA_mean=mean(TA),
+            pco2_mean=mean(pCO2_calc),
+            calcite_mean=mean(Calcite)) -> wc_p_red
+
+wc_red$Id <- paste0(wc_red$shelf,wc_red$tank,wc_red$Date_WQ)
+wc_p_red$Id <- paste0(wc_p_red$shelf,wc_p_red$tank,wc_p_red$sample_date)
+
+wc_m <- merge(x = wc_red,y = wc_p_red,by = c("Id"))
+
+wc_m$exp <- NULL
+wc_m$exp[wc_m$sample_date < 20170605] <- "acclimation"
+wc_m$exp[wc_m$sample_date > 20170604] <- "exp"
+
+wc_m %>% group_by(exp,PCO2) %>%
+  summarize(tmean=mean(t_mean),t_sd=sd(t_mean),
+            salmean=mean(sal_mean),sal_td=sd(sal_mean),
+            DICmean=mean(DIC_mean),DIC_sd=sd(DIC_mean),
+            TAmean=mean(TA_mean),TA_sd=sd(TA_mean),
+            pco2mean=mean(pco2_mean),pco2_sd=sd(pco2_mean),
+            calcitemean=mean(calcite_mean),calcite_sd=sd(calcite_mean)) -> wc_sum
+
+# Subset to just exposed 
+wc_exp <- wc_sum[wc_sum$exp == "exp",-1]
+colnames(wc_exp) <- c(" Treatment ",rep(c("mean","sd"),times=6))
+
+kable(wc_exp) %>%
+  kable_styling() %>%
+    add_header_above(c(" ", "Temperature" = 2,
+                       "Salinity" = 2,
+                       "DIC" = 2,
+                       "TA" = 2,
+                       "pCO2" = 2,
+                       "Calcite" = 2))
+
+```
+
+### Prepping Mean pH Values for phenotype analysis
+```{r}
+wc_red <-  wc_red[order(wc_red$Date_WQ),]
+wc_red$sample_date <- as.Date(as.character(wc_red$Date_WQ),origin="%Y%M%D",format = "%Y%m%d")
+wc_red
+plot(wc_red$pH_mean[wc_red$PCO2==400]~wc_red$sample_date[wc_red$PCO2==400],
+     type="l",col="lightblue",ylim=c(6.8,8),
+     xlab= "Date",
+     ylab="pH")
+lines(wc_red$pH_mean[wc_red$PCO2==900]~wc_red$sample_date[wc_red$PCO2==900],type="l",col="orange")
+lines(wc_red$pH_mean[wc_red$PCO2==2800]~wc_red$sample_date[wc_red$PCO2==2800],type="l",col="red")
+sampling_dates <- c("2017-06-05","2017-06-06","2017-06-13","2017-06-26","2017-07-24","2017-08-22")
+
+t1 <- as.Date(c("2017-06-05"))
+t2 <- as.Date(c("2017-06-05","2017-06-06"))
+t3 <- as.Date(c("2017-06-07","2017-06-12"))
+t4 <- as.Date(c("2017-06-21","2017-06-26"))
+t5 <- as.Date(c("2017-07-19","2017-07-24"))
+t6 <- as.Date(c("2017-08-18","2017-08-23"))
+
+timepoint1 <- wc_red %>% filter(sample_date == t1) %>% dplyr::select(sample_date,PCO2,temp=t_mean,sal=sal_mean,pH=pH_mean) %>%
+  group_by(PCO2)
+timepoint1 <-  timepoint1[,3:6]
+timepoint1$timepoint <- 1
+timepoint1$sample_date <- as.Date(sampling_dates[1])
+timepoint2 <- wc_red %>% filter(sample_date >= t2[1] && sample_date <= t2[2]) %>% dplyr::select(Date_WQ,sample_date,PCO2,t_mean,sal_mean,pH_mean) %>%
+  group_by(PCO2) %>%
+  summarize(temp=mean(t_mean),sal=mean(sal_mean),pH=mean(pH_mean))
+timepoint2$timepoint <- 2
+timepoint2$sample_date <- as.Date(sampling_dates[2])
+timepoint3 <- wc_red %>% filter(sample_date >= t3[1] && sample_date <= t3[2]) %>% dplyr::select(Date_WQ,sample_date,PCO2,t_mean,sal_mean,pH_mean) %>%
+  group_by(PCO2) %>%
+  summarize(temp=mean(t_mean),sal=mean(sal_mean),pH=mean(pH_mean))
+timepoint3$timepoint <- 9
+timepoint3$sample_date <- as.Date(sampling_dates[3])
+timepoint4 <- wc_red %>% filter(sample_date >= t4[1] && sample_date <= t4[2]) %>% dplyr::select(Date_WQ,sample_date,PCO2,t_mean,sal_mean,pH_mean) %>%
+  group_by(PCO2) %>%
+  summarize(temp=mean(t_mean),sal=mean(sal_mean),pH=mean(pH_mean))
+timepoint4$timepoint <- 22
+timepoint4$sample_date <- as.Date(sampling_dates[4])
+timepoint5 <- wc_red %>% filter(sample_date >= t5[1] && sample_date <= t5[2]) %>% dplyr::select(Date_WQ,sample_date,PCO2,t_mean,sal_mean,pH_mean) %>%
+  group_by(PCO2) %>%
+  summarize(temp=mean(t_mean),sal=mean(sal_mean),pH=mean(pH_mean))
+timepoint5$timepoint <- 50
+timepoint5$sample_date <- as.Date(sampling_dates[5])
+timepoint6 <- wc_red %>% filter(sample_date >= t6[1] && sample_date <= t6[2]) %>% dplyr::select(Date_WQ,sample_date,PCO2,t_mean,sal_mean,pH_mean) %>%
+  group_by(PCO2) %>%
+  summarize(temp=mean(t_mean),sal=mean(sal_mean),pH=mean(pH_mean))
+timepoint6$timepoint <- 79
+timepoint6$sample_date <- as.Date(sampling_dates[6])
+
+all_tp <-  bind_rows(timepoint1,
+                 timepoint2,
+                 timepoint3,
+                 timepoint4,
+                 timepoint5,
+                 timepoint6)
+
+plot(wc_red$pH_mean[wc_red$PCO2==400]~wc_red$sample_date[wc_red$PCO2==400],
+     type="l",col="lightblue",ylim=c(6.8,8),
+     xlab= "Date",
+     ylab="pH")
+lines(wc_red$pH_mean[wc_red$PCO2==900]~wc_red$sample_date[wc_red$PCO2==900],type="l",col="orange")
+lines(wc_red$pH_mean[wc_red$PCO2==2800]~wc_red$sample_date[wc_red$PCO2==2800],type="l",col="red")
+sampling_dates <- c("2017-06-05","2017-06-06","2017-06-13","2017-06-26","2017-07-24","2017-08-22")
+points(x=as.Date(sampling_dates),y=rep(6.8,times=6))
+points(x=all_tp$sample_date,y=all_tp$pH)
+
+write.csv(all_tp,"/home/downeyam/Github/2017OAExp_Oysters/input_files/WC/avgEnvVariableAtSampleTimepoint_20190811.csv")
+```

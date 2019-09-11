@@ -1,0 +1,137 @@
+---
+title: "Final Phenotype Data Configuration"
+author: "adowneywall"
+date: "8/20/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+## Raw Data
+```{r}
+### Meta data for samples we sequenced
+seq_meta <- readRDS(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
+
+### Bouyant Weight Data for All samples
+bw <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_Exp_2017_CalcificationInfo_20190820_JBR_ADWCopy.csv")
+# Select for useful columns
+bw_col <- c("ID","pCO2","sample_date","Pcnt_Change_Day_Dry_TP1toTP2_Corrected","Pcnt_Change_Day_Dry_TP2toTP3_Corrected","Pcnt_Exp_Dry_Corrected","Pcnt_Exp_Day_Dry_Corrected")
+bw_sub <- bw %>% dplyr::select(bw_col)
+# Change types to numeric (this will coerce !value cells to NA which should be fine)
+bw_sub$Pcnt_DailyChange_Acclimation <- as.numeric(as.character(bw_sub$Pcnt_Change_Day_Dry_TP1toTP2_Corrected))
+bw_sub$Pcnt_DailyChange_Exposure <- as.numeric(as.character(bw_sub$Pcnt_Change_Day_Dry_TP2toTP3_Corrected))
+bw_sub$Pcnt_ExposureAdj <- as.numeric(as.character(bw_sub$Pcnt_Exp_Dry_Corrected))
+bw_sub$Pcnt_DailyChange_ExposureAdj <- as.numeric(as.character(bw_sub$Pcnt_Exp_Day_Dry_Corrected))
+bw_sub_col <- c("ID","pCO2","sample_date","Pcnt_DailyChange_Acclimation","Pcnt_DailyChange_Exposure","Pcnt_ExposureAdj","Pcnt_DailyChange_ExposureAdj")
+bw_sub <- bw_sub %>% dplyr::select(bw_sub_col)
+# Remove individuals from after exposure
+bw_sub <- subset(bw_sub,bw_sub$sample_date < "20170830")
+bw_sub$calcificationEstimate <- "Y"
+bw_sub$calcificationEstimate[which(is.na(bw_sub$Pcnt_DailyChange_ExposureAdj))] <- "N"
+
+### Complete phenotype rdata
+pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/full_data_20190811.Rdata")
+
+### Final Complete Carbonate Chem from louise
+carb_chem <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/Oyster_EPFCarbs_20190816.csv")
+carb_chem$carb_chem <- "Y" # Yes for having carb chem
+# Select relevant columns
+col_sel <- c("ID","EPF_DIC","EPF_Calcite_Calc","EPF_TA_Calc","carb_chem")
+carb_chem_rv <- subset(carb_chem,select = col_sel)
+
+### Final Water Chemistry Average Table
+wc_avg <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/WC/avgEnvVariableAtSampleTimepoint_20190811.csv")
+wc_avg$comb <- paste0(wc_avg$timepoint,"_",wc_avg$PCO2)
+wc_avg_red <- wc_avg[,c(5,8)]
+```
+
+## Reformating and merging data
+```{r}
+#Combine full phenotype datasheet and bouyant weights
+f_pheno <- merge(pheno,bw_sub,by="ID")
+# Save data for phenotype with all timepoints (including acclimation poitns)
+#saveRDS(f_pheno,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/fullTime_SummaryPhenotypeData.RData")
+
+#Subset to only data from the exposure
+f_pheno_exp <- subset(f_pheno,f_pheno$Sample_Date > "2017-06-03" )
+# Create new column to match wc_avg file
+f_pheno_exp$comb <- paste0(f_pheno_exp$timepoint,"_",f_pheno_exp$pCO2.x)
+#Combin f_pheno with water chem summary data
+f_pheno_exp <- merge(f_pheno_exp,wc_avg_red,by="comb",all.x = TRUE)
+
+carb_chem_2 <- merge(f_pheno_exp,carb_chem_rv,by="ID",all = TRUE)
+carb_chem_2 <- carb_chem_2[!is.na(carb_chem_2$comb),]
+carb_chem_2$carb_chem[which(is.na(carb_chem_2$carb_chem))] <- "N"
+#DIC
+carb_chem_2$EPF_DIC <- as.numeric(as.character(carb_chem_2$EPF_DIC))
+carb_chem_2$EPF_DIC[carb_chem_2$carb_chem=="N"] <- 0
+carb_chem_2$EPF_DIC[is.na(carb_chem_2$EPF_DIC)] <- 0
+#Calcite
+carb_chem_2$EPF_Calcite_Calc <- as.numeric(as.character(carb_chem_2$EPF_Calcite_Calc))
+carb_chem_2$EPF_Calcite_Calc[carb_chem_2$carb_chem=="N"] <- 0
+carb_chem_2$EPF_Calcite_Calc[is.na(carb_chem_2$EPF_Calcite_Calc)] <- 0
+#TA
+carb_chem_2$EPF_TA_Calc[carb_chem_2$carb_chem=="N"] <- 0
+carb_chem_2$EPF_TA_Calc[is.na(carb_chem_2$EPF_TA_Calc)] <- 0
+
+# Relative pH Calculation
+carb_chem_2$EPF_envAdj <- carb_chem_2$EPF_pH - carb_chem_2$pH
+
+#save Full Exposure pH data
+#saveRDS(carb_chem_2,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryPhenotypeData.RData")
+
+#subset just for full carb chemistry data
+carb_alt <- carb_chem_2[carb_chem_2$carb_chem == "Y",]
+# library(ggplot2)
+# ggplot(carb_alt,aes(y=EPF_Calcite_Calc,x=timepoint_fac,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + geom_boxplot()
+# ggplot(carb_alt,aes(y=EPF_pH,x=timepoint_fac,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + geom_boxplot()
+# carb_alt <- carb_alt[carb_alt$timepoint!=22,]
+# carb_alt$mergeFinal <- carb_alt$timepoint
+# carb_alt$mergeFinal_fac <- as.factor(carb_alt$mergeFinal)
+# carb_alt$mergeFinal[c(carb_alt$mergeFinal == 81 | carb_alt$mergeFinal == 79)] <- 80
+# ggplot(carb_alt,aes(y=EPF_pH,x=as.factor(mergeFinal),group=interaction(pCO2_fac,mergeFinal),colour=pCO2_fac)) + geom_boxplot()
+# table(carb_alt$pCO2_fac,carb_alt$mergeFinal)
+# table(carb_alt$pCO2_fac,carb_alt$timepoint_fac)
+# Anova(lm(EPF_pH~mergeFinal_fac*pCO2_fac,data=carb_alt),type="3")
+#saveRDS(carb_alt,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryFullCarbChemData.RData")
+
+#subset just for calcification timepointe (last 2 sampling timepoints)
+calcification <- carb_chem_2[carb_chem_2$calcificationEstimate == "Y",]
+calcification$timepoint[calcification$timepoint == 79 | calcification$timepoint == 81] <- 80
+calcification$timepoint_fac <-  as.factor(calcification$timepoint)
+table(calcification$timepoint,calcification$pCO2.x)
+colnames(calcification)
+#saveRDS(calcification,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/SummaryCalcificationData.RData")
+```
+
+Looks like there is an issue with the day 81 EPF pH measurements.
+```{r}
+library(ggplot2)
+ggplot(carb_chem_2,aes(x=timepoint_fac,y=EPF_pH,
+                       group=interaction(pCO2.x,timepoint),
+                       colour=as.factor(pCO2.x))) +
+  geom_boxplot() + labs(title="Summary of EPF pH",x="Timepoint",colour="pCO2")
+
+table(carb_chem_2$timepoint,carb_chem_2$pCO2.x)
+
+## The EPF pH looks suspicious on the the final day (81). To 
+# be consistent I eliminate this tp from all datasets including calcification
+
+## Removing final timepoint from different datasets
+# Full phenotype data
+carb_chem_2_red <- carb_chem_2[carb_chem_2$Sample_Date < "2017-08-23",]
+saveRDS(carb_chem_2,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryPhenotypeData_without81.RData")
+  
+# Full Carb Chem
+carb_alt_red <- carb_alt[carb_alt$Sample_Date < "2017-08-23",]
+saveRDS(carb_alt,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryFullCarbChemData_without81.RData")
+
+# Calcification
+calcification_red <- calcification[calcification$Sample_Date < "2017-08-23",]
+saveRDS(calcification_red,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/SummaryCalcificationData_without81.RData")
+```

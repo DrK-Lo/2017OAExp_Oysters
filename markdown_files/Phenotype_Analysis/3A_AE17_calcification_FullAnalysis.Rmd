@@ -1,0 +1,479 @@
+---
+title: "AE17 Calcification Full Workup"
+author: "adowneywall"
+date: "8/21/2019"
+output: github_document
+editor_options:     
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(lmerTest)
+library(car)
+source("/home/downeyam/R/basicR_functions.R")
+```
+
+### Data
+```{r}
+# Dataset with all timepoints
+calcification <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/SummaryCalcificationData.RData")
+# Dataset without tp 81
+calcification_red <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/SummaryCalcificationData_without81.RData")
+cal_v2<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_Exp_2017_CalcificationInfo_20190903_Final.csv")
+```
+
+### Primary Variables 
+
+**Fixed Effects**
+
+* Treatment 
+  * pCO2_fac = Treating pCO2 like a factor
+  * pCO2_calc = Treating pCO2 as continuous variable using tank mean values
+
+* Time
+  * Timepoint_fac =  Two (or three) timepoints as factors
+  * timepoint = Two timepoint as continous variable
+
+**Random Effects**
+
+* Pop : 3 sites -  roughly 1/3 oysters per site
+* Shelf : 6 shelfs (nested in treatment) - 12-18 oysters per shelf
+* Tank : 3 tanks per shelf (nested) - 2 -3 oysters per tank
+
+
+### Tables
+
+**All timepoints**
+```{r}
+# Table
+table(calcification$timepoint,calcification$pCO2_fac)
+# Total number of samples
+nrow(calcification)
+```
+
+**With final timepoint removed**  
+Rationale explained in notes at end
+```{r}
+# Table
+table(calcification_red$timepoint,calcification_red$pCO2_fac)
+# Total number of samples
+nrow(calcification_red)
+```
+
+## Preliminary Plots with Calcification Data
+```{r}
+### Plotting Calcification Data
+## Calcification Adj -- with Time -- Full Data
+gg <- ggplot(calcification,aes(x=pCO2.x,y=Pcnt_DailyChange_ExposureAdj,
+                         group=interaction(pCO2.x,timepoint),
+                         colour=interaction(pCO2.x,timepoint))) 
+gg + geom_boxplot() +
+  labs(colour="pCO2.Timepoint",x="pCO2",title="All timepoints")
+## Calcification Adj -- with Time --sans day 81 Data
+ggplot(calcification_red,aes(x=pCO2.x,y=Pcnt_DailyChange_ExposureAdj,
+                         group=interaction(pCO2.x,timepoint),
+                         colour=interaction(pCO2.x,timepoint))) + 
+  geom_boxplot() + labs(colour="pCO2.Timepoint",title="Without tp 81")
+## Calcification Adj -- without Time -- Full Data
+ggplot(calcification,aes(x=pCO2.x,y=Pcnt_DailyChange_ExposureAdj,
+                         group=(pCO2.x))) + geom_boxplot() +
+  labs(x="pCO2",title="All timepoints")
+## Calcification Adj -- without Time -- sans 81 Data
+ggplot(calcification_red,aes(x=pCO2.x,y=Pcnt_DailyChange_ExposureAdj,
+                         group=(pCO2.x))) + geom_boxplot() +
+  labs(x="pCO2",title="Without tp 81")
+## Calcification -- without Time -- Full Data
+ggplot(calcification,aes(x=pCO2.x,y=Pcnt_DailyChange_Exposure,
+                         group=(pCO2.x))) + geom_boxplot()
+## Calcification -- without Time -- sans 81 Data
+ggplot(calcification_red,aes(x=pCO2.x,y=Pcnt_DailyChange_Exposure,
+                         group=(pCO2.x))) + geom_boxplot()
+ggplot(calcification_red,aes(x=pCO2_calc,y=Pcnt_DailyChange_Exposure,
+                         group=(pCO2.x))) + geom_point()
+```
+
+## Calcification vs Environment and Time - Statistical Analysis
+
+**ANOVA**
+```{r}
+# Full model- All points
+cal_full <- lmer(Pcnt_DailyChange_ExposureAdj~timepoint_fac*pCO2_fac + (1|PopOrigin) + (1|shelf/tank),data=calcification)
+# Singular fit so we need to simplfy
+anova(cal_full) # No significance
+ranova(cal_full)
+#None are significant / Remove pop and shelf and rerun
+
+# Reducing model - keeping fixed factors and one random effect
+cal_full_2 <- lmer(Pcnt_DailyChange_ExposureAdj~timepoint_fac+pCO2_fac + (1|shelf),data=calcification)
+ranova(cal_full_2)
+# Can't include due to singular fit, and its not significant. 
+
+# Fixed effects only
+cal_analysis_fixed <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc*timepoint,data=calcification)
+step(cal_analysis_fixed)
+# Step function indicates a mode that includes pco2 and time but not the interaction is the best approach
+cal_analysis_final <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc+timepoint,data=calcification)
+anova(cal_analysis_final)
+
+### Full Model - With 81 removed
+cal_wo81_full <- lmer(Pcnt_DailyChange_ExposureAdj~timepoint_fac*pCO2_calc + (1|PopOrigin) + (1|shelf/tank),data=calcification_red)
+anova(cal_wo81_full)
+ranova(cal_wo81_full)
+#Similar results to full data so moving directly to fixed model
+cal_wo81_fixed <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc*timepoint,data=calcification_red)
+step(cal_wo81_fixed)
+# Final model is the two fixed factors but not the interaction
+cal_wo81_final <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc+timepoint,data=calcification_red)
+# Type 3
+Anova(cal_wo81_final,type=2)
+
+# Plot post hoc testing
+plot(TukeyHSD(aov(Pcnt_DailyChange_ExposureAdj~pCO2_fac+timepoint_fac, data=calcification_red)))
+```
+
+**Regression**
+```{r}
+## performing a regression with tank mean pCO2
+cal_analysis2 <- lmer(Pcnt_DailyChange_ExposureAdj~pCO2_calc*timepoint_fac+(1|PopOrigin)+(1|shelf),data=calcification_red)
+ranova(cal_analysis2)
+#Can remove are not significant
+cal_interaction <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc*timepoint_fac,data=calcification_red)
+# Interaction not significant, so it will be dropped
+summary(cal_interaction)
+cal_simple <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc+timepoint_fac,data=calcification_red)
+(cal_sum <- summary(cal_simple))
+# Treatment but not time significant. I guess I will only plot a fitted line based on the simplest model with only treatment.
+cal_pCO2 <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc,data=calcification_red)
+summary(cal_pCO2)
+plot(cal_simple)
+# A few slightly wonky points, but no major violations
+```
+
+## Calcification vs EPF Fluid pH
+
+### Preliminary calcification plot vs. EPF carb chemistry
+```{r}
+# Calcification vs pH
+ggplot(calcification,aes(x=EPF_pH,
+                         y=Pcnt_DailyChange_ExposureAdj,
+                         colour=pCO2_calc)) +
+  geom_point() + geom_smooth(method="lm")+labs(colour="pCO2",y="Calcification(Adj)")
+
+ggplot(calcification_red,aes(x=EPF_pH,
+                         y=Pcnt_DailyChange_ExposureAdj,
+                         colour=pCO2_calc)) +
+  geom_point() + geom_smooth(method="lm",colour="black") +
+  labs(colour="pCO2",y="Calcification(Adj)") +
+  theme_bw()
+
+# EPF DIC vs calcification
+ggplot(calcification_red[calcification_red$carb_chem == "Y",],aes(x=EPF_DIC,
+                         y=Pcnt_DailyChange_Exposure,
+                         colour=log(pCO2_calc))) +
+  geom_point() + geom_smooth(method="lm")
+
+# EPF Calcite Sat. vs calcification
+ggplot(calcification_red[calcification_red$carb_chem == "Y",],aes(x=EPF_Calcite_Calc,
+                         y=Pcnt_DailyChange_Exposure,
+                         colour=log(pCO2_calc))) +
+  geom_point() + geom_smooth(method="lm")
+```
+
+### Statistical Analysis
+```{r}
+#Check the impact of random factors, they didn't seem to help o they were removed
+calVspH_full <- lmer(Pcnt_DailyChange_ExposureAdj ~ EPF_pH * timepoint + (1|PopOrigin) + (1|shelf/tank),data=calcification_red)
+# singular fit
+ranova(calVspH_full)
+summary(calVspH_full)
+# None of the random effects were significant to I will remove
+# Simple lm with interaction
+calVspH_fixed_inter <- lm(Pcnt_DailyChange_ExposureAdj ~ EPF_pH + timepoint ,data=calcification_red)
+summary(calVspH_fixed_inter)
+# Model significant but no individual explanatory variables (decided to remove interaction)
+# Removing interaction
+calVspH_fixed <- lmer(Pcnt_DailyChange_ExposureAdj ~ EPF_pH + (1|tank:shelf) ,data=calcification_red)
+(calVpH_fized_out <- summary(calVspH_fixed))
+# Treatment significant but not time
+calVspH_final <- lm(Pcnt_DailyChange_ExposureAdj ~ EPF_pH ,data=calcification_red)
+(calVpH_fized_out <- summary(calVspH_fixed))
+# With out without random effect of tank the relationship between EPF pH and calcification is significant
+
+```
+
+## Final Plots 
+
+```{r}
+##### Plot 1 #####
+#Mean calcification rate 
+mean_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~pCO2.x ,calcification_red,FUN=mean)
+se_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~pCO2.x ,calcification_red,FUN=se)
+se_pco2 <- aggregate(pCO2_calc~pCO2.x ,calcification_red,FUN=sd)
+mean_cal <- data.frame(pCO2=mean_cal$pCO2.x,Rel_Change=mean_cal$Pcnt_DailyChange_ExposureAdj,
+                         ymin=mean_cal$Pcnt_DailyChange_ExposureAdj-c(se_cal$Pcnt_DailyChange_ExposureAdj*1.96),
+                         ymax=mean_cal$Pcnt_DailyChange_ExposureAdj+c(se_cal$Pcnt_DailyChange_ExposureAdj*1.96),
+                         xmin=mean_cal$pCO2.x-c(se_pco2$pCO2_calc*1.96),
+                         xmax=mean_cal$pCO2.x+c(se_pco2$pCO2_calc*1.96))
+
+# ggplot version
+out <- summary(lm(Pcnt_DailyChange_ExposureAdj~pCO2.x,data=calcification_red))
+
+p <- ggplot(mean_cal,aes(x=pCO2,y=Rel_Change)) + geom_hline(aes(yintercept=0),linetype="dotted") +
+  geom_point(aes(size=6)) + ylim(-0.085,0.08) + xlim(300,3200) + 
+  geom_errorbarh(aes(xmin=xmin, xmax=xmax)) + 
+  geom_errorbar(aes(ymin=ymin,ymax=ymax),width=75) +
+  geom_abline(slope = out$coefficients[2,1],intercept = out$coefficients[1,1]) 
+t <- p + theme_bw(base_size = 16) + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p1<-t + ylab("Calcification (% change per day)") + xlab("pCO2 (ppm)") +
+  coord_cartesian(clip = 'off') +
+   geom_text(
+    x = 100,
+    y = 0.10,
+    inherit.aes = FALSE,
+    label = "A",
+    check_overlap = FALSE,
+    hjust = 1,
+    size = 10
+  ) +
+  theme(legend.position="none",plot.margin = unit(c(5, 1, 1, 1), "lines")) 
+p1
+
+calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[1]] <-  "Ambient"
+calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[2]] <-  "OA 1000" 
+calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[3]] <-  "OA 2800"
+calcification_red$pCO2_name <- as.factor(calcification_red$pCO2_name)
+
+p <- ggplot(calcification_red,aes(x=EPF_pH,y=Pcnt_DailyChange_ExposureAdj,colour=pCO2_name)) + 
+  geom_point(size=4) + ylim(-0.085,0.08) +
+  scale_color_manual(values=c("lightblue4","goldenrod","tomato")) +
+  geom_abline(slope = calVpH_fized_out$coefficients[2,1],intercept = calVpH_fized_out$coefficients[1,1]) 
+t <- p + theme_bw(base_size = 16) + 
+  theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = c(0.15,.85),
+        axis.line = element_line(colour = "black")) 
+p2<-t + ylab("Calcification (% change per day)") + xlab("EPF pH (NBS)") + labs(colour="pCO2 (ppm)") +
+guides(shape = guide_legend(override.aes = list(size = 4))) +
+   coord_cartesian(clip = 'off') +
+   geom_text(
+    x = 6.85,
+    y = 0.10,
+    inherit.aes = FALSE,
+    label = "B",
+    check_overlap = FALSE,
+    hjust = 1,
+    size = 10
+  ) +
+  theme(plot.margin = unit(c(5, 1, 1, 1), "lines"))
+p2
+multiplot(p1, p2,cols=2)
+```
+
+### Base Plot versions (outdated)
+```{r echo=FALSE}
+# Base plot
+# bp <- plot(mean_cal$Pcnt_DailyChange_ExposureAdj~as.numeric(as.character(mean_cal$pCO2.x)),
+#            ylab=expression('Relative Calcification Rate (% day' ^{-1}*')'),
+#            xlab="pCO2 (ppm)",
+#            ylim = c(-0.08,0.07),xlim=c(400,3000),
+#            col="black",cex=1.4,pch=16,bty="l")
+# abline(h=0,lty=2)
+# 
+# # Fitted linear lines
+# abline(lm(Pcnt_DailyChange_ExposureAdj~pCO2.x,data=calcification_red),col="black")
+# 
+# arrows(y0 = as.numeric(as.character(mean_cal$pCO2.x)),
+#        y1 = as.numeric(as.character(mean_cal$pCO2.x)),
+#        x0 = c(mean_cal$Pcnt_DailyChange_ExposureAdj - se_cal$Pcnt_DailyChange_ExposureAdj),
+#        x1 = c(mean_cal$Pcnt_DailyChange_ExposureAdj + se_cal$Pcnt_DailyChange_ExposureAdj),
+#        angle = 90, len = 0.05,
+#        code = 3, xpd = NA, lwd = 2,
+#        col="black")
+# arrows(x0 = as.numeric(as.character(mean_cal$pCO2.x))- se_pco2$pCO2_calc,
+#        x1 = as.numeric(as.character(mean_cal$pCO2.x))+ se_pco2$pCO2_calc,
+#        y0 = c(mean_cal$Pcnt_DailyChange_ExposureAdj),
+#        y1 = c(mean_cal$Pcnt_DailyChange_ExposureAdj),
+#        angle = 180, len = 0.05,
+#        code = 3, xpd = NA, lwd = 2,
+#        col="black")
+
+#### Plot 2 #####
+# plotting time along the x-axis
+# mean_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~timepoint*pCO2.x,data=calcification_red,FUN=mean)
+# se_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~timepoint*pCO2.x,data=calcification_red,FUN=se)
+# # Color palattee
+# rbPal <- colorRampPalette(c('lightblue2','tomato'))
+# calcification_red$Col2 <- rbPal(2800)[as.numeric(cut(calcification_red$pCO2_calc,breaks =2800))]
+# 
+# plot(calcification_red$Pcnt_DailyChange_ExposureAdj~calcification_red$EPF_pH,
+#      col=calcification_red$Col2,pch=16,cex=1.4,
+#      ylab=expression('Relative Calcification Rate (% day' ^{-1}*')'),
+#            xlab="EPF pH (NBS)")
+# abline(a=-0.50653,b=0.06607,col="Black")
+# text(x=7.05,y=0.03,labels = "y = 0.067x - 0.507",pos=4)
+# text(x=7.05,y=0.02,labels = expression('R'^{2}*' = 0.248'),pos=4)
+# legend(y=0.055,x=6.89,title=expression('pCO'[2]*' (ppm)'),legend=seq(from=500,to=2900,length.out = 5),col=rbPal(5),pch=20,bty="n")
+```
+
+Pub plot (outdated)
+```{r echo=FALSE}
+# ### Final two panel plot
+# par(mfrow=c(1,2))
+# ##### Plot 1 #####
+# #Mean calcification rate separated by time point
+# cal_50 <- calcification_red[calcification_red$timepoint == 50,]
+# cal_80 <- calcification_red[calcification_red$timepoint == 80,]
+# mean_50_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~timepoint_fac+pCO2.x ,cal_50,FUN=mean)
+# mean_80_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~timepoint_fac+pCO2.x ,cal_80,FUN=mean)
+# mean_80_cal$pCO2.x <- mean_80_cal$pCO2.x + 100
+# se_50_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~timepoint_fac+pCO2.x ,cal_50,FUN=se)
+# se_80_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~timepoint_fac+pCO2.x ,cal_80,FUN=se)
+# 
+# bp <- plot(mean_50_cal$Pcnt_DailyChange_ExposureAdj~as.numeric(as.character(mean_50_cal$pCO2.x)),
+#            ylab=expression('Relative Calcification Rate (% day' ^{-1}*')'),
+#            xlab="pCO2 (ppm)",
+#            ylim = c(-0.08,0.07),xlim=c(400,3000),
+#            col="grey",cex=1.4,pch=16,bty="l")
+# abline(h=0,lty=2)
+# 
+# points(mean_80_cal$Pcnt_DailyChange_ExposureAdj~as.numeric(as.character(mean_80_cal$pCO2.x)),col="black",
+#        cex=1.4,pch=15)
+# # Fitted linear lines
+# abline(lm(Pcnt_DailyChange_ExposureAdj ~pCO2_calc,data=calcification_red[calcification_red$timepoint==50,]),col="grey")
+# abline(lm(Pcnt_DailyChange_ExposureAdj ~pCO2_calc,data=calcification_red[calcification_red$timepoint==80,]),col="black")
+# # Standard Error bars
+# arrows(x0 = as.numeric(as.character(mean_50_cal$pCO2.x)),
+#        x1 = as.numeric(as.character(mean_50_cal$pCO2.x)),
+#        y0 = c(mean_50_cal$Pcnt_DailyChange_ExposureAdj - se_50_cal$Pcnt_DailyChange_ExposureAdj),
+#        y1 = c(mean_50_cal$Pcnt_DailyChange_ExposureAdj + se_50_cal$Pcnt_DailyChange_ExposureAdj),
+#        angle = 90, len = 0.05,
+#        code = 3, xpd = NA, lwd = 2,
+#        col="grey")
+# arrows(x0 = as.numeric(as.character(mean_80_cal$pCO2.x)),
+#        x1 = as.numeric(as.character(mean_80_cal$pCO2.x)),
+#        y0 = c(mean_80_cal$Pcnt_DailyChange_ExposureAdj - se_80_cal$Pcnt_DailyChange_ExposureAdj),
+#        y1 = c(mean_80_cal$Pcnt_DailyChange_ExposureAdj + se_80_cal$Pcnt_DailyChange_ExposureAdj),
+#        angle = 90, len = 0.05,
+#        code = 3, xpd = NA, lwd = 2,
+#        col="black")
+# # Significance bars
+# segments(x0=450,y0=0.055,x1=2850,y1=0.055,col = "black")
+# text(labels="**",x=c((2850-450)/2+450),y=0.06,col = "black",cex=1.8)
+# segments(x0=950,y0=0.04,x1=2850,y1=0.04,col = "black")
+# text(labels="**",x=c((2850-950)/2+950),y=0.045,col = "black",cex=1.8)
+# # Legene
+# legend(y=-0.03,x=500,title="",legend=c("Day 50","Day 80"),col=c("grey","black"),pch=c(16,15),cex=1.2,bty="n")
+# 
+# text("A",x=200,y=0.085,cex=2.5,xpd=TRUE)
+# 
+# 
+# #### Plot 2 #####
+# # plotting time along the x-axis
+# mean_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~timepoint*pCO2.x,data=calcification_red,FUN=mean)
+# se_cal <- aggregate(Pcnt_DailyChange_ExposureAdj~timepoint*pCO2.x,data=calcification_red,FUN=se)
+# # Color palattee
+# rbPal <- colorRampPalette(c('lightblue2','tomato'))
+# calcification_red$Col2 <- rbPal(2800)[as.numeric(cut(calcification_red$pCO2_calc,breaks =2800))]
+# 
+# plot(calcification_red$Pcnt_DailyChange_ExposureAdj~calcification_red$EPF_pH,
+#      col=calcification_red$Col2,pch=16,cex=1.4,
+#      ylab=expression('Relative Calcification Rate (% day' ^{-1}*')'),
+#            xlab="EPF pH (NBS)")
+# abline(a=-0.50653,b=0.06607,col="Black")
+# text(x=6.91,y=0.03,labels = "y = 0.067x - 0.507",pos=4)
+# text(x=6.91,y=0.025,labels = expression('R'^{2}*' = 0.248'),pos=4)
+# legend(y=0.07,x=6.91,title=expression('pCO'[2]*' (ppm)'),legend=seq(from=500,to=2900,length.out = 5),col=rbPal(5),pch=20,bty="n")
+# text("B",x=6.82,y=0.085,cex=2.5,xpd=TRUE)
+```
+
+## Final Thoughts 
+
+**Final Models**
+
+Calcification vs Env
+$$Calcification_{Adj} = pCO2$$
+Anova (type three)
+```{r}
+Anova(cal_wo81_final,type=3)
+```
+Regression
+```{r}
+summary(cal_analysis2)
+```
+
+
+Calcification vs EPF pH
+$$Calcification_{Adj} = EPF_{pH}$$
+Regression
+```{r}
+summary(calVspH_fixed)
+```
+
+### Interpretation
+
+**Calcification vs Environment**  
+* There is a significant effect of treatment on calcification rate, which is driven by a significant decrease in calcification at the high OA treatment (2800), relative to either ambient or moderate OA. Although it would appear that there is a subtle different in the moderate OA vs. ambient conditions too, but we don't have the power to detect it.  
+
+**Calcification vs. EPF pH**  
+* Model show there is a significant positive relationship between EPF_ph and calcification.
+* Note this was not run on the other EPF carb chem parameters due to very low sample size, but from the plots it looked like DIC did not have the same relationship.
+
+### Additional Notes  
+* The choice to remove tp 81 was driven by the EPF pH. which seemed to have some measured issues (as observed in the pH under ambient being very acidic compared to all other tps). Rather than selectively keep some measures from that timepoint or using that timepoint only for calcification I decided to remove it given that that particular sampling was extra anyways and that we we used consistent individuals for all analysis.
+
+
+# Second Version of the analysis redoing calcificiation estimates
+
+```{r}
+cal_v2$sample_date
+cal_v2$DryWgtDate <- as.Date(paste0(substr(cal_v2$sample_date,1,4),"/",substr(cal_v2$sample_date,5,6),"/",substr(cal_v2$sample_date,7,8)))
+cal_v2$date_bw2_asDate <- as.character(cal_v2$date_bw2_asDate)
+cal_v2$date_bw2_asDate[cal_v2$date_bw2_asDate == "#VALUE!"] <- NA
+  
+cal_v2$BW2Date <- as.Date(as.character(cal_v2$date_bw2_asDate),format="%m/%d/%y")
+cal_v2$DiffDryVBW2Date <- cal_v2$DryWgtDate-cal_v2$BW2Date
+
+# subsetting data with missing values or are beyond scope of study.
+cal_s <- cal_v2[!is.na(cal_v2$DiffDryVBW2Date),]
+cal_s <- cal_s[cal_s$DiffDryVBW2Date < 83,]
+cal_s <- cal_s[cal_s$DiffDryVBW2Date != 12,]
+
+# Using the values from regression determine when we fit the dry weights with the bouyants 
+cal_s$DryWt1Calc <- 1.87*cal_s$buoyant_start-2.74 # Dry Wgt Est. for BW1
+cal_s$DryWt2Calc <- 1.87*cal_s$buoyant_2-2.74 # Dry Wgt Est. for BW2
+cal_s$DryWt3Calc <- 1.87*cal_s$buoyant_3-2.74 # Dry Wgt Est. for BW3
+
+# Baseline growth estimate from bouyant weights
+cal_s$exp_calrate_basline <- (cal_s$DryWt2Calc-cal_s$DryWt1Calc)/as.numeric(cal_s$Day_BW1_BW2)
+# Treatment growth rates from bouyant weights
+cal_s$exp_calrate <- (cal_s$dry_end_meas-cal_s$DryWt2Calc)/as.numeric(cal_s$DiffDryVBW2Date)
+
+## Plotting baseline growth rates
+ggplot(cal_s,aes(x=as.factor(DryWgtDate),y=cal_s$exp_calrate_basline,group=as.factor(interaction(DryWgtDate,pCO2)),col=as.factor(pCO2))) + geom_boxplot()
+## Plotting individuals 400 treatment ind. using final timepoint(BW3)-BW1
+cal_400 <- cal_s[cal_s$pCO2 == 400,]
+cal_400$exp_calrate <- (cal_400$dry_end_meas-cal_400$DryWt1Calc)/as.numeric(cal_400$Day_BW1_BW2 + cal_400$DiffDryVBW2Date)
+is.na(cal_400$exp_calrate)
+ggplot(cal_400,aes(x=as.factor(DryWgtDate),y=exp_calrate)) + geom_boxplot()
+
+## Using the actual dry weight as the final weight ( Dry weight - Dry wgt. calculated from BW2)
+ggplot(cal_s,aes(x=as.factor(DryWgtDate),y=cal_s$exp_calrate,group=as.factor(interaction(DryWgtDate,pCO2)),col=as.factor(pCO2))) + geom_boxplot()
+# creating a model with 
+lm.out <- lm(exp_calrate~DiffDryVBW2Date*as.factor(pCO2),data=cal_s)
+summary(lm.out)
+anova(lm.out)
+# Adjusting the cal rate for oyster size (calcification rate as a % growth)
+cal_s$exp_calrate_scaled <- cal_s$exp_calrate/cal_s$dry_end_meas
+ggplot(cal_s,aes(x=as.factor(DryWgtDate),y=cal_s$exp_calrate_scaled,group=as.factor(interaction(DryWgtDate,pCO2)),col=as.factor(pCO2))) + geom_boxplot()
+
+
+## Using the dry weights converted from bouyant wgt
+cal_s$exp_calrate_fromBouyant <- (cal_s$DryWt3Calc-cal_s$DryWt2Calc)/as.numeric(cal_s$Day_BW_BW3)
+ggplot(cal_s,aes(x=as.factor(pCO2),y=cal_s$exp_calrate_fromBouyant,group=as.factor(interaction(pCO2)),col=as.factor(pCO2))) + geom_boxplot()
+
+
+```

@@ -1,0 +1,83 @@
+---
+title: "RSEM_countVsQuantCompare"
+author: "adowneywall"
+date: "7/29/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+The intent here is to look at the difference between the default transcript count approach taken by STAR in `--quantMode` (similar to HT-seq) vs the estimated counts that were calculated using the same STAR generated BAM files (with transcript coordinates).
+
+##Data
+```{r}
+s17005_RSEM <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/extra/RSEM_countCompare/17005_.genes.results")
+colnames(s17005_RSEM) <- paste0(colnames(s17005_RSEM),"_RSEM")
+s17005_RSEM$ID <- as.character(s17005_RSEM$gene_id_RSEM)
+
+s17005_count <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/extra/RSEM_countCompare/P1_17005_m3_ReadsPerGene.out.tab",header = FALSE,skip = 4)
+colnames(s17005_count) <- c("gene_id","both_counts","forward_counts","reverse_counts")
+s17005_count$ID <- as.character(s17005_count$gene_id)
+```
+
+
+##Summary
+```{r}
+m17005 <- merge(s17005_RSEM,s17005_count,by = "ID")
+
+# Number of estimated counts by RSEM
+sum(m17005$expected_count_RSEM_RSEM)
+
+# Number of sum counts by STAR
+sum(m17005$both_counts)
+
+# Difference
+abs(sum(m17005$expected_count_RSEM_RSEM)-sum(m17005$both_counts))
+# STAR counting leads to about 3.5 million more counts
+(3.59/18.127)*100
+# About 19.8% more counts
+```
+
+##Correlation
+```{r}
+## RAW counts
+cor.test(m17005$expected_count_RSEM_RSEM,m17005$both_counts)
+# Highly correlated, but not perfect
+plot(m17005$expected_count_RSEM_RSEM~m17005$both_counts,
+     xlab="Raw Counts (from STAR)",
+     ylab="Estimated Counts (from RSEM)")
+abline(a=0,b=1,col="red")
+
+
+## Based on TPM
+
+#Manual calculation for TPM that RSEM automatically does
+# First convert effective gene length into per kilobase length units
+geneLength_inKB <- m17005$effective_length_RSEM_RSEM/1000
+#Divide expected counts by the per KB gene length for each gene
+gene_RPK <- m17005$expected_count_RSEM_RSEM/geneLength_inKB
+# This can produce NAs if the gene length was 0, so we just adjust those to 0s
+gene_RPK[is.na(gene_RPK)] <- 0
+# Divide each gene RPL by the sum of all genes counts then multiple by 1 million to get Transcripts per million (TPM)
+RSEM_TPM <- (gene_RPK/sum(gene_RPK))*1000000
+
+# Same process for the STAR base counts
+gene_counts_RPK <- m17005$both_counts/geneLength_inKB
+gene_counts_RPK[is.na(gene_counts_RPK)] <- 0
+gene_counts_RPK[is.infinite(gene_counts_RPK)] <- 0
+STAR_TPM <- (gene_counts_RPK/sum(gene_counts_RPK))*1000000
+
+cor.test(RSEM_TPM,STAR_TPM)
+
+plot(RSEM_TPM~STAR_TPM)
+abline(a=0,b=1,col="red")
+```
+
+
+
+
