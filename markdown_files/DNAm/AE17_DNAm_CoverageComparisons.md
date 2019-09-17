@@ -170,7 +170,7 @@ hist(T_pStr_rowSum)
 hist(T_nStr_rowSum)
 ```
 
-![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_AllSum.png)
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_StrandSpecificTotalCounts_max1000.png)
 
 **Loci specific differences between
 strands**
