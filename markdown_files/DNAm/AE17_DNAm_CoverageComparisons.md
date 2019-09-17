@@ -2,7 +2,17 @@ Evaluation of beta estimates and filtering thresholds for determining
 genome-wide DNA Methylation
 ================
 
-**Libraries and Data**
+### Description
+
+This is a write-up using DNA methylation data generated using MBD-BSeq
+on 24 mantle tissues taken from eastern oysters during an ocean
+acidification experiment. The purpose of this write up is to explore the
+how using different calculations for beta, thresholds for filtering
+loci, and considering a CpG for each stranding separate or together will
+effect our determination of the genome-wide distribution of beta
+(methylation proportion).
+
+### **Libraries and Data**
 
 ``` r
 #Libraries
@@ -97,6 +107,8 @@ B_sum_median10 <- B_sum_All[TC_All_median>=10,]
 B_mean_median10 <- B_mean_All[TC_All_median>=10,]
 ```
 
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_AllMedian.png)
+
 **Minimum Cover per individual per loci**
 
 ``` r
@@ -109,6 +121,8 @@ B_mean_min5 <- B_mean_All[TC_All_min>=5,]
 B_sum_min10 <- B_sum_All[TC_All_min>=10,]
 B_mean_min10 <- B_mean_All[TC_All_min>=10,]
 ```
+
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_Allmin.png)
 
 ### Looking at strand specific DNA methylation
 
@@ -156,6 +170,8 @@ hist(T_pStr_rowSum)
 hist(T_nStr_rowSum)
 ```
 
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_AllSum.png)
+
 **Loci specific differences between
 strands**
 
@@ -171,6 +187,8 @@ hist(T_diff_sum)
 # Plot differences along the chromosome
 plot(T_diff_sum~index_positiveStrand)
 ```
+
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/MultiFigure_TotalCountDifference.png)
 
 **Estimated beta differences between strands**
 
@@ -231,7 +249,11 @@ B_pStr_meanOfMean_sum5 <- as.vector(B_pStr_meanOfMean)[T_pStr_rowSum>=5]
 # Number of loci : 286224
 B_pStr_meanOfSum_min5 <- as.vector(B_pStr_meanOfSum)[T_pStr_rowMin>=5]
 B_pStr_meanOfMean_min5 <- as.vector(B_pStr_meanOfMean)[T_pStr_rowMin>=5]
+```
 
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_positiveStrand_All.png)
+
+``` r
 # Negative Strand
 # Number of loci : 6581282
 B_nStr_meanOfSum_sum5 <- as.vector(B_nStr_meanOfSum)[T_nStr_rowSum>=5]
@@ -240,6 +262,8 @@ B_nStr_meanOfMean_sum5 <- as.vector(B_nStr_meanOfMean)[T_nStr_rowSum>=5]
 B_nStr_meanOfSum_min5 <- as.vector(B_nStr_meanOfSum)[T_nStr_rowMin>=5]
 B_nStr_meanOfMean_min5 <- as.vector(B_nStr_meanOfMean)[T_nStr_rowMin>=5]
 ```
+
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_negativeStrand_All.png)
 
 ### Both Strands Combined
 
@@ -273,5 +297,7 @@ B_bStr_sum_min5 <- as.vector(B_bStr_sum)[T_bStr_rowMin>=5]
 B_bStr_mean_min5 <- as.vector(B_bStr_mean)[T_bStr_rowMin>=5]
 length(B_bStr_mean_sum5)
 ```
+
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_AllSum.png)
 
 ## Summary
