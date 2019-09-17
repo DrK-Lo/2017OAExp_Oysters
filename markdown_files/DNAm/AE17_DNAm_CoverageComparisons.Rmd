@@ -280,7 +280,7 @@ B_bStr_mean_min5 <- as.vector(B_bStr_mean)[T_bStr_rowMin>=5]
 length(B_bStr_mean_sum5)
 ```
 
-![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_AllSum.png)
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_bothStrands.png)
 
 ## Summary
 
