@@ -12,6 +12,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Description
 This is a write-up using DNA methylation data generated using MBD-BSeq on 24 mantle tissues taken from eastern oysters during an ocean acidification experiment. The purpose of this write up is to explore the how using different calculations for beta, thresholds for filtering loci, and considering a CpG for each stranding separate or together will effect our determination of the genome-wide distribution of beta (methylation proportion).
 
+## Results
+
+* **Finding 1 : Comparing beta estimates and thresholds**: I was able to recover a number of loci with low methylation  in the genome-wide methylation histogram **only** if I used a **(i) a threshold based on the minimum summed coverage** and **(ii) estimated beta as the ratio of methylated cytosines over the total cytosines summed across all individuals**.  If I used another (more conservative threshold) or estimated beta as the mean of betas for each individual at each locus, then we see a dramatic shift in the histograms. This indicates to me that the vast majority of the unmethylated loci are those with very low coverage. It also appears those low methlylation estimates are being driven by variation in coverage between individuals within a locus, which may have more of an effect on the summation approach for estimating beta.
+* **Finding 2 : Differences between strand and combined estimates of beta**: Handling the strands separately does not explain the lack of unmethylated cytosines in my data, the distributions look similar between strands and when you combine the counts from both the positive and negative strands for each locus. Interestingly, we do see some potential evidence of amplification bias (e.g. the figure looking at the coverage difference between strands), but we do get roughly equal coverage on both strands overall. Looking at the estimate of beta between strands we do see **strand estimates for beta are not perfectly correlated**. In particular, the summation method leads to a particularly poor correlation between strand specific estimates of genome-wide methylation.
+
 ### **Libraries and Data**
 ```{r eval=FALSE}
 #Libraries
@@ -281,7 +286,4 @@ length(B_bStr_mean_sum5)
 ```
 
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_bothStrands.png)
-
-## Summary
-
 
