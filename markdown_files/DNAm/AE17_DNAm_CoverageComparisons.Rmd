@@ -84,6 +84,8 @@ B_sum_10 <- B_sum_All[TC_All_sum>=10,]
 B_mean_10 <- B_mean_All[TC_All_sum>=10,]
 ```
 
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_AllSum.png)
+
 **Minimum Median Coverage per loci**
 ```{r eval=FALSE}
 # Loci needs to have at least a coverage of 5

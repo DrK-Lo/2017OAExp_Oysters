@@ -1,6 +1,6 @@
-Prop GlobalMethylation Evaluation
+Evaluation of beta estimates and filtering thresholds for determining
+genome-wide DNA Methylation
 ================
-adowneywall
 
 **Libraries and Data**
 
@@ -29,17 +29,21 @@ B_NA_All <- matrix(is.na(B),ncol=23)
 **Betas**
 
 Estimate 1: Dividing the methylated counts by the total counts for each
-locus (summed across individuals)
+locus (summed across individuals)  
 \[\beta_{locus} = \frac{\sum C_{methylated}}{\sum C_{Total}}\]
 
-Estimate 2: Taking the mean of each sample beta
+Estimate 2: Taking the mean of each sample
+beta  
 \[\beta_{locus} = \frac{\sum_{i=1}^{n} \beta_{i}}{n}, where \ \beta_{i} \ is \ the \frac{C_{Methylated}}{C_{Total}} for \ each \ individual\]
 
 **Thresholds evaluate per locus**
 
-Summed Coverage threshold: \[\sum{C_{Total} >= Threshold_{critical}}\]
-Median Coverage threshold:
-\[ \tilde{C_{Total}} >= Threshold_{critical}\] Min Cover per individual:
+Summed Coverage threshold:  
+\[\sum{C_{Total} >= Threshold_{critical}}\]  
+Median Coverage threshold:  
+\[ \tilde{C_{Total}} >= Threshold_{critical}\]  
+Min Cover per
+individual:  
 \[ min(C_{1-n}) >= Threhold_{critical}, \ where \ C_{1-n} \ is \ a \ vector \  of \ counts \ for \ each \ individual\]
 
 ### Basic Summary Stats
@@ -77,6 +81,8 @@ B_mean_5 <- B_mean_All[TC_All_sum>=5,]
 B_sum_10 <- B_sum_All[TC_All_sum>=10,]
 B_mean_10 <- B_mean_All[TC_All_sum>=10,]
 ```
+
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_AllSum.png)
 
 **Minimum Median Coverage per loci**
 
