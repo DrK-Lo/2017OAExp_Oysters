@@ -1,0 +1,190 @@
+---
+title: "Statistical Model Outlines"
+author: "adowneywall"
+date: "8/28/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Primary Variables
+
+```{r echo=FALSE}
+library(dplyr)
+pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryPhenotypeData_without81.RData")
+pheno <- pheno[pheno$timepoint != 81,]
+carb <-  readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryFullCarbChemData_without81.RData")
+carb <- carb[carb$timepoint != 22,]
+cal <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/SummaryCalcificationData_without81.RData")
+```
+
+#### Environment and Random Effects
+
+* pCO2 (factor)
+  * Three treatments (Ambient - 500; Moderate OA - 1000; High OA - 2800)
+* pCO2 (continuous)
+  * Mean measured pCO2 for each tank up until the time the individual was sampled
+* Time (factor)
+  * General treated as a factor when comparing two timepoints (e.g looking at EPF Carb Chem)
+* Time (continuous)
+  * Six irregularly spaced timepoints from 24 hrs to 79 days (used when looking at all timepoints)
+* Shelf (factor)
+  * N = 6 shelves (2 for each treatment)
+  * Sampling from shelf should be balanced between timepoints and treatment
+
+```{r echo=FALSE}
+kableExtra::kable(table(pheno$timepoint,pheno$shelf)) %>% kableExtra::kable_styling()
+```
+
+* Tank (factor)
+  * N = 18 (3 tanks are nested in each shelf)
+* Site (coded as Pop; factor)
+  * N = 3 (mostly balanced across time and treatment)
+  
+```{r echo=FALSE}
+kableExtra::kable(table(pheno$timepoint,pheno$PopOrigin)) %>% kableExtra::kable_styling()
+kableExtra::kable(table(pheno$pCO2.x,pheno$PopOrigin)) %>% kableExtra::kable_styling()
+```
+
+#### Phenotypes
+
+* EPF pH (continuous)
+  * Sampled at all six timepoints (24hr,48hr,9,22,50,79) and 3 treatments
+  * NBS scale
+  * N = 107
+
+```{r echo=FALSE}
+kableExtra::kable(table(pheno$timepoint,pheno$pCO2.x)) %>% kableExtra::kable_styling()
+```
+
+* EPF DIC (continuous)
+  * Sampled at two timepoints (9 and 79) and 3 treatments
+  * N = 15 (26 including tp 81) 
+  
+```{r echo=FALSE}
+kableExtra::kable(table(carb$timepoint,carb$pCO2_fac)) %>% kableExtra::kable_styling()
+```
+  
+* EPF Ca Saturation State (continuous)
+  * Samples at two timepoints (9 and 79) and 3 treatments
+  * N = 15 (26 including tp 81)
+  
+* Bouyant Weight (continuous)
+  * Two timepoints (50 and 79) and 3 treatments
+  * N = 29 
+
+```{r echo=FALSE}
+kableExtra::kable(table(cal$timepoint,cal$pCO2_fac)) %>% kableExtra::kable_styling()
+```
+
+* Calcification Rate (continuous)
+  * Two timepoints (50 and 79) and 3 treatments
+  * N = 29 (same as bouyant weights)
+  
+#### Transcriptomic Data
+
+* Gene Expression Counts (normalized)
+  * Count for each gene for each individual (Gene x Sample matrix)
+  * N = ~20,000 genes (after filtration)
+  * Normalized using samplespecific weights via `EdgeR` function 
+
+#### DNA methylation
+
+* DNA Methylation (beta-value)
+  * Proportion of methylation for each site for each individual (CpG x Sample matrix)
+* DNA methlyation (counts)
+  * Two matrixes (matrix of methylated cytosines counts and matrix of all cytosines)
+
+# Statistical Analysis Outline
+
+**Equations written in package lme4 format**
+
+## General Concepts 
+
+### Assumptions
+
+General Linear Models  
+* Normality of residuals, 
+
+
+## Phenotype Analyses
+
+### Measured EPF pH vs Treatment and Time : All Timepoints  
+
+####  Version 1 : Treatment (factor) and Time (factor) (all time points)
+
+**Overview**: Use a linear mixed model and **perform an ANOVA**, then use `step` function from `lmerTest` to determine the best model.
+
+* Plan
+  * ANOVA 
+  * Model selection with `step`
+  * Post hoc with planned comparisons. Specifically, is OA treatment significantly different than control
+* Variables  
+  * Fixed Effects : **Treatment** + **Time** + **Treatment:Time** interaction
+  * Random Effects: Population, Shelf, and Tank nested in shelf  
+* R Implementation  
+  * `lme4` : linear mixed model
+  * `lmerTest` : step function for model selection and determine significant (type III satterwaithe)
+
+**Full Model**  
+$$EPF_{pH} \sim Treatment_{factor} * Timepoint_{factor} + (1|Site) + (1|Shelf/Tank)$$
+
+####  Version 2 : Treatment (factor) and Time (continuous) (all time points)
+
+**Overview**: Use a linear mixed model and **performing an ANCOVA**, then use `step` function from `lmerTest` to determine the best model.
+
+* Plan
+  * ANCOVA 
+  * Model selection with `step`
+* Variables  
+  * Fixed Effects : **Treatment** + **Time** + **Treatment:Time** interaction
+  * Random Effects: Population, Shelf, and Tank nested in shelf  
+* R Implementation  
+  * `lme4` : linear mixed model
+  * `lmerTest` : step function for model selection and determine significant (type III satterwaithe)
+
+**Full Model**  
+$$EPF_{pH} \sim Treatment_{factor} * Timepoint_{continuous} + (1|Site) + (1|Shelf/Tank)$$
+
+#### Version 3 : Treatment (continuous) and Time (continuous) (all time points)
+
+**Overview**: Use a linear mixed model and **performing a regression**, then use `step` function from `lmerTest` to determine the best model.
+
+* Plan
+  * Linear Mixed Model 
+  * Model selection with `step`
+* Variables  
+  * Fixed Effects : **Treatment** + **Time** + **Treatment:Time** interaction
+  * Random Effects: Population, Shelf, and Tank nested in shelf  
+* R Implementation  
+  * `lme4` : linear mixed model
+  * `lmerTest` : step function for model selection and determine significant (type III satterwaithe)
+
+**Full Model**  
+$$EPF_{pH} \sim Treatment_{continous} * Timepoint_{continuous} + (1|Site) + (1|Shelf/Tank)$$
+
+**Note** : $Relative EPF_{pH}$ will be handled in the same way as measured $EPF_{pH}$.
+
+#### Analysis the same as the Measured EPF pH
+
+### EPF Carb Chemistry vs Treatment and Time (2 timepoints)
+
+
+
+### Calcification vs Treatment and Time (2 timepoints)
+
+## DNA Methylation
+
+### Single CpG,Gene,Exon Differential Methylation
+
+
+#### Checking Assumptions
+
+**Note** About checking overdispersion: https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#overdispersion
+
+
+
+
+
+
+

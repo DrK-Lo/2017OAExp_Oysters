@@ -144,6 +144,7 @@ ranova(whole_cont_full)
 **Rerun model with just tank as random factor**
 ```{r}
 whole_cont_tank <- lmer(EPF_pH~scale(epf_exp$pCO2_calc)*scale(epf_exp$timepoint) + (1|tank:shelf) ,data=epf_exp)
+whole_cont_tank <- lmer(EPF_pH~scale(epf_exp$pCO2_calc)*scale(epf_exp$timepoint) + (1|shelf) ,data=epf_exp)
 # Better no warning this time 
 
 # Check distribution of residuals
@@ -166,7 +167,20 @@ Test: 2-way ANOVA - Full Model (Fixed and Random Factors)
 
 **Full Model**  
 ```{r}
-epfAllTP_full <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/tank),data=epf_exp) 
+epfAllTP_full_1 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/tank),data=epf_exp) 
+epfAllTP_full_2 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/tankID),data=epf_exp)
+epfAllTP_full_3 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf),data=epf_exp)
+epfAllTP_full_4 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tank:shelf),data=epf_exp)
+epfAllTP_full_5 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tankID),data=epf_exp)
+
+# Model 1 (Ideal Model) : too complex leads to singularity of random effects
+# Model 1 and Model are equivalent and lead to singularity issues
+# Model 4 and 5 equivalent
+# Start with model 5
+
+summary(epfAllTP_full)
+epfAllTP_full <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tank/shelf),data=epf_exp) 
+step(epfAllTP_full)
 # Warning singular fit - Indicates model is overfit and some of the the random effects will need to be removed. I use a ranova below to determine which effects are uninformative and are candidates for removal.
 
 # Check distribution of residuals
@@ -177,16 +191,24 @@ qqline(resid(epfAllTP_full))
 
 anova(epfAllTP_full)
 # Interaction is significant here 
-ranova(epfAllTP_full)
+ranova(epfAllTP_full_5)
 # We should remove population and shelf as random factors and rerun analysis
 ```
   
 **Rerun Model without Population and Shelf**
 ```{r}
+epfAllTP_red_simple <- lm(EPF_pH~pCO2_fac*timepoint_fac,data=epf_exp)
+plot(epfAllTP_red_simple)
+epf_exp$tankID <- as.factor(interaction(epf_exp$tank,epf_exp$shelf))
+
+boxplot(resid(epfAllTP_red_simple)~epf_exp$tankID)
+boxplot(resid(epfAllTP_red_simple)~epf_exp$PopOrigin)
+boxplot(resid(epfAllTP_red_simple)~epf_exp$shelf)
+
 epfAllTP_red <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|tank:shelf),data=epf_exp)
 # Prevented singular fit issue this time
 anova(epfAllTP_red)
-# Check distribution of residuals
+  # Check distribution of residuals
 plot(epfAllTP_red)
 # They look fairly homoscedastic
 qqnorm(resid(epfAllTP_red))

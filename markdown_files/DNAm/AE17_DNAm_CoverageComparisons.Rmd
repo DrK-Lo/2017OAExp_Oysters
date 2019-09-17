@@ -1,0 +1,266 @@
+---
+title: "Evaluation of beta estimates and filtering thresholds for determining genome-wide DNA Methylation"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Libraries and Data**
+```{r eval=FALSE}
+#Libraries
+library(dplyr) # Data manipulation
+library(matrixStats) # Summary Stats
+
+# Data
+TC <- readRDS("All_CytoSum_TotalCountMatrix.RData")
+MC <- readRDS("All_CytoSum_methylCountMatrix.RData")
+
+# Removing individual 17099 due to poor sequencing and high duplication % seen in earlier QC
+ # This individual is from the Day 9 ambient treatment
+TC <- TC[,colnames(TC)!="17099"]
+MC <- MC[,colnames(MC)!="17099"]
+
+# Calculate B, proportion methylated
+B <- MC/TC
+# Create a mirrored matrix which indicated cells with NAs (1 = NA)
+B_NA_All <- matrix(is.na(B),ncol=23)
+```
+
+### Break-down of both beta estimates and Thresholds  
+
+**Betas**  
+
+Estimate 1: Dividing the methylated counts by the total counts for each locus (summed across individuals)  
+$$\beta_{locus} = \frac{\sum C_{methylated}}{\sum C_{Total}}$$  
+  
+Estimate 2: Taking the mean of each sample beta  
+$$\beta_{locus} = \frac{\sum_{i=1}^{n} \beta_{i}}{n}, where \ \beta_{i} \ is \ the \frac{C_{Methylated}}{C_{Total}} for \ each \ individual$$  
+
+**Thresholds evaluate per locus**
+
+Summed Coverage threshold:  
+$$\sum{C_{Total} >= Threshold_{critical}}$$  
+Median Coverage threshold:  
+$$ \tilde{C_{Total}} >= Threshold_{critical}$$  
+Min Cover per individual:  
+$$ min(C_{1-n}) >= Threhold_{critical}, \ where \ C_{1-n} \ is \ a \ vector \  of \ counts \ for \ each \ individual$$  
+  
+### Basic Summary Stats  
+
+```{r eval=FALSE}
+## Total Count Summaries (used for filtering)
+# Row-wise sum of total counts
+TC_All_sum <- rowSums(TC)
+# Row-wise median of total counts
+TC_All_median <- rowMedians(as.matrix(TC))
+# Row-wise min of total counts
+TC_All_min <- rowMins(as.matrix(TC))
+# Row-wise min of total counts
+TC_All_mean <- rowMeans(TC)
+
+# Beta (prop. methylation) estimates 
+
+## Sum methylated cytosine and total cytosines for a locus.
+B_sum_All <- rowSums(MC)/TC_All_sum
+## Loci mean estimate of beta
+B_mean_All <- rowMeans(B)
+```
+
+### Setting Various Filtering Thresholds
+
+**Minimum Loci Coverage**
+```{r eval=FALSE}
+# Loci needs to have at least a coverage of 5
+# Number of loci left : 13278969
+B_sum_5 <- B_sum_All[TC_All_sum>=5,]
+B_mean_5 <- B_mean_All[TC_All_sum>=5,]
+# Loci needs to have at least a coverage of 10
+# Number of loci left : 9220053
+B_sum_10 <- B_sum_All[TC_All_sum>=10,]
+B_mean_10 <- B_mean_All[TC_All_sum>=10,]
+```
+
+**Minimum Median Coverage per loci**
+```{r eval=FALSE}
+# Loci needs to have at least a coverage of 5
+# Number of loci left : 1568133
+B_sum_median5 <- B_sum_All[TC_All_median>=5,]
+B_mean_median5 <- B_mean_All[TC_All_median>=5,]
+# Loci needs to have at least a coverage of 10
+# Number of loci left : 1029403
+B_sum_median10 <- B_sum_All[TC_All_median>=10,]
+B_mean_median10 <- B_mean_All[TC_All_median>=10,]
+```
+
+**Minimum Cover per individual per loci** 
+```{r eval=FALSE}
+# Loci needs to have at least a coverage of 5
+B_sum_min5 <- B_sum_All[TC_All_min>=5,]
+# Number of loci left : 506308
+B_mean_min5 <- B_mean_All[TC_All_min>=5,]
+# Loci needs to have at least a coverage of 10
+# Number of loci left : 311380
+B_sum_min10 <- B_sum_All[TC_All_min>=10,]
+B_mean_min10 <- B_mean_All[TC_All_min>=10,]
+```
+
+### Looking at strand specific DNA methylation  
+  
+Outputs from bismark provide methylation counts for cytosines on either strand. In my analysis I have kept these separate, but some might bin them together given some expectation that CpGs are likely not hemimethylated. I wanted to check if there was substantial difference in coverage between the strands and if they tend to given different estimates for methylation.
+
+```{r eval=FALSE}
+# Loci meta data sheet
+ST <- readRDS("All_CytoSum_summaryTable.RData")
+#           V1 V2 V3 V6  V7
+#1 NC_007175.2 49  + CG CGC
+#2 NC_007175.2 50  - CG CGA
+#3 NC_007175.2 51  + CG CGG
+#4 NC_007175.2 52  - CG CGC
+#5 NC_007175.2 88  + CG CGT
+#6 NC_007175.2 89  - CG CGT
+
+# Identify row indexes for positive and negative stranded loci
+index_positiveStrand <- rownames(ST)[ST$V3 == "+"]
+index_negativeStrand <- rownames(ST)[ST$V3 == "-"]
+# Subset total count matrix by strand
+T_positiveStrand <- TC[index_positiveStrand,]
+T_negativeStrand <- TC[index_negativeStrand,]
+# Calc. row-wise sums for each strand
+T_pStr_rowSum <- rowSums(T_positiveStrand)
+T_nStr_rowSum <- rowSums(T_negativeStrand)
+# Calc. min coverage for any sample for each strand
+T_pStr_rowMin <- rowMins(as.matrix(T_positiveStrand))
+T_nStr_rowMin <- rowMins(as.matrix(T_negativeStrand))
+```
+
+**Total coverage difference between strands**
+```{r eval=FALSE}
+sum(T_pStr_rowSum)
+#
+sum(T_nStr_rowSum)
+#
+par(mfrow=c(1,2))
+hist(T_pStr_rowSum)
+hist(T_nStr_rowSum)
+```
+
+**Loci specific differences between strands**
+```{r eval=FALSE}
+# Look at relative difference in coverage between paired Cs between strands
+T_diff_sum <- T_pStr_rowSum-T_nStr_rowSum
+
+length(T_diff_sum[T_diff_sum>0])/length(T_diff_sum)
+# 41.7% of loci have higher coverage in positive strand
+
+# Histogram of differences
+hist(T_diff_sum)
+# Plot differences along the chromosome
+plot(T_diff_sum~index_positiveStrand)
+```
+
+**Estimated beta differences between strands**
+```{r eval=FALSE}
+# Split methylation coverage matrix by strand
+M_positiveStrand <- M[index_positiveStrand,]
+M_negativeStrand <- M[index_negativeStrand,]
+
+# Sum methylation coverage per loci per strand
+M_pStr_rowSum <- rowSums(M_positiveStrand)
+M_nStr_rowSum <- rowSums(M_negativeStrand)
+
+# Beta Matrix positive strand
+B_pStr_mean <- M_positiveStrand/T_positiveStrand
+# Beta Matrix negative strand
+B_nStr_mean <- M_negativeStrand/T_negativeStrand
+
+B_nStr_meanOfMean <- rowMeans(B_nStr_mean)
+B_pStr_meanOfMean <- rowMeans(B_pStr_mean)
+
+B_pStr_meanOfSum <- M_pStr_rowSum/T_pStr_rowSum
+B_nStr_meanOfSum <- M_nStr_rowSum/T_nStr_rowSum
+
+## Correlation between positive and negative strand betas for each beta estimate
+
+cor.test(B_pStr_meanOfMean,B_nStr_meanOfMean)
+#	Pearson's product-moment correlation
+#
+#data:  B_pStr_meanOfMean and B_nStr_meanOfMean
+#t = 1434.2, df = 392943, p-value < 2.2e-16
+#alternative hypothesis: true correlation is not equal to 0
+#95 percent confidence interval:
+# 0.9157926 0.9167957
+#sample estimates:
+#      cor 
+#0.9162956 
+
+cor.test(B_pStr_meanOfSum,B_nStr_meanOfSum)
+#	Pearson's product-moment correlation
+#
+#data:  B_pStr_meanOfSum and B_nStr_meanOfSum
+#t = 3321.6, df = 9533187, p-value < 2.2e-16
+#alternative hypothesis: true correlation is not equal to 0
+#95 percent confidence interval:
+# 0.7321397 0.7327282
+#sample estimates:
+#      cor 
+#0.7324341 
+```
+
+**Two different filtering thresholds: sum5,min5**
+```{r eval=FALSE}
+#Positive Strand
+# Number of loci : 6597304
+B_pStr_meanOfSum_sum5 <- B_pStr_meanOfSum[T_pStr_rowSum>=5]
+B_pStr_meanOfMean_sum5 <- as.vector(B_pStr_meanOfMean)[T_pStr_rowSum>=5]
+# Number of loci : 286224
+B_pStr_meanOfSum_min5 <- as.vector(B_pStr_meanOfSum)[T_pStr_rowMin>=5]
+B_pStr_meanOfMean_min5 <- as.vector(B_pStr_meanOfMean)[T_pStr_rowMin>=5]
+
+# Negative Strand
+# Number of loci : 6581282
+B_nStr_meanOfSum_sum5 <- as.vector(B_nStr_meanOfSum)[T_nStr_rowSum>=5]
+B_nStr_meanOfMean_sum5 <- as.vector(B_nStr_meanOfMean)[T_nStr_rowSum>=5]
+# Number of loci : 284348
+B_nStr_meanOfSum_min5 <- as.vector(B_nStr_meanOfSum)[T_nStr_rowMin>=5]
+B_nStr_meanOfMean_min5 <- as.vector(B_nStr_meanOfMean)[T_nStr_rowMin>=5]
+```
+
+### Both Strands Combined  
+
+**Combining coverage (counts) from each strand for each CpG**
+```{r eval=FALSE}
+T_bStr <- T_negativeStrand+T_positiveStrand
+M_bStr <- M_negativeStrand+M_positiveStrand
+
+B_bStr <- M_bStr/T_bStr
+
+T_bStr_rowMin <- rowMins(as.matrix(T_bStr))
+M_bStr_rowMin <- rowMins(as.matrix(M_bStr))
+
+T_bStr_rowSum <- rowSums(as.matrix(T_bStr))
+M_bStr_rowSum <- rowSums(as.matrix(M_bStr))
+
+B_bStr_sum <- M_bStr_rowSum/T_bStr_rowSum
+B_bStr_mean <- rowMeans(B_bStr)
+```
+
+**Two different filtering thresholds: sum5,min5**
+```{r eval=FALSE}
+# Number of loci : 9230205
+B_bStr_sum_sum5 <- B_bStr_sum[T_bStr_rowSum>=5]
+B_bStr_mean_sum5 <- as.vector(B_bStr_mean)[T_bStr_rowSum>=5]
+length(B_bStr_mean_sum5)
+# Number of loci : 464873
+B_bStr_sum_min5 <- as.vector(B_bStr_sum)[T_bStr_rowMin>=5]
+B_bStr_mean_min5 <- as.vector(B_bStr_mean)[T_bStr_rowMin>=5]
+length(B_bStr_mean_sum5)
+```
+
+
+## Summary
+
+
