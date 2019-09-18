@@ -20,9 +20,16 @@ Model <- glmer(cbind(methylated,unmethylated)~Time.Treatment.Factor+(1|tank:shel
 
 * **Response variable** : 23 row x 2 column matrix with methylated counts in the first column and unmethylated counts in the second column.  
 
-* **Explanatory variable : Time.Treatment.Factor** : factor that contains four levels for each combination of time (2 time points) and treatment (ambient, high oa).  
+* **Explanatory variable : Time.Treatment.Factor, coded as 'SFV'** : factor that contains four levels for each combination of time (2 time points) and treatment (ambient, high oa).  
 
 * **Random Effects** : tank:shelf or tank nest in shelf to account for random tank effects.  
+
+### Results
+
+* We did have quite a few loci that were significant (~1000), but it appears that of the 10 top ranked hits many of them may violate the assumptions of binomial regression (overdispersed) and also threw some errors during fitting (single and lack of conversion). 
+* From reading we might need to try and figure out a way of handing those issues before continuing. Here is a good discussion from Ben Bolker, specifically about the problem of overdispersion [LINK](https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#overdispersion).
+  * There are several solutions discussed, but one common approach is adding an observational level random effect.
+  * Alternatively we could try MALAX, a binomial mixed modelling program specifically designed for bisulfite seq data and capable of handlingly multiple covariates (unlike MACAU)
 
 ### Other Thoughts
 
@@ -71,7 +78,21 @@ plot(diffMeth_pValue$t_score[abs(diffMeth_pValue$t_score[,5]) < 100,5]~diffMeth_
   
 ### Disctribution of P value before and after correction
 ```{r eval=FALSE}
+hist(p.adjust(diffMeth_pValue$pval[,2],method = "fdr"))
+pVals_corr_09.2800v09.400 <- p.adjust(diffMeth_pValue$pval[,2])
+temp <- pVals_corr_09.2800v09.400[pVals_corr_09.2800v09.400 > 0] # Lots of zeros this might be a problem
+temp[temp<0.05]
+Sig_pval<-pVals_corr_09.2800v09.400[pVals_corr_09.2800v09.400 > 0 & pVals_corr_09.2800v09.400 <=0.001]
+meta_sig<-meta[pVals_corr_09.2800v09.400 > 0 & pVals_corr_09.2800v09.400 <=0.001,]
+meta_sig<-data.frame(meta_sig,Sig_pval)
+meta_sig_order <-meta_sig[order(meta_sig$Sig_pval),]
 
+plot(-log(diffGene$p.value[,1])~diffGene$coefficients[,1],
+     xlab="Log2Fold Change",ylab="-log(p)")
+#temp <- !is.na(match(rownames(gene_fit2_contr),topTran$GENEID))
+#sub_top_c <- gene_fit2_contr$coefficients[temp,1]
+#sub_top_p <- gene_fit2_contr$p.value[temp,1]
+#points(-log(sub_top_p)~sub_top_c,col="red",pch=16)
 ```
 
 ## Examining the top 10 most significant loci for the planned comparison **Treatment 400-Day 09 vs Treatment 2800-Day 80**
@@ -290,7 +311,20 @@ SFV8  3 68.242 22.7474 22.7474
 SFV9  3 18.695  6.2316  6.2316  
 ```
 
-
+### Errors from fitting the glmer models
+```{r eval=FALSE}
+boundary (singular) fit: see ?isSingular
+Warning messages:
+1: In checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+  Model failed to converge with max|grad| = 0.046188 (tol = 0.001, component 1)
+2: In checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+  Model is nearly unidentifiable: very large eigenvalue
+ - Rescale variables?
+3: In checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+  Model failed to converge with max|grad| = 0.023001 (tol = 0.001, component 1)
+```
+  
+Indicates that while these models do provide an output, there is some problems with model fit.
 
 
 
