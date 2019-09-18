@@ -37,16 +37,6 @@ Model <- glmer(cbind(methylated,unmethylated)~Time.Treatment.Factor+(1|tank:shel
   - **Random Effects** : tank:shelf or tank nest in shelf to account for
     random tank effects.
 
-### Outputs and Results
-
-**Outputs** : Three `.RData` files were generated from this analysis.
-Generally, the general R object for the `glmer` model was stored in a
-list, A list of dataframes contain the statistical outputs (estimates, z
-scores, pvals, etc) for each comparison (including the planned
-comparisons).
-
-  - Model object list (very larger)
-
 ### Other Thoughts
 
   - I also considered using `MACAU` as an outside model test. This is a
@@ -355,6 +345,7 @@ Effects
 Correlation
 Plot  
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank2_Loci_189773_CorrelationPlot.png)
+
 **Rank 3**  
 Residuals Vs. Random
 Effects  
@@ -363,6 +354,7 @@ Effects
 Correlation
 Plot  
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank3_Loci_114067_CorrelationPlot.png)
+
 **Rank 4**  
 Residuals Vs. Random
 Effects  
@@ -371,6 +363,7 @@ Effects
 Correlation
 Plot  
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank4_Loci_178644_CorrelationPlot.png)
+
 **Rank 5**  
 Residuals Vs. Random
 Effects  
@@ -379,6 +372,7 @@ Effects
 Correlation
 Plot  
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank5_Loci_253483_CorrelationPlot.png)
+
 **Rank 6**  
 Residuals Vs. Random
 Effects  
@@ -387,6 +381,7 @@ Effects
 Correlation
 Plot  
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank6_Loci_73615_CorrelationPlot.png)
+
 **Rank 7**  
 Residuals Vs. Random
 Effects  
@@ -395,6 +390,7 @@ Effects
 Correlation
 Plot  
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank7_Loci_79289_CorrelationPlot.png)
+
 **Rank 8**  
 Residuals Vs. Random
 Effects  
@@ -403,6 +399,7 @@ Effects
 Correlation
 Plot  
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank8_Loci_9717_CorrelationPlot.png)
+
 **Rank 9**  
 Residuals Vs. Random
 Effects  
@@ -411,6 +408,7 @@ Effects
 Correlation
 Plot  
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank9_Loci_11127_CorrelationPlot.png)
+
 **Rank 10**  
 Residuals Vs. Random
 Effects  
