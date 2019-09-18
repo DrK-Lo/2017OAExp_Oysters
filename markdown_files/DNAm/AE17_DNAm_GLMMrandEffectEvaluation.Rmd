@@ -260,7 +260,7 @@ Correlation Plot
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank10_Loci_223806_CorrelationPlot.png)
   
 ### Checks for overdispersion  
-  
+```{r eval=FALSE}
  Rank       chisq      ratio rdf            p  
  [1,]  20.37416  1.1318977  18 3.121534e-01  
  [2,] 278.60289 15.4779381  18 1.185125e-48  
@@ -272,9 +272,11 @@ Correlation Plot
  [8,] 252.22307 14.0123927  18 2.878674e-43  
  [9,] 175.53497  9.7519430  18 7.331449e-28  
 [10,]  69.29878  3.8499324  18 5.936844e-08  
-  
+```
+
 ### ANOVA output  
   
+```{r eval=FALSE}
      Df Sum Sq Mean Sq F value  
 SFV   3  6.361  2.1205  2.1205  
 SFV1  3 10.882  3.6275  3.6275  
@@ -286,7 +288,7 @@ SFV6  3 36.216 12.0720 12.0720
 SFV7  3 42.197 14.0658 14.0658  
 SFV8  3 68.242 22.7474 22.7474  
 SFV9  3 18.695  6.2316  6.2316  
-
+```
 
 
 
