@@ -1,6 +1,6 @@
 ---
 title: "Results from Differential Methylation Analysis"
-output: html_document
+output: github_document
 editor_options: 
   chunk_output_type: console
 ---
@@ -78,7 +78,7 @@ plot(diffMeth_pValue$t_score[abs(diffMeth_pValue$t_score[,5]) < 100,5]~diffMeth_
 ```
   
 ### Disctribution of P value before and after correction
-```{r}
+```{r eval=FALSE}
 
 ```
 
@@ -196,11 +196,67 @@ for(j in 1:length(minT_10)){
 
 ```
 
-**Rank 1**
+**Rank 1**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank1_Loci_108623_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank1_Loci_108623_CorrelationPlot.png)
 
-
-
-
+**Rank 2**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank2_Loci_189773_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank2_Loci_189773_CorrelationPlot.png)
+**Rank 3**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank3_Loci_114067_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank3_Loci_114067_CorrelationPlot.png)
+**Rank 4**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank4_Loci_178644_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank4_Loci_178644_CorrelationPlot.png)
+**Rank 5**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank5_Loci_253483_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank5_Loci_253483_CorrelationPlot.png)
+**Rank 6**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank6_Loci_73615_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank6_Loci_73615_CorrelationPlot.png)
+**Rank 7**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank7_Loci_79289_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank7_Loci_79289_CorrelationPlot.png)
+**Rank 8**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank8_Loci_9717_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank8_Loci_9717_CorrelationPlot.png)
+**Rank 9**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank9_Loci_11127_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank9_Loci_11127_CorrelationPlot.png)
+**Rank 10**  
+Residuals Vs. Random Effects  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank10_Loci_223806_ResidVRand.png)
+  
+Correlation Plot  
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank10_Loci_223806_CorrelationPlot.png)
 
 
 
