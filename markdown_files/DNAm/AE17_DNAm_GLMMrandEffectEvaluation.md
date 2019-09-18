@@ -172,7 +172,7 @@ plot(diffMeth_pValue$t_score[abs(diffMeth_pValue$t_score[,5]) < 100,5]~diffMeth_
 
 ### Disctribution of P value before and after correction
 
-## Examining the top 10 most significant loci
+## Examining the top 10 most significant loci for the planned comparison **Treatment 400-Day 09 vs Treatment 2800-Day 80**
 
 ### Betas by different grouping variables (including random effects)
 
@@ -247,6 +247,8 @@ for(j in 1:length(loci)){
 
 ![](AE17_DNAm_GLMMrandEffectEvaluation_files/figure-gfm/unnamed-chunk-5-28.png)<!-- -->![](AE17_DNAm_GLMMrandEffectEvaluation_files/figure-gfm/unnamed-chunk-5-29.png)<!-- -->![](AE17_DNAm_GLMMrandEffectEvaluation_files/figure-gfm/unnamed-chunk-5-30.png)<!-- -->
 
+### Residuals from model vs. random effects
+
 **Note this code was run on cluster because model summary object list
 was too large**
 
@@ -286,13 +288,13 @@ overdisp_fun <- function(model) {
 overdisp <- NULL
 LRT <- NULL
 for(j in 1:length(minT_10)){
-  temp <- data.frame(m=unlist(mC[minT_10[i],]),u=unlist(uC[minT_10[i],]),
+  temp <- data.frame(m=unlist(mC[minT_10[j],]),u=unlist(uC[minT_10[j],]),
                      SFV=meta_sample$SFV,
                      Pop=meta_sample$Pop,
                      tankID=as.factor(meta_sample$tankID),
                      tank=as.factor(meta_sample$tank),
                      shelf=as.factor(meta_sample$shelf))
-  
+
   model <- glmer(cbind(m,u)~SFV+(1|tank:shelf),data=temp,family=binomial)
   
   #Check for overdispersion
@@ -417,3 +419,34 @@ Effects
 Correlation
 Plot  
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/glmm_diagnostics/Rank10_Loci_223806_CorrelationPlot.png)
+
+### Checks for overdispersion
+
+Rank chisq ratio rdf p  
+\[1,\] 20.37416 1.1318977 18 3.121534e-01  
+\[2,\] 278.60289 15.4779381 18 1.185125e-48  
+\[3,\] 57.38359 3.1879770 18 5.378346e-06  
+\[4,\] 11.39582 0.6331010 18 8.768116e-01  
+\[5,\] 11.15034 0.6194636 18 8.878681e-01  
+\[6,\] 308.95415 17.1641192 18 6.914906e-55  
+\[7,\] 123.74157 6.8745317 18 8.226370e-18  
+\[8,\] 252.22307 14.0123927 18 2.878674e-43  
+\[9,\] 175.53497 9.7519430 18 7.331449e-28  
+\[10,\] 69.29878 3.8499324 18 5.936844e-08
+
+### ANOVA output
+
+``` 
+ Df Sum Sq Mean Sq F value  
+```
+
+SFV 3 6.361 2.1205 2.1205  
+SFV1 3 10.882 3.6275 3.6275  
+SFV2 3 6.116 2.0388 2.0388  
+SFV3 3 12.170 4.0568 4.0568  
+SFV4 3 0.500 0.1667 0.1667  
+SFV5 3 55.627 18.5422 18.5422  
+SFV6 3 36.216 12.0720 12.0720  
+SFV7 3 42.197 14.0658 14.0658  
+SFV8 3 68.242 22.7474 22.7474  
+SFV9 3 18.695 6.2316 6.2316
