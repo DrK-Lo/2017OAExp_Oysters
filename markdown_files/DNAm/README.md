@@ -4,19 +4,60 @@
 
 Data was sent to the Roberts lab after sequencing and stored on their server [(Link for details)](https://robertslab.github.io/sams-notebook/2019/06/26/Data-Received-C.virginica-Mantle-MBD-BSseq-from-ZymoResearch.html). Below is the code used to download the data from their server:
 ```
-FILL IN CODE 
+wget -r https://owl.fish.washington.edu/nightingales/C_virginica/
 ```
 Then moved to the appropriate working directory: `/shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp`
 
 ### Step Two - Concatenating the Data
 Paired end sequencing for each sample was run across three lanes. These needed to be first concatenated into a single file and renamed so that the file ID matched the sample ID used elsewhere. This was done in a single step, using the `cat` function to combine files and storing the output in a new file that was renamed using the sampleID.
 
+Directory: `/shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp`  
+
 Raw file example: `zr2576_10_s1_R1.fastq.gz`
   * `zr2576_10` : Sample ID from the sequencer
   * `s1` : sequence lane (i.e. `s1`-`s3`)
   * `R1` : read 1 (paired end reads, `R1` or `R2`)
   
+You will also need to ensure the `DNA_seqKey._rv.csv` is up to date and links all raw file labels with the experimental sample labels.
+Example: `zr2576_10      17094`
+  
 Bash script used to concatenate files:
+```
+#!/bin/bash
+
+filename='/shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp/DNA_seqKey_rv.csv'
+
+while read line; do
+        # reading each line
+        echo "Matching DNAm ID with sample : $line"
+
+        IFS='    ' # four spaces set as delimiter
+        read -ra ADDR <<< "$line" # str is read into an array as tokens separated by IFS
+        i="${ADDR[0]}" # Save first column
+        j="${ADDR[1]}" # Save second column
+
+        echo "Concatenating sample lists:"
+        echo ls /shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp/${i}_*R1.fastq*
+        echo "Output file:"
+        echo "/shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp/${j}_DNAm_R1.fastq.gz"
+
+        cat /shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp/${i}_*R1.fastq.gz > /shared_lab/20180226_RNAseq_2017OAExp/DNAm/raw$
+        cat /shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp/${i}_*R2.fastq.gz > /shared_lab/20180226_RNAseq_2017OAExp/DNAm/raw$
+        echo ""
+        echo ""
+done < $filename
+```
+Script [Link]()
+
+Outputs were saved in the same directory. Example of file output: `17203_DNAm_R1.fastq.gz`
+
+### Step Three - Perform quality and adapter trim
+Remove reads with poor mapping quality and also cut off 10bp from both the 5' and 3' regions of either strand. This will remove any adapter sequence to improve downstream mapping. This trimming follows the recommendations of bismark when the library prep was down with the pico zymo kit. 
+
+Starts with the rawfiles created from the previous step.
+Example: `/shared_lab/20180226_RNAseq_2017OAExp/DNAm/rawfiles/2017_exp/17094_DNAm_R2.fastq.gz`
+
+Bash script for quality trimming:
 ```
 #!/bin/bash
 
@@ -51,9 +92,12 @@ done
 ```
 [File Link](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/DNAm/scripts/01_seq-quality-trim.sh)
 
-Outputs were saved in the same directory. Example of file output: `17203_DNAm_R1.fastq.gz`
+**Outputs**
+* Path: `/shared_lab/20180226_RNAseq_2017OAExp/DNAm/processed_samples/`
+  * Folder `01_trimmed/20190719_fastqc_trim_10bp_Cvirginica_MBD`
+      * Example File: `17162_DNAm_R1_val_1.fq.gz`
 
-### Preparing genome with Bismark for sample mapping
+### Step Four - Preparing genome with Bismark for sample mapping
 
 A bisulfite converted genome was prepared using the current *C. virginica* genome available NCBI using the `bismark_genome_preparation` command in `bismark`:  and `hisat2` as the aligner (it's splice aware compared to bowtie).
 
@@ -75,23 +119,79 @@ bismark_genome_preparation --hisat2 --genomic_composition --path_to_aligner /hom
       * `genomic_nucleotide_frequencies.txt` :  Text file with occurances of nucleotides in genome
       * `Bisulfite_Genome` : Folder with conversion information and locations
 
-## Aligning Reads
+### Step Five - Aligning Reads
+The trimmed reads were mapped to the bisulfite treated reference genome (created in the previous step) in order to determine the raw counts of methylated to unmethylated cytosines at each locus. This step was saved as several outputs including a sorted `.bam` file and a compressed `.txt` file with each row as a unique CpG.
 
-### Step 1: Running Bismark (below shown using Bowtie2)
-Code:
+Bash code:
 ```
 #!/bin/bash
 
-trimmed_files="/shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/singleSample_trimScript_20190719/20190719_fastqc_trim_10bp_Cvirginica_MBD"
-genome="/shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/bsgenome/wBowtie2/"
+trimmed="/shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/singleSample_trimScript_20190719/20190719_fastqc_trim_10bp_Cvirginica_MBD"
+output="/shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/singleSample_trimScript_20190719/bismark/bowtie2"
+# genome="/shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/bsgenome/wBowtie2/"
 
-find ${trimmed_files}/*R1*.fq.gz | xargs basename -s _DNAm_R1_val_1.fq.gz | xargs -I{} bismark \
---non_directional \
-- p 20 \
-- score_min L,0,-1.2 \
---genome ${genome} \
--1 ${trimmed_files}/{}_DNAm_R1_val_1.fq.gz \
--2 ${trimmed_files}/{}_DNAm_R2_val_2.fq.gz \
--o /shared_lab/20180226_RNAseq_2017OAExp/DNAm/trimmedSamples/singleSample_trimScript_20190719/bismark \
+cd $output
+
+counter=1
+
+echo "Start sample # (1-24)"
+read lower
+echo "End sample # (1-24)"
+read upper
+
+for i in $( ls $trimmed/*R1*gz); do
+        file=$( echo $i | rev | cut -d'/' -f 1 | rev | cut -d'_' -f 1)
+
+        if [ "$counter" -ge "$lower" ]
+        then
+
+            	if [ "$counter" -le "$upper" ]
+                then
+
+                    	echo "Sample $counter"
+                        echo "File Path : $i"
+                        echo "File Name : $file"
+
+                        # Run Bismark
+                        bismark --non_directional -p 2\
+                        --score_min L,0,-0.8 \
+                        /shared_lab/20180226_RNAseq_2017OAExp/DNAm/reference/bsgenome/wBowtie2/ \
+                        -1 $trimmed/${file}*R1*gz \
+                        -2 $trimmed/${file}*R2*gz \
+                        -o $output
+
+                        # Deduplicate removal
+                        deduplicate_bismark -p --bam \
+                        $output/${file}*bam \
+                        --output_dir $output
+
+                        # Samtools reorder
+                        samtools sort $output/${file}*deduplicated.bam \
+                        -o $output/${file}dedup.sorted.bam
+
+                        # Methylation Extraction
+                        bismark_methylation_extractor -p --bedGraph --scaffolds --counts ${file}*deduplicated.bam --multicore 20
+
+                        # Bismark2bedGraph
+                        bismark2bedGraph --zero_based CpG_CTOB_${file}_DNAm_R1_val_1_bismark_bt2_pe.deduplicated.txt -o ${file}_CTOB
+                        bismark2bedGraph --zero_based CpG_CTOT_${file}DNAm_R1_val_1_bismark_bt2_pe.deduplicated.txt -o ${file}_CTOT
+                        bismark2bedGraph --zero_based CpG_OB_${file}_DNAm_R1_val_1_bismark_bt2_pe.deduplicated.txt -o ${file}_OB
+                        bismark2bedGraph --zero_based CpG_OT_${file}_DNAm_R1_val_1_bismark_bt2_pe.deduplicated.txt -o ${file}_OT
+
+
+                fi
+        fi
+
+	counter=$((counter+1))
+done
+
 ```
+
+**Outputs**
+* Path: `/shared_lab/20180226_RNAseq_2017OAExp/DNAm/processed_samples/02_bismark`
+   * Folder: `bowtie2`
+       * `17145dedup.sorted.bam` : Sorted bam file with duplicates removed
+       * `17145_DNAm_R1_val_1_bismark_bt2_pe.deduplicated.bismark.cov.gz` : Text file with methy and ummethyl counts for each CpG (used for downstream analysis)
+
+### Step
 
