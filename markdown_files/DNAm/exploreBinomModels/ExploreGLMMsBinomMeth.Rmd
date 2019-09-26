@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Install packages
 
 ```{r cars}
-packages_needed <- c("lme4", "multcomp", "devtools", "car", "MCMCglmm")
+packages_needed <- c("lme4", "multcomp", "devtools", "car", "MCMCglmm", "brms")
 
 for (i in 1:length(packages_needed)){
   if(!(packages_needed[i] %in% installed.packages())){install.packages(packages_needed[i])}
@@ -60,7 +60,8 @@ a <- data.frame(mc=as.numeric(mC[1,]),
            Treatment = meta_samp$Treatment,
            Time = meta_samp$Time,
            tankID = meta_samp$tankID,
-            Pop = meta_samp$Pop)
+            Pop = meta_samp$Pop,
+           size = as.numeric(mC[1,])+as.numeric(uC[1,]))
 
 # real data with all 0 for unmeth in one treatment
 b <- a
@@ -190,7 +191,7 @@ Googling "Warning message: In checkConv(attr(opt, "derivs"), opt$par, ctrl = con
 
 This seems to be a very common error message, but I couldn't find a specific post that highlights the problem we discovered here.
 
-## Let's try Bayesian!
+## Let's try Bayesian MCMCglmm!
 
 * Read Jared H's book in the Lotterhos Lab Reading / stats
 * Good example [here](https://github.com/tmalsburg/MCMCglmm-intro)
@@ -259,3 +260,107 @@ There is one post on this:
 https://stat.ethz.ch/pipermail/r-sig-mixed-models/2012q2/018129.html
 
 Where the author of the package says this is not neccessarily anything to worry about.
+
+## Let's try Bayesian brms!
+[The github page has lots of great documentation](https://github.com/paul-buerkner/brms)
+
+```{r}
+vignette(package = "brms")
+help("brm")
+
+# No random effect of tank on real data
+m3 <- brm(mc | trials(size)~ Treatment*Time, data=a,family = binomial())
+  # takes a few seconds
+summary(m3)
+  # gives a similar result ot the GLM
+
+# Add the random effect of tank
+m3.1 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=a,family = binomial())
+summary(m3.1)
+plot(marginal_effects(m3.1), ask = FALSE)
+
+# Try zero-inflated model
+# https://paul-buerkner.github.io/brms/articles/brms_distreg.html
+m3.2 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=a,family = zero_inflated_binomial())
+summary(m3.2)
+plot(marginal_effects(m3.2), ask = FALSE)
+```
+
+OK let's try the same thing, but with the data with 0's
+```{r}
+boxplot(mc/(mc+uc) ~ Treatment*Time, data=b, las=2)
+# No random effect of tank on real data
+m3 <- brm(mc | trials(size)~ Treatment*Time, data=b,family = binomial())
+  # takes a few seconds
+summary(m3)
+  # gives a similar result ot the GLM
+plot(marginal_effects(m3), ask = FALSE)
+
+# Add the random effect of tank
+m3.1 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=b,family = binomial())
+summary(m3.1)
+plot(marginal_effects(m3.1), ask = FALSE)
+
+# Try zero-inflated model
+# https://paul-buerkner.github.io/brms/articles/brms_distreg.html
+m3.2 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=b,family = zero_inflated_binomial())
+summary(m3.2)
+plot(marginal_effects(m3.2), ask = FALSE)
+# The zero-inflated model doesn't seem to change the results at all in this case
+```
+
+OK let's try the same thing, but with the data with 0's
+```{r}
+boxplot(mc/(mc+uc) ~ Treatment*Time, data=c, las=2)
+# No random effect of tank on real data
+m3 <- brm(mc | trials(size)~ Treatment*Time, data=c,family = binomial())
+  # takes a few seconds
+summary(m3)
+pairs(m3)
+  # gives a similar result ot the GLM
+plot(marginal_effects(m3), ask = FALSE)
+  # get warnings for this data
+
+# Add the random effect of tank
+m3.1 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=c,family = binomial())
+summary(m3.1)
+plot(marginal_effects(m3.1), ask = FALSE)
+  # get warnings for this data
+
+# Try zero-inflated model
+# https://paul-buerkner.github.io/brms/articles/brms_distreg.html
+m3.2 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=c,family = zero_inflated_binomial())
+summary(m3.2)
+plot(m3.2, pars="Treatment")
+plot(m3.2, pars="tankID")
+plot(marginal_effects(m3.2))
+  # get warnings for this data
+```
+
+
+# Try Beta-binomial to account for overdispersion
+(This gave all kinds of errors... will revisit later)
+
+https://paul-buerkner.github.io/brms/articles/brms_customfamilies.html
+
+beta_binomial2 <- custom_family(
+  "beta_binomial2", dpars = c("mu", "phi"),
+  links = c("logit", "log"), lb = c(NA, 0),
+  type = "int", vars = "trials[n]"
+)
+
+stan_funs <- "
+  real beta_binomial2_lpmf(int y, real mu, real phi, int T) {
+    return beta_binomial_lpmf(y | T, mu * phi, (1 - mu) * phi);
+  }
+  int beta_binomial2_rng(real mu, real phi, int T) {
+    return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
+  }
+"
+
+stanvars <- stanvar(scode = stan_funs, block = "functions") +
+  stanvar(as.integer(a$size), name = "trials")
+
+m3.2 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=a,family = beta_binomial2, stanvars = stanvars)
+
+summary(m3.2)
