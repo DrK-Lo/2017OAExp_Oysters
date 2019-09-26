@@ -1,0 +1,259 @@
+---
+title: "Explore GLMM models for DNA methylation data"
+author: "KE Lotterhos"
+date: "9/26/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Install packages
+
+```{r cars}
+packages_needed <- c("lme4", "multcomp", "devtools", "car", "MCMCglmm")
+
+for (i in 1:length(packages_needed)){
+  if(!(packages_needed[i] %in% installed.packages())){install.packages(packages_needed[i])}
+}
+
+for (i in 1:length(packages_needed)){
+  library( packages_needed[i], character.only = TRUE)
+}
+```
+
+## Load data
+
+Katie's working directory for this markdown:
+setwd("~/Documents/GitHub/2017OAExp_Oysters/markdown_files/DNAm/exploreBinomModels")
+
+You may have to set a different one.
+
+```{r pressure, echo=FALSE}
+mC <- readRDS("data/Final_mC_gene_5.RData")
+uC <- readRDS("data/Final_umC_gene_5.RData")
+meta_locus <- readRDS("data/Final_meta_gene_5.RData")
+meta_samp <- readRDS("data/metadata_20190811.RData")
+
+head(mC)
+head(uC)
+head(meta_locus)
+head(meta_samp)
+
+meta_samp$level <- paste(meta_samp$Treatment, meta_samp$Time, sep="_")
+
+# remove excluded individual
+meta_samp <- meta_samp[-which(meta_samp$ID==17099),]
+
+# unit test - these should both be true
+identical(names(mC), names(uC))
+identical(names(uC), meta_samp$ID)
+```
+
+## Create some interesting cases
+```{r}
+# real data
+a <- data.frame(mc=as.numeric(mC[1,]),
+           uc=as.numeric(uC[1,]),
+           level=meta_samp$level,
+           Treatment = meta_samp$Treatment,
+           Time = meta_samp$Time,
+           tankID = meta_samp$tankID,
+            Pop = meta_samp$Pop)
+
+# real data with all 0 for unmeth in one treatment
+b <- a
+b$uc[b$level=='400_09'] <- 0
+b
+
+# real data with all 0 for meth in one treatment
+c <- a
+c$mc[c$level=='400_09'] <- 0
+c
+
+# real data with all one count for meth in one treatment
+# compare to c for zero variance
+d <- a
+d$mc[d$level=='400_09'] <- 1
+d$uc[d$level=='400_09'] <- 20
+d
+```
+
+## Test different models for real data
+
+```{r}
+boxplot(mc/(mc+uc) ~ Treatment*Time, data=a, las=2)
+# No random effect of tank
+m1 <- glm(cbind(mc,uc)~ Treatment*Time, data=a,family = "binomial")
+summary(m1)
+boxplot(m1$residuals~a$tankID)
+boxplot(m1$residuals~a$Pop)
+  # definitely some tank effects in the residuals
+vif(m1) # variance inflation factor
+AIC(m1)
+
+m1.0 <- glm(cbind(mc,uc)~ Treatment*Time, data=a,family = "quasibinomial")
+summary(m1.0)
+boxplot(m1.0$residuals~a$tankID)
+boxplot(m1.0$residuals~a$Pop)
+  # definitely some tank effects in the residuals
+vif(m1.0) # variance inflation factor
+
+m1.1 <- glmer(cbind(mc,uc)~ Treatment*Time + (1|tankID), data=a,family = "binomial")
+summary(m1.1)
+boxplot(residuals(m1.1)~a$tankID)
+boxplot(residuals(m1.1)~a$Pop)
+  # this seems to be better, but still not perfectly accounting for residuals across tanks
+vif(m1.1) # the inflation in size of the confidence ellipse or ellipsoid for the coefficients of the term in comparison with what would be obtained for orthogonal data.
+AIC(m1.1)
+  # improvement in model fit compared to m0
+```
+
+## Test different models for fake data "b"
+One treatment has 100% methylation in all individuals
+
+```{r}
+boxplot(mc/(mc+uc) ~ Treatment*Time, data=b, las=2)
+
+# No random effect of tank
+m1 <- glm(cbind(mc,uc)~ Treatment*Time, data=b,family = "binomial")
+summary(m1)
+boxplot(m1$residuals~b$tankID)
+boxplot(m1$residuals~b$Pop)
+  # definitely some tank effects in the residuals
+vif(m1) # variance inflation factor
+  # hmmm
+
+m1.1 <- glmer(cbind(mc,uc)~ Treatment*Time + (1|tankID), data=b,family = "binomial")
+summary(m1.1)
+boxplot(residuals(m1.1)~b$tankID)
+boxplot(residuals(m1.1)~b$Pop)
+  # this seems to be better, but we get that strange error message
+vif(m1.1) # the inflation in size of the confidence ellipse or ellipsoid for the coefficients of the term in comparison with what would be obtained for orthogonal data.
+```
+
+## Test different models for fake data "c"
+One treatment has 0% methylation in all individuals
+```{r}
+boxplot(mc/(mc+uc) ~ Treatment*Time, data=c, las=2)
+
+# No random effect of tank
+m1 <- glm(cbind(mc,uc)~ Treatment*Time, data=c,family = "binomial")
+summary(m1)
+boxplot(m1$residuals~c$tankID)
+boxplot(m1$residuals~c$Pop)
+  # definitely some tank effects in the residuals
+vif(m1) # variance inflation factor
+  # hmmm not good
+
+m1.1 <- glmer(cbind(mc,uc)~ Treatment*Time + (1|tankID), data=c,family = "binomial")
+summary(m1.1)
+boxplot(residuals(m1.1)~c$tankID)
+boxplot(residuals(m1.1)~c$Pop)
+  # this seems to be better, but we get that strange error message
+vif(m1.1) # the inflation in size of the confidence ellipse or ellipsoid for the coefficients of the term in comparison with what would be obtained for orthogonal data.
+
+```
+
+
+## Test different models for fake data "d"
+One treatment has a count of 1 methylation in all individuals. This can be compared to dataset "c" to show the problem comes from fixation of counts of 0 and not from zero variance in a treatment.
+```{r}
+boxplot(mc/(mc+uc) ~ Treatment*Time, data=d, las=2)
+
+# No random effect of tank
+m1 <- glm(cbind(mc,uc)~ Treatment*Time, data=d,family = "binomial")
+summary(m1)
+boxplot(m1$residuals~d$tankID)
+boxplot(m1$residuals~d$Pop)
+  # definitely some tank effects in the residuals
+vif(m1) # variance inflation factor
+  # interesting, much better behaved
+
+m1.1 <- glmer(cbind(mc,uc)~ Treatment*Time + (1|tankID), data=d,family = "binomial")
+  # note no error message
+summary(m1.1)
+boxplot(residuals(m1.1)~d$tankID)
+boxplot(residuals(m1.1)~d$Pop)
+  # this seems to be better, but we get that strange error message
+vif(m1.1) # the inflation in size of the confidence ellipse or ellipsoid for the coefficients of the term in comparison with what would be obtained for orthogonal data.
+```
+
+
+# Better understand what is causing error in datasets b and c
+
+
+These show the error is caused by all individuals within a treatment having 0% or 100% methylation. Clearly, these are cases that are very interesting!
+
+Googling "Warning message: In checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv, : Model failed to converge with max|grad| = 0.0129364 (tol = 0.001, component 1)"
+
+This seems to be a very common error message, but I couldn't find a specific post that highlights the problem we discovered here.
+
+## Let's try Bayesian!
+
+* Read Jared H's book in the Lotterhos Lab Reading / stats
+* Good example [here](https://github.com/tmalsburg/MCMCglmm-intro)
+
+```{r}
+
+# These are default priors I found in some examples. I need to read up on these and
+
+prior1=list(R=list(V=1, nu=0.002), G=list(G1=list(V=1, nu=0.002)))
+prior2=list(R=list(V=1, nu=0.002), G=list(G1=list(V=1, nu=1,  
+alpha.mu=0, alpha.V=100)))
+
+# Real data
+m2 <- MCMCglmm(cbind(mc,uc)~ Treatment*Time, random= ~tankID, 
+               data=a,family = "multinomial2", prior=prior1)
+
+plot(cbind(m2$VCV), pch=19, cex=0.2)
+par(mfrow=c(4,2), mar=c(2,2,1,0))
+plot(m2$Sol, auto.layout=F)
+  # no autocorrelation in the traces, good!
+summary(m2)
+
+# Fake data with 0's for methylation
+m2 <- MCMCglmm(cbind(mc,uc)~ Treatment*Time, random= ~tankID, 
+               data=c,family = "multinomial2", prior=prior1)
+
+plot(cbind(m2$VCV), pch=19, cex=0.2)
+par(mfrow=c(4,2), mar=c(2,2,1,0))
+plot(m2$Sol, auto.layout=F)
+  # some autocorrelation in the traces, not good!
+summary(m2)
+
+# Fake data with 0's for unmenthlated
+b
+m2 <- MCMCglmm(cbind(mc,uc)~ Treatment*Time, random= ~tankID, 
+               data=c,family = "multinomial2", prior=prior1)
+
+plot(cbind(m2$VCV), pch=19, cex=0.2)
+par(mfrow=c(4,2), mar=c(2,2,1,0))
+plot(m2$Sol, auto.layout=F)
+  # lots of autocorrelation in the traces, not good! Will need to look into convergence issues
+summary(m2)
+
+# let's see if we can do better by changing the prior and increasing
+# the number of iterations
+m2 <- MCMCglmm(cbind(mc,uc)~ Treatment*Time, random= ~tankID, 
+               data=c,family = "multinomial2", prior=prior2,
+               thin   = 20,
+               burnin = 3000,
+               nitt   = 100000)
+  # further increasing the thinning results in worse density plots;
+  #
+plot(cbind(m2$VCV), pch=19, cex=0.2)
+par(mfrow=c(4,2), mar=c(2,2,1,0))
+plot(m2$Sol, auto.layout=F)
+summary(m2)
+  # still some autocorrelation, but better than before
+```
+
+In this case we get an error message"In summary.glm(glm(cbind(MCMC_y, MCMC_y.additional) ~ 1, family = "quasibinomial",  :
+  observations with zero weight not used for calculating dispersion"
+  
+There is one post on this:
+https://stat.ethz.ch/pipermail/r-sig-mixed-models/2012q2/018129.html
+
+Where the author of the package says this is not neccessarily anything to worry about.
