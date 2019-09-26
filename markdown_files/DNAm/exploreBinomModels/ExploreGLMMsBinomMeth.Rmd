@@ -212,6 +212,8 @@ par(mfrow=c(4,2), mar=c(2,2,1,0))
 plot(m2$Sol, auto.layout=F)
   # no autocorrelation in the traces, good!
 summary(m2)
+  # This result is interesting, more conservative P-values than
+  # what we got with the glmer
 
 # Fake data with 0's for methylation
 m2 <- MCMCglmm(cbind(mc,uc)~ Treatment*Time, random= ~tankID, 
