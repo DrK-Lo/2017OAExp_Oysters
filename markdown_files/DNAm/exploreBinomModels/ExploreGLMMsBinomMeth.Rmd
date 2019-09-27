@@ -413,19 +413,34 @@ And as described in the paper I increased adapt_delta to 0.99
 
 ```{r}
 levels(c$level)
+
+get_prior(mc | trials(size)~ level + (1|tankID), data=a,
+            family = binomial())
+  # I think this means 3 df, 0 mean, and sd = 10 (large sd)  
+
 # note that we need to re-code so that 400_09 is base
 m4.1 <- brm(mc | trials(size)~ level + (1|tankID), data=a,
-            family = binomial(), iter=5000, control = list(max_treedepth = 15, adapt_delta=0.99))
+            family = binomial(), iter=5000, control = list(max_treedepth = 15, adapt_delta=0.99), sample_prior="yes")
+# logit link is default
+
 summary(m4.1)
 plot(m4.1)
+str(m4.1$data$level)
+m4.1$data$level["contrasts"]
 str(posterior_samples(m4.1))
-plot(marginal_effects(m4.1), ask = FALSE)
+str(marginal_effects(m4.1))
+y <- plot(marginal_effects(m4.1), ask = FALSE, scale_y_continuous(name="percent methylation")) 
+y + scale_y_continuous(name="percent methylation")
 
-alph = 0.0001
-(h_2800.80E2800.09_a0.0001 <- hypothesis(m4.1, "level2800_80=0", class="b", alpha=alph))
-  # Is 2800_80 different from 2800_09
+alph = 0.0001/2
+(h_2800.80G2800.09_a0.0001 <- hypothesis(m4.1, "level2800_80>0", class="b", alpha=alph))
+  # Is 2800_80 > 2800_09
+  # This is an interesting case, becuase there is "strong evidence" of an effect, although not significant 
 
-(h_400.09E2800.09_a0.0001 <-hypothesis(m4.1, "level400_09=0", class="b", alpha=alph))
+(h_2800.80L2800.09_a0.0001 <- hypothesis(m4.1, "level2800_80<0", class="b", alpha=alph))
+  # Is 2800_80 > 2800_09
+
+(h_400.09E2800.09_a0.0001 <-hypothesis(m4.1, "level400_09>0", class="b", alpha=alph))
   # Is day 9 at 400 the same as 2800_09
 
 (h_400.80E2800.09_a0.0001 <-hypothesis(m4.1, "level400_80=0", class="b", alpha=alph))
@@ -445,7 +460,7 @@ str(h)
 (h_Treatment_a0.0001 <-hypothesis(m4.1, "level400_09 + level400_80 + 2*Intercept= 2*Intercept + level2800_80 ", class="b", alpha=alph))
   # I think this is testing if 400 is different from 2800
 
-(h_Interaction <-hypothesis(m4.1, "(Intercept+level400_09)-(Intercept)= (Intercept+level400_80)-(Intercept + level2800_80) ", class="b", alpha=0.001))
+(h_Interaction <-hypothesis(m4.1, "(Intercept+level400_09)-(Intercept)= (Intercept+level400_80)-(Intercept + level2800_80) ", class="b", alpha=alph))
   # I think this is testing if the difference between treatments at day 9 is different from the difference between treatments at day 80
 
 str(h)
@@ -454,17 +469,29 @@ h$hypothesis$Star=="*"
 
 Plan: Use last block of code as a baseline:
 
-* Read up more on the hypothesis tests and make sure we understand it. Write up the methods for the paper.
+* Read up more on how to set priors and think about reasonalbe priors to set
+
 
 * Order the levels so that 400_09 is the first level and recode the hypothesis tests accordingly. (Check that my coding of the hypothesis tests are correct first!). Then go over re-coding together to make sure it is correct.
 
-* Decide on alpha. This is Bayesian, so no way to correct for multiple tests
+* Read up more on the hypothesis tests and make sure we understand it. `?hypothesis` is a good place to start, and read Kass and Rafferty https://www.tandfonline.com/doi/abs/10.1080/01621459.1995.10476572
+The function help says to avoid using default priors. Note that evidence ratio can be calculated for one-sided hypotheses but not two-sided hypotheses, and the evidence ratio can be interpreted as strength of evidence of an effect. I think we want to do one-sided hypotheses so we can store the Evidence Ratio, which according to Kass and Raftery log10(Evidence Ratio) > 1 is "strong evidence" and log10(Evidence Ratio) > 2 is "decisive evidence"
+
+* Understand the contrasts to make sure hypothesis test is correct.
+
+* Decide on alpha. This is Bayesian, so no way to correct for multiple tests. Here the help on `hypothesis` is also very good. There are 10,000 posterior samples, so `alpha=0.0001` means that only 1 of the posterior samples will lie outside the credible interval.
+
+* Write up the methods for the paper.
+
 
 * Test on top 10 loci and 10 random loci to make sure everything works
 
 * Save the "Estimate" and the "Star" (h$hypothesis$Star=="*") from each hypothesis test, but be sure to note "alpha" in the results (e.g. `h_2800.80E2800.09_a0.0001`)
 
+* Add logical to the function to output the plot if significant, but make sure to output a consistent plot for each locus: https://github.com/paul-buerkner/brms/issues/59 
+
 * Pseudoparallize code to run (n loci)/(68 cores) on each core
+
 
 
 Check some other types of data:
