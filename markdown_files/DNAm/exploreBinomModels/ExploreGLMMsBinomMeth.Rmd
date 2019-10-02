@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Install packages
 
 ```{r cars}
-packages_needed <- c("lme4", "multcomp", "devtools", "car", "MCMCglmm", "brms", "rstan")
+packages_needed <- c("lme4", "multcomp", "devtools", "car", "MCMCglmm", "brms", "rstan", "emmeans", "tidybayes")
 
 for (i in 1:length(packages_needed)){
   if(!(packages_needed[i] %in% installed.packages())){install.packages(packages_needed[i])}
@@ -63,6 +63,10 @@ a <- data.frame(mc=as.numeric(mC[1,]),
             Pop = meta_samp$Pop,
            size = as.numeric(mC[1,])+as.numeric(uC[1,]))
 
+a$level <- factor(a$level, levels=c("400_09", "400_80", "2800_09", "2800_80"))
+
+levels(a$level)
+
 # real data with all 0 for unmeth in one treatment
 b <- a
 b$uc[b$level=='400_09'] <- 0
@@ -72,8 +76,8 @@ b
 # real data with all 0 for meth in one treatment
 c <- a
 c$mc[c$level=='400_09'] <- 0
+c[18,2] <-5 # so no 0's in both columns
 c$size <- c$mc+c$uc
-c
 
 # real data with all one count for meth in one treatment
 # compare to c for zero variance
@@ -198,6 +202,8 @@ This seems to be a very common error message, but I couldn't find a specific pos
 
 lme4 is based on restricted maximum likelihood, which appears to have problems converging when all individuals within a treatment have 0% or 100% methylation
 
+Note: Alan also tried different converging algorithms and also had problems
+
 Bayesian models offer a good alternative...
 
 ## Let's try Bayesian MCMCglmm!
@@ -236,9 +242,9 @@ plot(m2$Sol, auto.layout=F)
 summary(m2)
 
 # Fake data with 0's for unmenthlated
-b
+
 m2 <- MCMCglmm(cbind(mc,uc)~ Treatment*Time, random= ~tankID, 
-               data=c,family = "multinomial2", prior=prior1)
+               data=b,family = "multinomial2", prior=prior1)
 
 plot(cbind(m2$VCV), pch=19, cex=0.2)
 par(mfrow=c(4,2), mar=c(2,2,1,0))
@@ -262,9 +268,9 @@ summary(m2)
   # still some autocorrelation, but better than before
 ```
 
-A lot of autocorrelation in the trace implies that this is not converging correctly!
+A lot of autocorrelation in the trace implies that this is not converging!
 
-In this case we get an error message"In summary.glm(glm(cbind(MCMC_y, MCMC_y.additional) ~ 1, family = "quasibinomial",  :
+In some cases we get an error message "In summary.glm(glm(cbind(MCMC_y, MCMC_y.additional) ~ 1, family = "quasibinomial",  :
   observations with zero weight not used for calculating dispersion"
   
 This error also illustrates issues with the MCMC approach, as it relies on glms which are unhappy when all individuals within a treatment combination have 0% or 100% methylation.
@@ -275,13 +281,14 @@ Additionally, Burkner suggests that Metropolis-Hastings and Gibbs sampling is sl
 [The github page has lots of great documentation](https://github.com/paul-buerkner/brms)
 
 ```{r}
-vignette(package = "brms")
-help("brm")
+#vignette(package = "brms")
+#help("brm")
 
 # No random effect of tank on real data
 m3 <- brm(mc | trials(size)~ Treatment*Time, data=a,family = binomial())
   # takes a few seconds
 summary(m3)
+plot(m3)
   # gives a similar result ot the GLM
 
 # Add the random effect of tank
@@ -289,27 +296,37 @@ m3.1 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=a,family = bino
 summary(m3.1)
 plot(marginal_effects(m3.1), ask = FALSE)
 
-# Try zero-inflated model
-# https://paul-buerkner.github.io/brms/articles/brms_distreg.html
-m3.2 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=a,family = zero_inflated_binomial())
-summary(m3.2)
-plot(marginal_effects(m3.2), ask = FALSE)
+brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=b,family = binomial())
+brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=c,family = binomial())
 ```
 
 OK let's try the same thing, but with the data with 0's for unmethylated
 ```{r}
 boxplot(mc/(mc+uc) ~ Treatment*Time, data=b, las=2)
 # No random effect of tank on real data
-m3 <- brm(mc | trials(size)~ Treatment*Time, data=b,family = binomial())
+m3 <- brm(mc | trials(size) ~ Treatment*Time, data=b, family = binomial())
   # takes a few seconds
 summary(m3)
+plot(m3)
   # gives a similar result ot the GLM
 plot(marginal_effects(m3), ask = FALSE)
 
 # Add the random effect of tank
 m3.1 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=b,family = binomial(), iter=5000, control = list(max_treedepth = 15))
 summary(m3.1)
-plot(marginal_effects(m3.1), ask = FALSE)
+plot(m3.1)
+plot(marginal_effects(m3.1))
+
+m3.1$data$level["contrasts"]
+
+hypothesis(m3.1, "Treatment2800 = 0", class="b", alpha=0.001)
+
+hypothesis(m3.1, "Time80 > 0", class="b", alpha=0.001)
+hypothesis(m3.1, "Time80 < 0", class="b", alpha=0.001)
+hypothesis(m3.1, "Treatment2800 > 0", class="b", alpha=0.001)
+hypothesis(m3.1, "Treatment2800 < 0", class="b", alpha=0.001)
+
+
 
 quantile(posterior_samples(m3.1)$b_Treatment2800, c(0.0001, 0.9999))
 quantile(posterior_samples(m3.1)$b_Time80, c(0.0001, 0.9999))
@@ -334,28 +351,35 @@ m3.1 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=c,
             family = binomial(), iter=5000, control = list(max_treedepth = 15))
 summary(m3.1)
 plot(m3.1)
+plot(marginal_effects(m3.1))
+m3.1$data$Treatment["contrasts"]
+m3.1$data$Time["contrasts"]
+attr(m3.1$data, which = "terms")
+["term.labels"]
 
-str(posterior_samples(m3.1))
-quantile(posterior_samples(m3.1)$b_Treatment2800, c(0.0001, 0.9999))
-quantile(posterior_samples(m3.1)$b_Time80, c(0.0001, 0.9999))
-quantile(posterior_samples(m3.1)[,4], c(0.0001, 0.9999))
+# (warp_em <- emmeans (m3.1,  ~ Treatment))
+# (warp_em <- emmeans (m3.1,  ~ Time))
+# (warp_em <- emmeans (m3.1,  ~ Treatment | Time))
+# 
+# cont <- contrast(warp_em, "tukey")
+# cont
+# (cont_posterior <- gather_emmeans_draws(cont))
 
-hypothesis(m3.1, "Time80 > 0", class="b", alpha=0.001)
-  # Day 80 higher methylation than day 9
-hypothesis(m3.1, "Time80 < 0", class="b", alpha=0.001)
-  # Day 80 lower methylation than day 9
-hypothesis(m3.1, "Treatment2800 > 0", class="b", alpha=0.001)
-  # 2800 higher methylation than day 400
-hypothesis(m3.1, "Treatment2800 < 0", class="b", alpha=0.001)
-  # 2800 lower methylation than day 400
-hypothesis(m3.1, "Treatment2800:Time80 > 0", class="b", alpha=0.001)
-  # The change in 2800 from day 9 to 80 is greater than the change 
-  # in the 400 treatment from day 9 to 80
-hypothesis(m3.1, "Treatment2800:Time80 < 0", class="b", alpha=0.001)
-  # The change in 2800 from day 9 to 80 is LESS than the change 
-  # in the 400 treatment from day 9 to 80
+# Treatment 400 and Time 09 are the reference levels (Intercept)
+hypothesis(m3.1, c(
+    "Time80 = Treatment2800*2 + Time80 + Treatment2800:Time80", # Main effect of 400 to 2800
+    "Treatment2800 = Time80*2 + Treatment2800 + Treatment2800:Time80", # Main effect of day 9 to day 80
+  "Treatment2800:Time80=0", # Is the interaction significant
+  "Time80 = 0", # Is (Treatment 400 at Time 80) = (Treatment 400 and Time 09)
+  "Treatment2800 = 0", # Is (Treatment 2800 at Time 09) = (Treatment 400 and Time 09)
+  "Treatment2800 + Time80 + Treatment2800:Time80 = 0", # (Treatment 2800 at Time 80) = (Treatment 400 and Time 09)"
+  "Time80 = Treatment2800", # (Treatment 400 at Time 80) = (Treatment 2800 at Time 09)
+  "Time80 =  Treatment2800 + Time80 + Treatment2800:Time80"  # (Treatment 400 at Time 80) = (Treatment 2800 at Time 80)
+  # 
+  ), class="b", alpha=0.001)
 
-plot(marginal_effects(m3.1), ask = FALSE)
+
+plot(marginal_effects(m3.1))
   # get warnings for this data for iter = 2000 and default treedepth
   # get no warnings when increasing iter and treedepth
   # https://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded
@@ -372,17 +396,65 @@ Let's try the model with recoding according to levels, so we can do specific hyp
 
 Results for fake data:
 
+# BASIS FOR REAL DATA HERE:
 ```{r}
 levels(c$level)
-# note that we need to re-code so that 400_09 is base
+par(mfrow=c(1,1))
+boxplot(mc/size~level, data=c)
+get_prior(mc | trials(size)~ level + (1|tankID), data=c,
+            family = binomial())
+
 m4.1 <- brm(mc | trials(size)~ level + (1|tankID), data=c,
             family = binomial(), iter=5000, control = list(max_treedepth = 15, adapt_delta=0.99))
 summary(m4.1)
 plot(m4.1)
+m4.1$data$level["contrasts"]
 str(posterior_samples(m4.1))
-plot(marginal_effects(m4.1), ask = FALSE)
+p<-plot(marginal_effects(m4.1))
+round(p$level$data$estimate,3)
+round(p$level$data$upper__,3)
+round(p$level$data$lower__,3)
 
-alph = 0.0001
+marginal_effects(m4.1)
+
+alph = 0.0001/2
+(h_2800.80G400.09_a0.0001 <- hypothesis(m4.1, "level2800_80>0", class="b", alpha=alph))
+  # Is 2800_80 > 400_09
+(h_2800.80L400.09_a0.0001 <- hypothesis(m4.1, "level2800_80<0", class="b", alpha=alph))
+  # Is 2800_80 > 400_09
+
+hypothesis(m4.1, "level2800_09<0", class="b", alpha=alph))
+hypothesis(m4.1, "level2800_09>0", class="b", alpha=alph))
+
+hypothesis(m4.1, "level400_80>0", class="b", alpha=alph))
+hypothesis(m4.1, "level400_80<0", class="b", alpha=alph))
+
+(h_2800.80E400.09_a0.0001 <- hypothesis(m4.1, "level2800_80=level2800_09", class="b", alpha=alph))
+(h_2800.80E400.80_a0.0001 <-hypothesis(m4.1, "level2800_80=level400_80", class="b", alpha=alph))
+(h_400.09E400.80_a0.0001 <-hypothesis(m4.1, "level2800_09=level400_80", class="b", alpha=alph))
+
+
+#Testing the main effects is where the hypotheses get tricky
+data_A1 <- a[grep('400',a$level),]
+bob_400 <- posterior_predict(m4.1, newdata=data_A1)
+bob_2800 <- posterior_predict(m4.1, newdata=a[grep('2800',a$level),])
+head(bob_400)
+head(bob_2800)
+bob_400 - bob_2800
+hypothesis()
+
+(h_Time_a0.0001 <-hypothesis(m4.1, "level400_09 + 2*Intercept= 2*Intercept + level2800_80 + level400_80", class="b", alpha=alph))
+  # I think this is testing if Day 9 is different from Day 80
+str(h)
+
+(h_Treatment_a0.0001 <-hypothesis(m4.1, "level400_09 + level400_80 + 2*Intercept= 2*Intercept + level2800_80 ", class="b", alpha=alph))
+  # I think this is testing if 400 is different from 2800
+
+(h_Interaction <-hypothesis(m4.1, "(Intercept+level400_09)-(Intercept)= (Intercept+level400_80)-(Intercept + level2800_80) ", class="b", alpha=alph))
+  # I think this is testing if the difference between treatments at day 9 is different from the difference between treatments at day 80
+
+str(h)
+h$hypothesis$Star=="*"
 
 hypothesis(m4.1, "level2800_80=0", class="b", alpha=alph)
   # Is 2800_80 different from 2800_09
@@ -417,92 +489,34 @@ Note that I had this error message:
 
 And as described in the paper I increased adapt_delta to 0.99
 
-
-```{r}
-levels(c$level)
-
-get_prior(mc | trials(size)~ level + (1|tankID), data=a,
-            family = binomial())
-  # I think this means 3 df, 0 mean, and sd = 10 (large sd)  
-
-# note that we need to re-code so that 400_09 is base
-m4.1 <- brm(mc | trials(size)~ level + (1|tankID), data=a,
-            family = binomial(), iter=5000, control = list(max_treedepth = 15, adapt_delta=0.99), sample_prior="yes")
-# logit link is default
-
-summary(m4.1)
-plot(m4.1)
-str(m4.1$data$level)
-m4.1$data$level["contrasts"]
-str(posterior_samples(m4.1))
-str(marginal_effects(m4.1))
-y <- plot(marginal_effects(m4.1), ask = FALSE, scale_y_continuous(name="percent methylation")) 
-y + scale_y_continuous(name="percent methylation")
-
-alph = 0.0001/2
-(h_2800.80G2800.09_a0.0001 <- hypothesis(m4.1, "level2800_80>0", class="b", alpha=alph))
-  # Is 2800_80 > 2800_09
-  # This is an interesting case, becuase there is "strong evidence" of an effect, although not significant 
-
-(h_2800.80L2800.09_a0.0001 <- hypothesis(m4.1, "level2800_80<0", class="b", alpha=alph))
-  # Is 2800_80 > 2800_09
-
-(h_400.09E2800.09_a0.0001 <-hypothesis(m4.1, "level400_09>0", class="b", alpha=alph))
-  # Is day 9 at 400 the same as 2800_09
-
-(h_400.80E2800.09_a0.0001 <-hypothesis(m4.1, "level400_80=0", class="b", alpha=alph))
-  # Is day 80 at 400 the same as 2800_09
-
-(h_2800.80E400.09_a0.0001 <- hypothesis(m4.1, "level2800_80=level400_09", class="b", alpha=alph))
-
-(h_2800.80E400.80_a0.0001 <-hypothesis(m4.1, "level2800_80=level400_80", class="b", alpha=alph))
-
-(h_400.09E400.80_a0.0001 <-hypothesis(m4.1, "level400_09=level400_80", class="b", alpha=alph))
-
-
-(h_Time_a0.0001 <-hypothesis(m4.1, "level400_09 + 2*Intercept= 2*Intercept + level2800_80 + level400_80", class="b", alpha=alph))
-  # I think this is testing if Day 9 is different from Day 80
-str(h)
-
-(h_Treatment_a0.0001 <-hypothesis(m4.1, "level400_09 + level400_80 + 2*Intercept= 2*Intercept + level2800_80 ", class="b", alpha=alph))
-  # I think this is testing if 400 is different from 2800
-
-(h_Interaction <-hypothesis(m4.1, "(Intercept+level400_09)-(Intercept)= (Intercept+level400_80)-(Intercept + level2800_80) ", class="b", alpha=alph))
-  # I think this is testing if the difference between treatments at day 9 is different from the difference between treatments at day 80
-
-str(h)
-h$hypothesis$Star=="*"
-```
-
 Plan: Use last block of code as a baseline:
 
 * Read up more on how to set priors and think about reasonalbe priors to set. The priors for the binomial are set with the student_t distribution.
 
-* Order the levels so that 400_09 is the first level and recode the hypothesis tests accordingly. (Check that my coding of the hypothesis tests are correct first! - Need to understand "contrasts" better). Then go over re-coding together to make sure it is correct. Understand the contrasts to make sure hypothesis test is correct.
+* DONE. Order the levels so that 400_09 is the first level and recode the hypothesis tests accordingly. (Check that my coding of the hypothesis tests are correct first! - Need to understand "contrasts" better). Then go over re-coding together to make sure it is correct. Understand the contrasts to make sure hypothesis test is correct.
 
-* Read up more on the hypothesis tests and make sure we understand it. `?hypothesis` is a good place to start, and read Kass and Rafferty https://www.tandfonline.com/doi/abs/10.1080/01621459.1995.10476572
+* DONE. Read up more on the hypothesis tests and make sure we understand it. `?hypothesis` is a good place to start, and read Kass and Rafferty https://www.tandfonline.com/doi/abs/10.1080/01621459.1995.10476572
 The function help says to avoid using default priors. Note that evidence ratio can be calculated for one-sided hypotheses but not two-sided hypotheses, and the evidence ratio can be interpreted as strength of evidence of an effect. I think we want to do one-sided hypotheses with alpha/2 so we can store the Evidence Ratio, which according to Kass and Raftery log10(Evidence Ratio) > 1 is "strong evidence" and log10(Evidence Ratio) > 2 is "decisive evidence"
 
 * Decide on alpha. This is Bayesian, so no way to correct for multiple tests. Here the help on `hypothesis` is also very good. There are 10,000 posterior samples, so `alpha=0.0001` means that only 1 of the posterior samples will lie outside the credible interval.
 
 * Write up the methods for the paper. Here is a start:
 
-Methylation data is binomially distributed (e.g., read counts for methylated or unmethylated) and in our case, we wanted to make sure to account for the random effect of tank in the experiment (see results). For some  loci, we found with preliminary analyses that some approaches to generalized linear modeling failed to converge (when parameters were estimated via restricted maximum likelihood as implemented in lme4, or when the posterior distributions of the parameters were estimated via MCMC with Gibbs sampling as implemented in MCMCglmm). We traced this issue of convergence to loci in which all individuals within a treatment combination had 100% or 0% methylation, and with diverse levels of methylation in other treatments, making them biologically interesting and desireable to model correctly. As pointed out by Burker, the approaches used by MCMCglmm can be slow to converge in high-dimensional models with correlated parameters and may depend on conjugate priors.
+Methylation data is binomially distributed (e.g., read counts for methylated or unmethylated) and in our case, we wanted to make sure to account for the random effect of tank in the experiment (see results). (Current packages such as methylkit and MACAU do not have the ability to include random effects). For some  loci, we found with preliminary analyses that some approaches to generalized linear modeling failed to converge (when parameters were estimated via restricted maximum likelihood as implemented in lme4, or when the posterior distributions of the parameters were estimated via MCMC with Gibbs sampling as implemented in MCMCglmm). We traced this issue of convergence to loci in which all individuals within a treatment combination had 100% or 0% methylation, and with diverse levels of methylation in other treatments, making them biologically interesting and desireable to model correctly. As pointed out by Burker, the approaches used by MCMCglmm can be slow to converge in high-dimensional models with correlated parameters and may depend on conjugate priors.
 
-We therefore took a robust approach to analyzing metylation data with Bayesian Regression Models (BRMs) in which the sampling on the posterior distributions on the parameters was accomplished with the No-U-Turn-Sampler (NUTS). This algorithm converges much more quickly for high-dimensional models regardless of whether the priors are conjugate or not. (NEXT: describe model, brm(mc | trials(size)~ level + (1|tankID), data=a,
-            family = binomial(), iter=5000, control = list(max_treedepth = 15, adapt_delta=0.99))
-            (run without extra params to see the error messages they generate)
-            higher adapt_delta avoids divergent transitions
+We therefore took a robust approach to analyzing metylation data with Bayesian Regression Models (BRMs) in which the sampling on the posterior distributions on the parameters was accomplished with the No-U-Turn-Sampler (NUTS). This algorithm converges much more quickly for high-dimensional models regardless of whether the priors are conjugate or not. To avoid divergent transitions, to ensure that transitions after warmup did not exceed the maximum treedepth, and to ensure the effective sample size fo the bulk and tail was sufficient, we increased `adapt_delta` to 0.99, `max_treedepth` to 15, the number of transitions to 5000, respectively. We modeled percent methylation as a binomial response variable with treatment level (treatment and timepoint) as a fixed/population effect and tank as a random/group effect. We then used Bayes Factors to test three hypotheses: (i) main effect of treatment (400 ppm = 2800 ppm), (ii) main effect of time (day 9 = day 80), and (iii) an interaction between time and treatment. Bayes Factors were calculated with the `hypothesis` function from `brms`. Note that in the Bayesian framework, P-values are not calculated and therefore there is no analog to a false discovery rate correction. Hypothesis tests with log10(Bayes Factors) > 2 and non-overlapping posterior distributions (corresponding to 10,000 posterior samples) were taken to be strong evidence of an effect. For loci that had a significant interaction between time and treatment, we conduced an additional set of post-hoc hypothesis tests of individual treatment levels using the same criteria as above. 
 
-* Write a function to test for main effects and an interaction, if the interaction is significant than also test for overlap of CI for pairwise params. For signifcant params store relevant outputs. Check that all output is there. Test on top 10 loci and 10 random loci to make sure everything works
+With n posterior draws, the number of false positives would be expected to be `1/n*(number of loci)*(3 tests per loci) + 1/n*(number of loci with significant interaction)*(6 comparisons)`.
+
+  
+
+* ALAN. Write a function to test for main effects and an interaction, if the interaction is significant than also test for overlap of CI for pairwise params. For signifcant params store relevant outputs. Check that all output is there. Test on top 10 loci and 10 random loci to make sure everything works
 
 * Save the "Estimate" and the "Star" (h$hypothesis$Star=="*") from each hypothesis test, but be sure to note "alpha" in the results (e.g. `h_2800.80E2800.09_a0.0001`)
 
-* Add logical to the function to output the plot if significant, but make sure to output a consistent plot for each locus: https://github.com/paul-buerkner/brms/issues/59 
+* ALAN. Add logical to the function to output the plot if significant, but make sure to output a consistent plot for each locus: https://github.com/paul-buerkner/brms/issues/59 
 
 * Pseudoparallize code to run (n loci)/(68 cores) on each core
-
-
 
 Check some other types of data:
 ```{r}
@@ -522,8 +536,9 @@ str(posterior_samples(m4.1))
 plot(marginal_effects(m4.1), ask = FALSE)
 
 alph = 0.0001
-(h_2800.80E2800.09_a0.0001 <- hypothesis(m4.1, "level2800_80=0", class="b", alpha=alph))
+(h_2800.80E2800.09_a0.0001 <- hypothesis(m4.1, "level2800_80>0", class="b", alpha=alph))
   # Is 2800_80 different from 2800_09
+str(h_2800.80E2800.09_a0.0001)
 
 (h_400.09E2800.09_a0.0001 <-hypothesis(m4.1, "level400_09=0", class="b", alpha=alph))
   # Is day 9 at 400 the same as 2800_09
