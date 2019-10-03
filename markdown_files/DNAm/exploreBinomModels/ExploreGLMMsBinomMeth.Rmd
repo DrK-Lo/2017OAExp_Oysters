@@ -309,29 +309,21 @@ m3 <- brm(mc | trials(size) ~ Treatment*Time, data=b, family = binomial())
 summary(m3)
 plot(m3)
   # gives a similar result ot the GLM
-plot(marginal_effects(m3), ask = FALSE)
+plot(marginal_effects(m3))
 
 # Add the random effect of tank
 m3.1 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=b,family = binomial(), iter=5000, control = list(max_treedepth = 15))
 summary(m3.1)
 plot(m3.1)
-plot(marginal_effects(m3.1))
 
 m3.1$data$level["contrasts"]
 
 hypothesis(m3.1, "Treatment2800 = 0", class="b", alpha=0.001)
 
-hypothesis(m3.1, "Time80 > 0", class="b", alpha=0.001)
-hypothesis(m3.1, "Time80 < 0", class="b", alpha=0.001)
-hypothesis(m3.1, "Treatment2800 > 0", class="b", alpha=0.001)
-hypothesis(m3.1, "Treatment2800 < 0", class="b", alpha=0.001)
-
-
-
 quantile(posterior_samples(m3.1)$b_Treatment2800, c(0.0001, 0.9999))
-quantile(posterior_samples(m3.1)$b_Time80, c(0.0001, 0.9999))
-quantile(posterior_samples(m3.1)[,4], c(0.0001, 0.9999))
 ```
+One issue with the above approach is that it requires some careful thought to do the contrasts - eg. Treatment2800 is really Treatment2800_Time09. And the Interaction is relative to Intercept + Treatment2800+Time80
+
 
 OK let's try the same thing, but with the data with 0's for methylated
 Note this has some low count levels for the unmethylated section, need to fix that
@@ -343,7 +335,8 @@ m3 <- brm(mc | trials(size)~ Treatment*Time, data=c,family = binomial())
 summary(m3)
 pairs(m3)
   # gives a similar result ot the GLM
-plot(marginal_effects(m3), ask = FALSE)
+str(marginal_effects(m3))
+plot(marginal_effects(m3))
   # get warnings for this data
 
 # Add the random effect of tank
@@ -354,8 +347,7 @@ plot(m3.1)
 plot(marginal_effects(m3.1))
 m3.1$data$Treatment["contrasts"]
 m3.1$data$Time["contrasts"]
-attr(m3.1$data, which = "terms")
-["term.labels"]
+#attr(m3.1$data, which = "terms")["term.labels"]
 
 # (warp_em <- emmeans (m3.1,  ~ Treatment))
 # (warp_em <- emmeans (m3.1,  ~ Time))
@@ -392,7 +384,7 @@ pairs(m3.1)
 ```
 
 
-Let's try the model with recoding according to levels, so we can do specific hypothesis tests:
+Let's try the model with recoding according to levels, so we can do specific hypothesis tests a little more straightforwardly:
 
 Results for fake data:
 
@@ -418,65 +410,22 @@ round(p$level$data$lower__,3)
 marginal_effects(m4.1)
 
 alph = 0.0001/2
-(h_2800.80G400.09_a0.0001 <- hypothesis(m4.1, "level2800_80>0", class="b", alpha=alph))
-  # Is 2800_80 > 400_09
-(h_2800.80L400.09_a0.0001 <- hypothesis(m4.1, "level2800_80<0", class="b", alpha=alph))
-  # Is 2800_80 > 400_09
+hypothesis(m4.1, c(
+  "level2800_09 + 2*Intercept= 2*Intercept + level2800_80 + level400_80",# Is Day 9 is different from Day 80
+   "level400_80 + 2*Intercept= 2*Intercept + level2800_80 + level2800_09", # Is 400 different from 2800
+  "Intercept-(Intercept + level400_80) = (Intercept + level2800_09) - (Intercept + level2800_80)", # Is interaction significant
+  "Intercept-(Intercept + level2800_09) = (Intercept + level400_80) - (Intercept + level2800_80)", # Is interaction significant (should be same as last row)
+  "level2800_80>0", # Is 2800_80 > 400_09
+  "level2800_80<0", # Is 2800_80 > 400_09
+  "level2800_09<0", 
+  "level2800_09>0",
+  "level400_80>0",
+  "level400_80<0",
+  "level2800_80=level2800_09",
+  "level2800_80=level400_80",
+  "level2800_09=level400_80"
+  ), class="b", alpha=alph)
 
-hypothesis(m4.1, "level2800_09<0", class="b", alpha=alph))
-hypothesis(m4.1, "level2800_09>0", class="b", alpha=alph))
-
-hypothesis(m4.1, "level400_80>0", class="b", alpha=alph))
-hypothesis(m4.1, "level400_80<0", class="b", alpha=alph))
-
-(h_2800.80E400.09_a0.0001 <- hypothesis(m4.1, "level2800_80=level2800_09", class="b", alpha=alph))
-(h_2800.80E400.80_a0.0001 <-hypothesis(m4.1, "level2800_80=level400_80", class="b", alpha=alph))
-(h_400.09E400.80_a0.0001 <-hypothesis(m4.1, "level2800_09=level400_80", class="b", alpha=alph))
-
-
-#Testing the main effects is where the hypotheses get tricky
-data_A1 <- a[grep('400',a$level),]
-bob_400 <- posterior_predict(m4.1, newdata=data_A1)
-bob_2800 <- posterior_predict(m4.1, newdata=a[grep('2800',a$level),])
-head(bob_400)
-head(bob_2800)
-bob_400 - bob_2800
-hypothesis()
-
-(h_Time_a0.0001 <-hypothesis(m4.1, "level400_09 + 2*Intercept= 2*Intercept + level2800_80 + level400_80", class="b", alpha=alph))
-  # I think this is testing if Day 9 is different from Day 80
-str(h)
-
-(h_Treatment_a0.0001 <-hypothesis(m4.1, "level400_09 + level400_80 + 2*Intercept= 2*Intercept + level2800_80 ", class="b", alpha=alph))
-  # I think this is testing if 400 is different from 2800
-
-(h_Interaction <-hypothesis(m4.1, "(Intercept+level400_09)-(Intercept)= (Intercept+level400_80)-(Intercept + level2800_80) ", class="b", alpha=alph))
-  # I think this is testing if the difference between treatments at day 9 is different from the difference between treatments at day 80
-
-str(h)
-h$hypothesis$Star=="*"
-
-hypothesis(m4.1, "level2800_80=0", class="b", alpha=alph)
-  # Is 2800_80 different from 2800_09
-
-hypothesis(m4.1, "level2800_80=level400_09", class="b", alpha=alph)
-
-hypothesis(m4.1, "level2800_80=level400_80", class="b", alpha=alph)
-
-hypothesis(m4.1, "level400_09=level400_80", class="b", alpha=alph)
-
-hypothesis(m4.1, "level400_09=0", class="b", alpha=alph)
-  # Is day 9 at 400 the same as day 80 at 400
-
-(h<-hypothesis(m4.1, "level400_09 + 2*Intercept= 2*Intercept + level2800_80 + level400_80", class="b", alpha=alph))
-  # I think this is testing if Day 9 is different from Day 80
-str(h)
-
-(h<-hypothesis(m4.1, "level400_09 + level400_80 + 2*Intercept= 2*Intercept + level2800_80 ", class="b", alpha=alph))
-  # I think this is testing if 400 is different from 2800
-
-hypothesis(m4.1, "(Intercept+level400_09)-(Intercept)= (Intercept+level400_80)-(Intercept + level2800_80) ", class="b", alpha=alph)
-  # I think this is testing if the difference between treatments at day 9 is different from the difference between treatments at day 80 (Interaction)
 ```
 
 
@@ -518,83 +467,8 @@ With n posterior draws, the number of false positives would be expected to be `1
 
 * Pseudoparallize code to run (n loci)/(68 cores) on each core
 
-Check some other types of data:
-```{r}
-boxplot(mc/size~level, data=a)
-e <- a
-e$uc[e$level=="400_09"] <- e$uc[e$level=="400_09"] + 5
-e$size=e$mc + e$uc
-boxplot(mc/size~level, data=e)
-
-
-# note that we need to re-code so that 400_09 is base
-m4.1 <- brm(mc | trials(size)~ level + (1|tankID), data=e,
-            family = binomial(), iter=5000, control = list(max_treedepth = 15, adapt_delta=0.99))
-summary(m4.1)
-plot(m4.1)
-str(posterior_samples(m4.1))
-plot(marginal_effects(m4.1), ask = FALSE)
-
-alph = 0.0001
-(h_2800.80E2800.09_a0.0001 <- hypothesis(m4.1, "level2800_80>0", class="b", alpha=alph))
-  # Is 2800_80 different from 2800_09
-str(h_2800.80E2800.09_a0.0001)
-
-(h_400.09E2800.09_a0.0001 <-hypothesis(m4.1, "level400_09=0", class="b", alpha=alph))
-  # Is day 9 at 400 the same as 2800_09
-
-(h_400.80E2800.09_a0.0001 <-hypothesis(m4.1, "level400_80=0", class="b", alpha=alph))
-  # Is day 80 at 400 the same as 2800_09
-
-(h_2800.80E400.09_a0.0001 <- hypothesis(m4.1, "level2800_80=level400_09", class="b", alpha=alph))
-
-(h_2800.80E400.80_a0.0001 <-hypothesis(m4.1, "level2800_80=level400_80", class="b", alpha=alph))
-
-(h_400.09E400.80_a0.0001 <-hypothesis(m4.1, "level400_09=level400_80", class="b", alpha=alph))
-
-
-(h_Time_a0.0001 <-hypothesis(m4.1, "level400_09 + 2*Intercept= 2*Intercept + level2800_80 + level400_80", class="b", alpha=alph))
-  # I think this is testing if Day 9 is different from Day 80
-str(h)
-
-(h_Treatment_a0.0001 <-hypothesis(m4.1, "level400_09 + level400_80 + 2*Intercept= 2*Intercept + level2800_80 ", class="b", alpha=alph))
-  # I think this is testing if 400 is different from 2800
-
-(h_Interaction <-hypothesis(m4.1, "(Intercept+level400_09)-(Intercept)= (Intercept+level400_80)-(Intercept + level2800_80) ", class="b", alpha=0.001))
-  # I think this is testing if the difference between treatments at day 9 is different from the difference between treatments at day 80
-
-str(h)
-```
-
 # Other notes:
 
 Note that I do not think we have a zero-inflated model. This model assumes that the sample is a “mixture” of two sorts of individuals: one group whose counts are generated by the standard binomial regression model, and another group (call them the absolute zero group) who have zero probability of a count greater than 0. 
 
 In our case, we may have 0% or 100% methylation, but the counts are greater than 0 in at least one of the categories.
-
-# Try Beta-binomial to account for overdispersion
-(This gave all kinds of errors... will revisit later)
-
-https://paul-buerkner.github.io/brms/articles/brms_customfamilies.html
-
-beta_binomial2 <- custom_family(
-  "beta_binomial2", dpars = c("mu", "phi"),
-  links = c("logit", "log"), lb = c(NA, 0),
-  type = "int", vars = "trials[n]"
-)
-
-stan_funs <- "
-  real beta_binomial2_lpmf(int y, real mu, real phi, int T) {
-    return beta_binomial_lpmf(y | T, mu * phi, (1 - mu) * phi);
-  }
-  int beta_binomial2_rng(real mu, real phi, int T) {
-    return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
-  }
-"
-
-stanvars <- stanvar(scode = stan_funs, block = "functions") +
-  stanvar(as.integer(a$size), name = "trials")
-
-m3.2 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=a,family = beta_binomial2, stanvars = stanvars)
-
-summary(m3.2)
