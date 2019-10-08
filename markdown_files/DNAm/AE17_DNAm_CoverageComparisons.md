@@ -327,3 +327,8 @@ length(B_bStr_mean_sum5)
 ```
 
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/beta_Threshold_Test/Hist_B_bothStrands.png)
+
+
+## Sample histogram for sample 170213 using methylKit
+
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/DNAm/img/17213_methylKit_cov5_hist.png)
