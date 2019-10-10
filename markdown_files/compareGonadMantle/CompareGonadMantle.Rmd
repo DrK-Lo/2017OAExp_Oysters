@@ -8,7 +8,7 @@ output: html_document
 setwd("~/Documents/GitHub/2017OAExp_Oysters/markdown_files/compareGonadMantle")
 
 ```{r, install}
-packages_needed <- c("scales", "biomartr", "rio", "tidyverse", "googledrive"
+packages_needed <- c("scales", "biomartr", "rio", "tidyverse", "googledrive","data.table"
                      )
 
 for (i in 1:length(packages_needed)){
@@ -123,10 +123,19 @@ Remove 17099 because of low coverage and high % duplicated reads.
 
 list.files("~/Google Drive/LotterhosLab/2017-2020-Oyster OA Epigenetics/2017_CV_AdultExposureExp/Data/DNAm/Data/")
 mantle <- readRDS("~/Google Drive/LotterhosLab/2017-2020-Oyster OA Epigenetics/2017_CV_AdultExposureExp/Data/DNAm/Data/CG_unstranded_BetaMatrix.RData")
-head(mantle)
-mantle$mean <- rowMeans(mantle[,-which(colnames(mantle)=="17099")])
+colnames(mantle) <- paste0("s", colnames(mantle))
+
+#mantle <- as.data.frame(mantle)
+mantle1 <- data.table(mantle)
+head(mantle1)
+
+mantle2 <- mantle1 %>% select(-c(s17099)) %>% mutate(betamean = rowMeans(mantle1))
+mantle2$pos <- rownames(mantle)
+head(mantle2)
+rm(mantle, mantle1)
 
 mantle_pos <- readRDS("~/Google Drive/LotterhosLab/2017-2020-Oyster OA Epigenetics/2017_CV_AdultExposureExp/Data/DNAm/Data/CG_unstranded_summaryTable.RData")
+mantle_pos$pos <- paste(mantle_pos$chrom, mantle_pos$chromStart, sep="_")
 head(mantle_pos)
 
 mantle_counts <- readRDS("~/Google Drive/LotterhosLab/2017-2020-Oyster OA Epigenetics/2017_CV_AdultExposureExp/Data/DNAm/Data/CG_unstranded_TotalCountMatrix.RData")
@@ -137,8 +146,11 @@ head(mantle_info)
 
 
 names(mantle_pos)[1:3] <- c("chrom", "chromStart", "chromEnd")
+mantle_plot <- full_join(mantle_pos, mantle2)
+head(mantle_plot)
 
-
+### TO DO: read the karyotyper package to figure out how to plot mantle_plot$betamean
+### TO DO: Figure out how to convert this to GRANGEs
 ```
 
 
