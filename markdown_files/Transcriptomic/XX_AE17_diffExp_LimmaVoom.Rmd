@@ -7,104 +7,275 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r}
-library(edgeR)
-library(limma)
-library(fdrtool)
-library(DESeq2)
-library(dplyr)
-library(variancePartition)
+```{r message=FALSE}
+## Packages 
+library(matrixStats,quietly = TRUE)
+library(edgeR,quietly = TRUE)
+library(limma,quietly = TRUE)
+library(fdrtool,quietly = TRUE)
+library(kableExtra,quietly = TRUE)
+library(DESeq2,quietly = TRUE)
+library(dplyr,quietly = TRUE)
+library(variancePartition,quietly = TRUE)
+library(FSA,quietly = TRUE) # to use w arguement in hist()
 ```
 
-```{r}
-RStudio.Version()
+## Data  
 
+**Gene Expression**  
+```{r eval=TRUE}
 #### RSEM counts ####
+# Gene matrix
 RSEM <-  readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_mapping/RSEM_output/RSEM_gene_Summary.Rdata")
 # Separate out RSEM counts and rename rows with LOC ID
-rsem_c <- RSEM$Count
+rsem_c <- RSEM$Count # Stick with raw gene counts  (not TPM or some other normalizaed count)
 rm(RSEM)
+
+# Isoform (transcript) matrix
 RSEM_t <-  readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_mapping/RSEM_output/RSEM_isoform_Summary.Rdata")
 rsem_t_c <- RSEM_t$Count
 rm(RSEM_t)
-meta <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
 
+dim(rsem_c)
+# 38929 genes
+dim(rsem_t_c)
+# 67290 transcripts
+```
+  
+**Transcript File**  
+```{r eval=TRUE}
 #### Transcript File ####
+# Transcript file
 tran <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/STAR_gnomon_tximportGeneFile.RData")
 # Gene File
 gene <- tran[!duplicated(tran$GENEID),]
 
+kable(head(gene)) %>%
+    kable_styling() %>%
+    scroll_box(width = "90%", height = "150px")
+```
+  
+**Meta Data**  
+```{r eval=TRUE}
 #### Meta Data ####
-meta <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190718.RData")
+meta <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
 meta$sampl_nameSimple <- substr(meta$sample_name,start = 4,stop=9)
-#Creat new factor levels (one for each level combination)
+#Create new factor levels (one for each level combination)
 meta$SFVrn <- as.factor(paste0("D",meta$SFV))
 meta$Sample_Index <- as.factor(meta$sample_index)
 meta$TankID <- as.factor(meta$tankID)
+```
+
+**Target Gene List - Primarily biomineralization associated genes**  
   
+At the moment these are not specifically investigated during the diff. gene analysis (all gene are examined). I mostly just wanted to confirm they were present and being expressed in my dataset using a simple histogram (below)  
+  
+```{r eval=TRUE}
 ### Target List ###
-tl <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/Target_BiomineralizationGenes .csv")
-
+tl <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/Target_BiomineralizationGenes.csv")
+# 23 unique biomineralization genes 
+# 136 gene locations
 tl$Location <- as.character(tl$Location)
+```
 
+**Data Clean-up**  
+  
+Here I reordered both the count matrices (gene and transcript) and annotation objects for when I combine them in the DGEList object downstream. 
+
+```{r, eval=TRUE}
 #### Data Manipulation ####
-# Separate out RSEM counts and rename rows with LOC ID
-loc_rsem <- gene$GENEID[match(row.names(rsem_c),gene$gene_id)]
-row.names(rsem_c) <- loc_rsem
-loc_rsem_t <- tran$TXNAME[match(row.names(rsem_t_c),tran$TXNAME)]
-row.names(rsem_t_c) <- loc_rsem_t
+# Order genes from annotation list to match the order in the count matrix
+gene_order <- gene[order(gene$gene_id),]
+identical(rownames(rsem_c),gene_order$gene_id) # TRUE confirms the order matches
+# Relabel the rows of the count matrix with LOC ID
+rownames(rsem_c) <- gene_order$GENEID
 
-geneC <- rsem_c[order(rownames(rsem_c)),]
-tranC <- rsem_t_c[order(rownames(rsem_t_c)),]
+# Order transcripts from annotation list to match the order from the count matrix
+rsem_t_order <- rsem_t_c[order(rownames(rsem_t_c)),]
+tran_order <- tran[order(tran$TXNAME),]
+identical(rownames(rsem_t_order),tran_order$TXNAME)
+# I am not renaming the rows here since the TXNAME will be unique, while the gene LOC will be redundant for isoforms from the same gene. However, the reordering here is still needed when the annotations get added to the DGEList later.
+
+# Reorder by LOCID 
+geneC_full <- rsem_c
+tranC_full <- rsem_t_order
+
+rm(rsem_c)
+rm(rsem_t_order)
+
+# Summary table
+name <- c("Genes","Isoforms")
+featureC <- c(nrow(geneC_full),nrow(tranC_full))
+meanCount <- c(mean(colSums(geneC_full)),mean(colSums(tranC_full)))
+maxCount <- c(max(colSums(geneC_full)),max(colSums(tranC_full)))
+minCount <- c(min(colSums(geneC_full)),min(colSums(tranC_full)))
+
+summary_df <- data.frame(Feature=name,Num_Features=featureC,
+                         mean_Sum=meanCount,min_Count=minCount,max_Count=maxCount)
+kable(summary_df)%>%
+    kable_styling() %>%
+    scroll_box(width = "90%", height = "125px")
+```
+  
+### **Histogram target vs total genes**  
+```{r echo=FALSE, fig.width=10, eval=TRUE}
+geneC_full_cpm <- cpm(geneC_full)
+geneC_sub <- geneC_full_cpm[!is.na(match(rownames(geneC_full_cpm),tl$Location)),]
+
+total <- data.frame(type="Total",log10_Expression=log10(rowSums((geneC_full_cpm))))
+target <- data.frame(type="Target",log10_Expression=log10(rowSums((geneC_sub))))
+full_vals <- rbind(total,target)
+  
+hist(total$log10_Expression,col=adjustcolor("red",alpha.f = 0.2),breaks=100,freq = FALSE,
+     xlim=c(-2,10),xlab="Log10 Expression",main="Gene Expression",)
+par(new=TRUE)
+hist(target$log10_Expression,col=adjustcolor("blue",alpha.f = 0.2),breaks=50,freq=FALSE,
+     xlim=c(-2,10),axes = FALSE,xlab="",ylab="",main="")
+legend(x=6.1,y=0.4,legend=c("All Genes","Biomineralization Genes"),pch=15,
+       col=c(adjustcolor("red",alpha.f = 0.2),adjustcolor("blue",alpha.f = 0.2)))
 ```
 
-Histogram target vs total genes
-```{r}
-# geneC_sub <- geneC[!is.na(match(rownames(geneC),tl$Location)),]
-# 
-# total <- cbind(type="Total",log10_Expression=log10(rowSums((cpm(geneC$counts)))))
-# target <- cbind(type="Target",log10_Expression=log10(rowSums((cpm(geneC_sub)))))
-# all_vals <- data.frame(rbind(total,target))
-# all_vals$log10_Expression <- as.numeric(as.character(all_vals$log10_Expression))
-# ggplot(all_vals,aes(log10_Expression,stat(density),colour=type)) +
-#   geom_freqpoly(bins=10) #+
-#   scale_fill_discrete(name = "Gene Expression Target vs Total", 
-#                       breaks=c("A", "B"), 
-#                       labels = c("1","2")) # plot
-# 
-# head(geneC_sub$counts)
-# sub_09 <- meta$ID[]
-# subgeneC_sub$counts
-```
+### Plan  
+  
+Using both gene and transcript count matrices generated using a `STAR` to `RSEM` workflow I wanted to examine differential expression using a standard linear fit modelling approach following a general `limma-voom` pipeline for the analysis. Within the pipeline I explore the impact of **two different filtering approaches** and **two different (but equivalent) linear model formula options**. The later was more of an exploration into the way in which `limma-voom` codes the model formula and how to approriately create contrasts.  
 
+### Differential expression workflow  
+* Round Counts, filter, and create DGEList with `edgeR`
+    * **Approach 1**: Filter out features with fewer than 1 count per million (cpm) in less than 6 individuals.  
+    * **Approach 2**: Filter out features with fewer than 1 count per million in at least one time*treatment level (n=5)  
+* Normalize Counts with `edgeR`  
+    * Using the **TMMswp** approach for normalization  
+* Create design matrix  
+    * **Option 1**: Design matrix that handles two explanatory factors (time and treatment) as a single categorical variable with 4 levels, making it easier to setup planned contrasts.
+    * **Option 2**: Design matrix that keep time and treat as separate 2 level factors and used the traditional `time*treatment` formula notation.  
+* Create contrasts  
+    * Contrasts only created using the design matrix from *Option 1*  
+* Transform and determine observational weights with `limma-voom`  
+    * Used the `voomWithQualityWeights()` approach  
+* Account for random tank effect  
+    * Used to account for a confounding tank effect I used the `duplicateCorrelation()` function from `limma`  
+* Fit linear model and perform empirical Bayes procedure  
+    * Used `lmFit()` with the `duplicateCorrelation` arguement to fit the linear model  
+    * Used `eBayes()` to perform the empirical Bayes procedure  
+* Create a list of Top Candidates  
+* Data Visualization and volcano plots  
+  
+### Round counts, filter, and create DGEList with `edgeR`  
+  
+* Counts are rounded prior to filtering and creating the DGEList object for downstream analysis  
+* Filter out uninformative features (ones with low coverage)  
+    * **Approach 1**: Here I used a more standard approach (threshold based on my conversation with Adam), which will filter out features that do not contain at least 1 count per million in at least six samples. **Rationale**: There are 4 distinct levels in this experimente, each with 6 samples. So if a feature is only expressed in one of the four levels than we might have a scenario where only 6 samples display some level of expression. **Downside**: This doesn't distinguish which experimental level each of the 6 samples originated from, so it's possible that the samples are not concentrated in any particular `treatment*time` combination. As a result, you could have a scenario were only 2 samples from each `treatment*time` level exhibit expression at a particular feature. A feature with this pattern will likely not be significant, but may be problematic if expression is high enough in the few individuals that exhibit expression.  
+    * **Approach 2**: This extends approach one, requiring a minimum number of samples that exhibit a cpm of at least 1 in 5 individual (rather than 6). However, this time it looks within each `treat*time` level to ensure that there is expression for at least 5 of the 6 individuals. **Rationale**: This approach helps with the potential downside of approach 1, by ensuring that feature expression if not ubiqutious across all samples is at least concentrated in one experiment level (what we might expect if one experimental level was significantly different than all other levels). **Downside**: This will be more conservative than approach 1 (although I would argue will more likely remove uninformative features), and may not handle individual variation as well as approach 1 (i.e. if two individuals lack expression within a particular treatment due individual level variation this will lead to the exclusion that feature). The current threshold attempts to account for this by relaxing the number of individuals that exhibit expression within a level (a minimum of 5 of the 6 individuals need to have at least 1 cpm). However, this could be relaxed further if we are filtering our too many features.  
+    
+```{r eval=TRUE,fig.width=10,fig.height=10}
+# Round to whole counts
+geneC_all <- round(geneC_full)
+tranC_all <- round(tranC_full)
 
-# Create DGEList and perform normalization
-```{r}
-geneC <- DGEList(geneC,genes = gene) # counts - rsem
-tranC <- DGEList(tranC,genes = tran) # counts - rsem
+### Approach 1  
+## Filtering criteria based on count representation in at least 6 samples (1 treatment)
+# Gene level
+keep_gene_a1 <- rowSums(cpm(geneC_all)>1) >= (6) # min six
+par(mfrow=c(2,1))
+hist(rowSums(cpm(geneC_all)>1),xlab="Num. of samples with at least 1 cpm",main="Filtering Thresholds (genes)")
+abline(v=6,col="red")
+paste0(sum(keep_gene_a1)," of ",summary_df$Num_Features[1]," genes kept after filtering (",
+       round(sum(keep_gene_a1)/summary_df$Num_Features[1]*100,2),"% remaining).")
+# Transcript level
+keep_tran <- rowSums(cpm(tranC_all)>1) >= (6)
+hist(rowSums(cpm(tranC_all)>1),xlab="Num. of samples with at least 1 cpm",main="Filtering Thresholds (transcripts)")
+abline(v=6,col="red")
+paste0(sum(keep_tran)," of ",summary_df$Num_Features[2]," transcripts kept after filtering (",
+       round(sum(keep_tran)/summary_df$Num_Features[2]*100,2),"% remaining).")
 
-keep_gene <- rowSums(cpm(geneC)>1) >= (0.5 * 24)
+### Approach 2 (for the moment just look at approach 2 in the context of genes)
+## Breaking down expression coverage by treatment*time combination
+#Day 9 Trt 2800
+keep_D9.2800 <- rowSums(cpm(geneC_all[,meta$SFVrn=="D09.2800"])>=1) >= 5
+sum(keep_D9.2800)
+#Day 9 Trt 400
+keep_D9.400 <- rowSums(cpm(geneC_all[,meta$SFVrn=="D09.400"])>=1) >= 5
+sum(keep_D9.400)
+#Day 80 Trt 2800
+keep_D80.2800 <- rowSums(cpm(geneC_all[,meta$SFVrn=="D80.2800"])>=1) >= 5
+sum(keep_D80.2800)
+#Day 80 Trt 400
+keep_D80.400 <- rowSums(cpm(geneC_all[,meta$SFVrn=="D80.400"])>=1) >= 5
+sum(keep_D80.400)
 
-keep_tran <- rowSums(cpm(tranC)>1) >= (0.5 * 24)
+hist(rowSums(cbind(keep_D9.2800,keep_D9.400,
+                                 keep_D80.2800,keep_D80.400)),main="Distribution of features shared among experimental levels for at least 5 individuals",xlab="Number of experimental levels meeting filtering criteria")
 
-geneC <- geneC[keep_gene, ]
+keep_gene_a2 <- rowSums(cbind(keep_D9.2800,keep_D9.400,
+                                 keep_D80.2800,keep_D80.400)) >= 1
+paste0(sum(keep_gene_a2)," of ",summary_df$Num_Features[1]," genes kept after filtering (",
+       round(sum(keep_gene_a2)/summary_df$Num_Features[1]*100,2),"% remaining).")
+
+# Filter genes - approach 1
+geneC_a1 <- geneC_all[keep_gene_a1, ]
+gene_final_a1 <- gene_order[keep_gene_a1,]
+# Filter genes - approach 2
+geneC_a2 <- geneC_all[keep_gene_a2, ]
+gene_final_a2 <- gene_order[keep_gene_a2,]
+#Filter transcripts - approach 1
+tranC_a1 <- tranC_all[keep_tran, ]
+tran_final <- tran_order[keep_tran, ]
+
+# Create DGEList
+dge_gene_a1 <- DGEList(geneC_a1,genes = gene_final_a1) # counts - rsem
+dge_gene_a2 <- DGEList(geneC_a2,genes = gene_final_a2) # counts - rsem
+dge_tran_a1 <- DGEList(tranC_a1,genes = tran_final) # counts - rsem
+
 #saveRDS(geneC,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_mapping/RSEM_output/GeneCountMatrix_Filtered_DGEListObj.RData")
-tranC <- tranC[keep_tran, ]
-dim(geneC)
-dim(tranC)
-
-gene_norm <- calcNormFactors(geneC)
-tran_norm <- calcNormFactors(tranC)
 ```
-
-Perform voom and lmFit
-```{r}
-### Design matrix (treating treatment and time as single factor variable to modelling purposes)
-#Make new design matrix
-design <- model.matrix(~0+SFVrn,data=meta)
+  
+### Normalization with edgeR  
+  
+**Note about TMMwsp method**: Stands for "TMM with singleton pairing". This is a variant of TMM that is intended to perform better for data with a high proportion of zeros. In the TMM method, genes that have zero count in either library are ignored when comparing pairs of libraries. In the TMMwsp method, the positive counts from such genes are reused to increase the number of features by which the libraries are compared. The singleton positive counts are paired up between the libraries in decreasing order of size and then a slightly modified TMM method is applied to the re-ordered libraries.  
+  
+**Other forms of normalization**: I tried the more standard `TMM` method as well as no normalization approach `method="none"`, but found little difference in the final output. I ended up sticking with the method that best seemed to handle the potential for zero gene expression. 
+  
+```{r eval=TRUE}
+# Calculate normalization factors for scaling raw lib. size
+dge_gene_a1_norm <- calcNormFactors(dge_gene_a1,method = "TMMwsp") # gene - approach 1
+dge_gene_a2_norm <- calcNormFactors(dge_gene_a2,method = "TMMwsp") # gene - approach 2
+dge_tran_a1_norm <- calcNormFactors(dge_tran_a1,method="TMMwsp")   # transcript - approach 1
+```
+  
+### Create design matrix
+  
+The linear model approach by `limma-voom` requires a design matrix that informs the model fitting function (`lmFit`) the assignment of each individual amongst the experimental levels (i.e. which treatment or time the individual belongs too). According to the `limma-voom` manual you can code this matrix in different ways yet still arrive at equivalent answers (similar to most other linear modeling functions). I decide on two options that represent equivalent ways of representing the different levels of the experiment, but have different default contrasts. *Option 1* handles each treatment and time combination as seperate levels (single factor with 4 total experimental levels), while *Option 2* maintains them as separate 2 level factors. Page 45 of the manual.
+  
+**Design matrix specifics**  
+  
+* Option 1: **design** - Combining time (2 level factor) and treatment (2 level factor) into a single 4 level explanatory factor for the purpose of making the specific contrasts (planned comparisons easier to code). This was a stragey implemented in the limma manual.  
+    * Single explanatory factory - **SFVrn** - "D09.2800" "D09.400"  "D80.2800" "D80.400"  
+  
+* Option 2: **design_alt** - Treatment and time handled as separate factors, using "*" to indicate the inclusion of an interaction.  
+    * Time - "09" "80"  
+    * Treatment - "400"  "2800"  
+    
+```{r eval=TRUE}
+## Option 1
+design <- model.matrix(~0+SFVrn,data=meta) # 0+ is needed here otherwise the first level defaults to 1.
 #Rename columns
 colnames(design) <- levels(meta$SFVrn)
-#Create specific contrasts
+## Option 2
+design_alt <- model.matrix(~Treatment*Time,data=meta)
+```
+
+### Contrasts using `design` matrix  
+  
+Using the **Option 1** matrix it is easier to perform some of the focal contrasts that I was particularly interested in. Specifically, I was interested in three primary contrasts + the interaction:  
+1) CvE_D9 : Difference between ambient and OA at day 9  
+2) CvE_D80 : Difference between ambient and OA at day 80  
+3) C_D9D80 : Difference at ambient between day 9 and day 80  
+4) Diff : Interaction between treatment and time  
+  
+* In this case the Diff should be equivalent to the interaction (`Treatment:Time`) from *Option 2*
+  
+```{r eval=TRUE}
+#Create specific contrasts for option 1
 contr_mat <- makeContrasts(
   CvE_D9 = D09.2800-D09.400,
   CvE_D80 = D80.2800-D80.400,
@@ -112,79 +283,352 @@ contr_mat <- makeContrasts(
   Diff = (D09.2800-D09.400)- (D80.2800-D80.400),
   levels=design
 )
+```
+  
+### Transform and create observational level weights  
+  
+* Use `voomWithQualityWeights` from `limma` package  
+  * Part of limma package. Will transform count data to log2-count per million (logCPM), and estimate the mean-variance relationship. This will then be leveraged to compute the appropriate observation-level weights.  
+  
+**Note**: I am performing the transformation on both filtered gene sets (a1 vs a2) and passing along both design matrices (o1 vs. o2). At a result there will be 4 different gene feature objects and 1 transcript feature (a1 + o1) object.  
+  
+```{r eval=TRUE,fig.width=10}
+## Gene Features - Filtering approach 1 - Model option 1
+dge_gene_a1_o1_voom <- voomWithQualityWeights(dge_gene_a1_norm,design,plot = TRUE)
+# Simple MDS with samples colored by their treatment x time levels
+plotMDS(dge_gene_a1_o1_voom,col=as.numeric(interaction(meta$treatment,meta$timepoint)),main="Samples by Treatment and Timepoint - Genes")
+# Simple MDS with samples colored by their site
+plotMDS(dge_gene_a1_o1_voom,col=as.numeric(meta$Pop),main="Samples by Site - Genes")
+## Gene Features - Filtering approach 2 - Model option 1
+dge_gene_a2_o1_voom <- voomWithQualityWeights(dge_gene_a2_norm,design,plot = TRUE)
+## Gene Features - Filtering approach 1 - Model option 2
+dge_gene_a1_o2_voom <- voomWithQualityWeights(dge_gene_a1_norm,design_alt,plot = TRUE)
+## Gene Features - Filtering approach 1 - Model option 2
+dge_gene_a2_o2_voom <- voomWithQualityWeights(dge_gene_a2_norm,design_alt,plot = TRUE)
 
-### Voom 
-gene_voom <- voom(gene_norm,design,plot = TRUE)
-plotMDS(gene_voom,col=as.numeric(meta$Treatment),main="Genes")
-tran_voom <- voom(tran_norm, design,plot = TRUE)
-plotMDS(tran_norm,col=as.numeric(meta$Treatment),main="Transcripts")
+## Transcript Features - Filtering approach 1 - Model option 1
+tran_voom <- voomWithQualityWeights(dge_tran_a1_norm, design,plot = TRUE)
+# Simple MDS with samples colored by their treatment x time levels
+plotMDS(tran_voom,col=as.numeric(interaction(meta$treatment,meta$timepoint)),main="Samples by Treatment and Timepoint - Transcripts")
+# Simple MDS with samples colored by their site
+plotMDS(tran_voom,col=as.numeric(meta$Pop),main="Samples by Site - Transcripts")
+```
+  
+Looks like based on the mean-variance plots the relationship between sd or variance and expression looks reasonable for gene and transcript features and for either filtering approach.
 
+### Check lib. size by treatment + time after individual weight correction  
+```{r fig.width=10,eval=TRUE,echo=FALSE,fig.height=20}
+par(mfrow=c(3,1))
+plot(colSums(dge_gene_a1_o1_voom$weights)~meta$SFVrn,
+     main="Gene Lib. - Approach 1",ylab="Lib. size after voom weighted correction")
+plot(colSums(dge_gene_a2_o1_voom$weights)~meta$SFVrn,
+     main="Gene Lib. - Approach 2",ylab="Lib. size after voom weighted correction")
+plot(colSums(tran_voom$weights)~meta$SFVrn,
+     main="Tran Lib. - Approach 1",ylab="Lib. size after voom weighted correction")
+```
+  
+### Identify correlation between factors in design contrasts with blocking factor
+  
+* Use `duplicateCorrelation` from `limma` package  
+    * Estimate the correlation between technical replicates within the experiment. In this case tanks were replicate treatments (6 tanks per treatment). Each tank has two individuals (one from each timepoint).  12 tanks x 2 individuals = 24 samples.  
+    
+**Note**: Same as `voom` transformation, the 4 gene feature objects are used and the 1 transcript feature.
 
-# Identify correlation between factors in design contrasts with blocking factor
-gene_cor <- duplicateCorrelation(gene_voom, design, block = meta$tankID)
-# Identify correlation between factors in design contrasts with blocking factor
+```{r eval=TRUE}
+
+#Genes
+gene_a1_o1_cor <- duplicateCorrelation(dge_gene_a1_o1_voom, design, block = meta$tankID)
+gene_a1_o2_cor <- duplicateCorrelation(dge_gene_a1_o2_voom, design_alt, block = meta$tankID)
+gene_a2_o1_cor <- duplicateCorrelation(dge_gene_a2_o1_voom, design, block = meta$tankID)
+gene_a2_o2_cor <- duplicateCorrelation(dge_gene_a2_o2_voom, design_alt, block = meta$tankID)
+# Transcript
 tran_cor <- duplicateCorrelation(tran_voom, design, block = meta$tankID)
 
-#Rerun lmFit model w/ blocking factor
-#genes
-gene_fit_contr <- lmFit(gene_voom, design,
+# Ran this model with and without this step. It doesn't seem to impact the outcome all that much.
+```
+  
+### Run `lmFit` model and `Ebayes` from `limma`  
+  
+**Fitting Model without contrasts**
+```{r eval=TRUE}
+#Genes
+lmf_gene_a1_o1 <- lmFit(dge_gene_a1_o1_voom, design,
                         block = meta$tankID,
-                        correlation = gene_cor$consensus.correlation)
-#transcripts
-tran_fit_contr <- lmFit(tran_voom, design,
+                        correlation = gene_a1_o1_cor$consensus.correlation)
+lmf_gene_a1_o2 <- lmFit(dge_gene_a1_o2_voom, design_alt,
+                        block = meta$tankID,
+                        correlation = gene_a1_o2_cor$consensus.correlation)
+lmf_gene_a2_o1 <- lmFit(dge_gene_a2_o1_voom, design,
+                        block = meta$tankID,
+                        correlation = gene_a2_o1_cor$consensus.correlation)
+lmf_gene_a2_o2 <- lmFit(dge_gene_a2_o2_voom, design_alt,
+                        block = meta$tankID,
+                        correlation = gene_a2_o2_cor$consensus.correlation)
+
+#Transcripts
+lmf_tran <- lmFit(tran_voom, design,
                         block = meta$tankID,
                         correlation = tran_cor$consensus.correlation)
 
-#Refit with contrasts
-gene_fit2_contr <- contrasts.fit(gene_fit_contr,contr_mat)
-tran_fit2_contr <- contrasts.fit(tran_fit_contr,contr_mat)
-#Run in eBayes
-gene_fit2_contr <- eBayes(gene_fit2_contr,robust = TRUE)
-tran_fit2_contr <- eBayes(tran_fit2_contr)
-saveRDS(gene_fit2_contr,"/home/downeyam/Github/2017OAExp_Oysters/results/DiffExpression_gene_Limma_voom_summaryObject.RData")
-saveRDS(tran_fit2_contr,"/home/downeyam/Github/2017OAExp_Oysters/results/DiffExpression_transcript_Limma_voom_summaryObject.RData")
+#Run in eBayes first w/o contrasts
+# Genes
+bayes_gene_a1_o1_simple <- eBayes(lmf_gene_a1_o1,robust=TRUE)
+bayes_gene_a1_o2_simple <- eBayes(lmf_gene_a1_o2,robust=TRUE)
+bayes_gene_a2_o1_simple <- eBayes(lmf_gene_a2_o1,robust=TRUE)
+bayes_gene_a2_o2_simple <- eBayes(lmf_gene_a2_o2,robust=TRUE)
+
+# Transcript
+bayes_tran_simple <- eBayes(lmf_tran,robust = TRUE)
+```
+  
+**Refitting Option 1 with contrasts**  
+```{r eval=TRUE}
+# Genes - Filtering approach 1
+lmf_gene_a1_o1_wContr <- contrasts.fit(lmf_gene_a1_o1,contr_mat)
+# Genes -Filtering approach 2
+lmf_gene_a2_o1_wContr <- contrasts.fit(lmf_gene_a1_o1,contr_mat)
+#Transcripts 
+lmf_tran_wContr <- contrasts.fit(lmf_tran,contr_mat)
+
+#Run in eBayes w contrasts
+#Genes
+bayes_gene_a1_o1_contr <- eBayes(lmf_gene_a1_o1_wContr,robust=TRUE)
+bayes_gene_a2_o1_contr <- eBayes(lmf_gene_a2_o1_wContr,robust=TRUE)
+#Transcript
+bayes_tran_contr <- eBayes(lmf_tran_wContr,robust=TRUE)
+
+#saveRDS(gene_fit2_contr,"/home/downeyam/Github/2017OAExp_Oysters/results/DiffExpression_gene_Limma_voom_summaryObject.RData")
+#saveRDS(tran_fit2_contr,"/home/downeyam/Github/2017OAExp_Oysters/results/DiffExpression_transcript_Limma_voom_summaryObject.RData")
+```
+  
+### Top Candidate Tables  
+
+**Gene Feature - Approach 1 - Option 1 (without contrasts)**  
+
+I run this chunk to show the default output from the single explanatory (4 level) model formula option, but really this model should only be examined within the context of the planned contrasts (next chunk).  
+
+```{r eval=TRUE}
+par(mfrow=c(1,1))
+#topTable(bayes_gene_a1_o1_simple)
+kable((toGene <- topTable(bayes_gene_a1_o1_simple)))%>%
+    kable_styling() %>%
+    scroll_box(width = "90%", height = "250px")
+# Boxplot for top target gene 
+boxplot(log10(unlist(geneC_all[rownames(geneC_all)==rownames(toGene)[1],]))~meta$SFVrn,
+        ylab="log10 Expression",
+        xlab="Treatment*Time Levels",
+        main="")
 ```
 
-Checking out top hits and volcano plots
-```{r}
-(toGene <- topTable(gene_fit2_contr))
-(topTran <- topTable(tran_fit2_contr))
-head(gene_fit2_contr$genes$predict)
-expressionSum <- data.frame(meanExpression=gene_fit2_contr$Amean,gene_fit2_contr$coefficients,predict=gene_fit2_contr$genes$predict)
-expressionSum_target <- expressionSum[!is.na(match(rownames(expressionSum),tl$Location)),]
-expressionSum_target <- expressionSum_target[order(rownames(expressionSum_target)),]
-write.csv(expressionSum_target,"/home/downeyam/Github/2017OAExp_Oysters/results/expressionTargetGenes_results_20190811.csv")
-head(gene_fit2_contr$t)
-gene_fdr <- fdrtool(gene_fit2_contr$t[,1])
-tran_fdr <- fdrtool(tran_fit2_contr$t[,4])
-min(gene_fdr$qval)
-min(tran_fdr$qval)
-# CvE_D9
-plot(-log(gene_fit2_contr$p.value[,1])~gene_fit2_contr$coefficients[,1],
-     xlab="Log2Fold Change",ylab="-log(p)")
-temp <- !is.na(match(rownames(gene_fit2_contr),topTran$GENEID))
-sub_top_c <- gene_fit2_contr$coefficients[temp,1]
-sub_top_p <- gene_fit2_contr$p.value[temp,1]
-points(-log(sub_top_p)~sub_top_c,col="red",pch=16)
-# CvE_D80
-plot(-log(gene_fit2_contr$p.value[,2])~gene_fit2_contr$coefficients[,2],
-     xlab="Log2Fold Change",ylab="-log(p)")
-temp <- !is.na(match(rownames(gene_fit2_contr),topTran$GENEID))
-sub_top_c <- gene_fit2_contr$coefficients[temp,2]
-sub_top_p <- gene_fit2_contr$p.value[temp,2]
-points(-log(sub_top_p)~sub_top_c,col="red",pch=16)
-# C_D9vD80
-plot(-log(gene_fit2_contr$p.value[,3])~gene_fit2_contr$coefficients[,2],
-     xlab="Log2Fold Change",ylab="-log(p)")
-temp <- !is.na(match(rownames(gene_fit2_contr),topTran$GENEID))
-sub_top_c <- gene_fit2_contr$coefficients[temp,3]
-sub_top_p <- gene_fit2_contr$p.value[temp,3]
-points(-log(sub_top_p)~sub_top_c,col="red",pch=16)
-# Difference
-plot(-log(gene_fit2_contr$p.value[,4])~gene_fit2_contr$coefficients[,4],
-     xlab="Log2Fold Change",ylab="-log(p)")
-temp <- !is.na(match(rownames(gene_fit2_contr),topTran$GENEID))
-sub_top_c <- gene_fit2_contr$coefficients[temp,4]
-sub_top_p <- gene_fit2_contr$p.value[temp,4]
-points(-log(sub_top_p)~sub_top_c,col="red",pch=16)
+**Gene Feature - Approach 1 - Option 1 (with contrasts)**  
+```{r eval=TRUE}
+par(mfrow=c(1,1))
+#topTable(bayes_gene_a1_o1_contr)
+kable((toGene <- topTable(bayes_gene_a1_o1_contr)))%>%
+    kable_styling() %>%
+    scroll_box(width = "90%", height = "250px")
+# Boxplot for top target gene 
+boxplot(log10(unlist(geneC_all[rownames(geneC_all)==rownames(toGene)[1],]))~meta$SFVrn,
+        ylab="log10 Expression",
+        xlab="Treatment*Time Levels",
+        main="")
+
+#Summary Table
+kable(summary(decideTests(bayes_gene_a1_o1_contr,adjust.method = "fdr",p.value=0.05)))%>%
+  kable_styling()
+
+# Adjusted p-value histogram
+hist(bayes_gene_a1_o1_contr$p.value[,2],xlim=c(0,1),breaks=100,main="",xlab="Adj. p-value")
 ```
+  
+**Gene Feature - Approach 1 - Option 2**  
+```{r eval=TRUE}
+par(mfrow=c(1,1))
+#topTable(bayes_gene_a1_o2_simple)
+kable((toGene <- topTable(bayes_gene_a1_o2_simple)))%>%
+    kable_styling() %>%
+    scroll_box(width = "90%", height = "250px")
+# Boxplot for top target gene 
+boxplot(log10(unlist(geneC_all[rownames(geneC_all)==rownames(toGene)[1],]))~meta$SFVrn,
+        ylab="log10 Expression",
+        xlab="Treatment*Time Levels",
+        main="")
+
+#Summary Table
+kable(summary(decideTests(bayes_gene_a1_o2_simple,adjust.method = "fdr",p.value=0.05))) %>%
+  kable_styling()
+
+# Adjusted p-value histogram
+hist(bayes_gene_a1_o2_simple$p.value[,2],xlim=c(0,1),breaks=100,main="",xlab="Adj. p-value")
+```
+  
+**Gene Feature - Approach 2 - Option 1 (without contrasts)**  
+
+I don't run this chunk because as explained above the actual default contrasts don't have much meaning even if significant. We really only care about utilizing this formula in the context of our planned contrasts.  
+
+```{r eval=FALSE}
+par(mfrow=c(1,1))
+#topTable(bayes_gene_a2_o1_simple)
+kable((toGene <- topTable(bayes_gene_a2_o1_simple)))%>%
+    kable_styling() %>%
+    scroll_box(width = "90%", height = "250px")
+# Boxplot for top target gene 
+boxplot(log10(unlist(geneC_all[rownames(geneC_all)==rownames(toGene)[1],]))~meta$SFVrn,
+        ylab="log10 Expression",
+        xlab="Treatment*Time Levels",
+        main="")
+# Adjusted p-value histogram
+hist(bayes_gene_a2_o1_simple$p.value[,2],xlim=c(0,1),breaks=100,main="",xlab="Adj. p-value")
+```  
+  
+**Gene Feature - Approach 2 - Option 1 (with contrasts)**  
+```{r eval=TRUE}
+par(mfrow=c(1,1))
+#topTable(bayes_gene_a2_o1_contr)
+kable((toGene <- topTable(bayes_gene_a2_o1_contr)))%>%
+    kable_styling() %>%
+    scroll_box(width = "90%", height = "250px")
+# Boxplot for top target gene 
+boxplot(log10(unlist(geneC_all[rownames(geneC_all)==rownames(toGene)[1],]))~meta$SFVrn,
+        ylab="log10 Expression",
+        xlab="Treatment*Time Levels",
+        main="")
+
+#Summary Table
+kable(summary(decideTests(bayes_gene_a2_o1_contr,adjust.method = "fdr",p.value=0.05))) %>%
+  kable_styling()
+
+#Alternative p-value value correction approach approach
+bayes_gene_a2_o1_contr_qval <- fdrtool(bayes_gene_a2_o1_contr$t[,1],statistic = "normal",verbose = FALSE,plot=FALSE)
+bayes_gene_a2_o1_contr_qval$qval[bayes_gene_a2_o1_contr_qval$qval < 0.05]
+  
+# Adjusted p-value histogram
+hist(bayes_gene_a2_o1_contr$p.value[,2],xlim=c(0,1),breaks=100,main="",xlab="Adj. p-value")
+```
+
+**Transcript Feature - Approach 1 - Option 1 (with contrasts)**
+```{r eval=TRUE}
+par(mfrow=c(1,1))
+#topTable(bayes_tran_contr,adjust="fdr",p.value=0.2, number=Inf ,resort.by="P")
+
+kable((toTran <- topTable(bayes_tran_contr,adjust="fdr",p.value=0.05, number=Inf ,resort.by="P")))%>%
+    kable_styling() %>%
+    scroll_box(width = "90%", height = "250px")
+# Boxplot for top target gene 
+boxplot(log10(unlist(tranC_all[rownames(tranC_all)==rownames(toTran)[1],]))~meta$SFVrn,
+        ylab="log10 Expression",
+        xlab="Treatment*Time Levels",
+        main="")
+
+#Summary Table
+kable(summary(decideTests(bayes_tran_contr,adjust.method = "fdr",p.value=0.05))) %>%
+  kable_styling()
+
+# Checking if p-value correction gives similar results using alternative approach (fdrtools)
+out.min <- fdrtool(bayes_tran_contr$t[,1],verbose = FALSE,plot=FALSE)
+out.min$qval[out.min$qval < 0.05]
+
+# Adjusted p-value histogram
+hist(bayes_tran_contr$p.value[,2],xlim=c(0,1),breaks=100,main="",xlab="Adj. p-value")
+```
+
+## Data Visualization  
+
+### Volcano Plots - Gene Feature - Approach 2 - Option 1 with contrasts  
+```{r eval=TRUE,echo=FALSE,fig.width=10}
+par(mfrow=c(2,2))
+plot(-log10(bayes_gene_a2_o1_contr$p.value[,1])~bayes_gene_a2_o1_contr$coefficients[,1],
+     xlab="Log2Fold Change",
+     ylab="-log10(p)",
+     main="Ambient vs. Exposed - Day 9")
+plot(-log10(bayes_gene_a2_o1_contr$p.value[,2])~bayes_gene_a2_o1_contr$coefficients[,2],
+     xlab="Log2Fold Change",
+     ylab="-log10(p)",
+     main="Ambient vs. Exposed - Day 80")
+plot(-log10(bayes_gene_a2_o1_contr$p.value[,3])~bayes_gene_a2_o1_contr$coefficients[,3],
+     xlab="Log2Fold Change",
+     ylab="-log10(p)",
+     main="Day 9 vs Day 80 - Control")
+plot(-log10(bayes_gene_a2_o1_contr$p.value[,4])~bayes_gene_a2_o1_contr$coefficients[,4],
+     xlab="Log2Fold Change",
+     ylab="-log10(p)",
+     main="2 factor Interaction (CvEDay9 - CvEDay80)")
+```
+  
+### Volcano Plots - Option Comparison
+```{r fig.width=12,fig.height=20, eval=TRUE,echo=FALSE}
+par(mfrow=c(3,3))
+# Approach 1 - Option 1 
+plot(-log10(bayes_gene_a1_o1_contr$p.value[,1])~bayes_gene_a1_o1_contr$coefficients[,1],
+     xlab="Log2Fold Change",xlim=c(-8,15),
+     ylab="-log10(p)",
+     main="Approach 1 - Option 1 - Ambient vs. Exposed - Day 9")
+plot(-log10(bayes_gene_a1_o1_contr$p.value[,2])~bayes_gene_a1_o1_contr$coefficients[,2],
+     xlab="Log2Fold Change",xlim=c(-8,8),
+     ylab="-log10(p)",
+     main="Approach 1 - Option 1  - Day 9 vs. Day 80 - Ambient")
+plot(-log10(bayes_gene_a1_o1_contr$p.value[,4])~bayes_gene_a1_o1_contr$coefficients[,4],
+     xlab="Log2Fold Change",xlim=c(-8,8),
+     ylab="-log10(p)",
+     main="Approach 1 - Option 1  - Interaction")
+# Approach 1 - Option 2 
+plot(-log10(bayes_gene_a1_o2_simple$p.value[,2])~bayes_gene_a1_o2_simple$coefficients[,2],
+     xlab="Log2Fold Change",xlim=c(-8,15),
+     ylab="-log10(p)",
+     main="Approach 1 - Option 2 - Ambient vs. Exposed - Day 9")
+plot(-log10(bayes_gene_a1_o2_simple$p.value[,3])~bayes_gene_a1_o2_simple$coefficients[,3],
+     xlab="Log2Fold Change",xlim=c(-8,8),
+     ylab="-log10(p)",
+     main="Approach 1 - Option 2  - Day 9 vs. Day 80 - Ambient")
+plot(-log10(bayes_gene_a1_o2_simple$p.value[,4])~bayes_gene_a1_o2_simple$coefficients[,4],
+     xlab="Log2Fold Change",xlim=c(-8,8),
+     ylab="-log10(p)",
+     main="Approach 1 - Option 2  - Interaction")
+# Approach 2 - Option 1
+plot(-log10(bayes_gene_a2_o1_contr$p.value[,1])~bayes_gene_a2_o1_contr$coefficients[,1],
+     xlab="Log2Fold Change",xlim=c(-8,15),
+     ylab="-log10(p)",
+     main="Approach 2 - Option 1 - Ambient vs. Exposed - Day 9")
+plot(-log10(bayes_gene_a2_o1_contr$p.value[,2])~bayes_gene_a2_o1_contr$coefficients[,2],
+     xlab="Log2Fold Change",xlim=c(-8,8),
+     ylab="-log10(p)",
+     main="Approach 2 - Option 1  - Day 9 vs. Day 80 - Ambient")
+plot(-log10(bayes_gene_a2_o1_contr$p.value[,4])~bayes_gene_a2_o1_contr$coefficients[,4],
+     xlab="Log2Fold Change",xlim=c(-8,8),
+     ylab="-log10(p)",
+     main="Approach 2 - Option 1  - Interaction")
+```
+
+### Volcano Plots - Transcript Feature - Approach 1 - Option 1 with contrasts  
+```{r eval=TRUE,echo=FALSE,fig.width=10}
+par(mfrow=c(2,2))
+plot(-log10(bayes_tran_contr$p.value[,1])~bayes_tran_contr$coefficients[,1],
+     xlab="Log2Fold Change",
+     ylab="-log10(p)",
+     main="Ambient vs. Exposed - Day 9")
+plot(-log10(bayes_tran_contr$p.value[,2])~bayes_tran_contr$coefficients[,2],
+     xlab="Log2Fold Change",
+     ylab="-log10(p)",
+     main="Ambient vs. Exposed - Day 80")
+plot(-log10(bayes_tran_contr$p.value[,3])~bayes_tran_contr$coefficients[,3],
+     xlab="Log2Fold Change",
+     ylab="-log10(p)",
+     main="Day 9 vs Day 80 - Control")
+plot(-log10(bayes_tran_contr$p.value[,4])~bayes_tran_contr$coefficients[,4],
+     xlab="Log2Fold Change",
+     ylab="-log10(p)",
+     main="2 factor Interaction (CvEDay9 - CvEDay80)")
+```
+  
+### Findings  
+  
+Seems like no matter how you run the pipeline the findings are the same. We don't have strong evidence of differential expression to OA at either the gene or transcript level. As far as I can tell the count data looks reasonable, and after debugging I see no obvious issues with any of the pipeline steps or the code leading me to believe that this observation is real. It is interesting that despite not finding statistically significant differences (after multiple hypothesis correction), we can see some interesting patterns when we plot the actual expression of specific genes or transcripts. This could suggest that some of the features are in fact response to OA, but that response is not exagerated enough to be significant with the current experiment and sample size.  
+  
+### Other Thoughts  
+  
+1) **Comparing filtering approaches**: Both approaches retain a similar number of genes. **Approach 1** retained 23743 genes (~60%), while **approach 2** retained 20387 genes (53%). This suggest that as expected **approach 2** tend to be more conservative. Looking at the top candidates list neither filtering approach seemed to impact the over all outcome as they both recovered seemingly the same top candidates (even if they weren't significant).  
+  
+2) **Comparing different factorial model formulas**: Comparing equivalent contrasts between option 1 and 2 gave what appear to be identical results (based on looking at the volcano plots).  This suggests using the single factor (4 level) approach is fine, although it's important to only consider the the specific constrasts created using this formula. The defaults produced do not have much meaning, and deceptively seem to suggest that many of the features may be significant.  
+  
+3) **Gene vs. Transcript Features**: Similar to the gene level analysis, there wasn't much evidence of differential expression of the transcripts (isoforms). Interestingly, the top candidate lists were not equivalent between gene and transcript level features, potentially highlighting that certain isoforms may be particularly responsive to certain treatments, but the signal may be swamped out at the gene level which considered all isoforms for that gene. However, at this point it is difficult to say since we didn't much evidence of differential expression at either level.  
+  

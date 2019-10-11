@@ -71,7 +71,8 @@ tximportDF$predict <- as.character(tximportDF$predict)
 
 ### Subset genome GFF file and adding GO terms #####
 fa_gff <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/KM_002022765.2_CV_3.0_geome.gff",sep = "\t",skip=8,header=FALSE)
-## CDS with GOTerms ##
+
+#### CDS with GOTerms ####
 ## Creating GO term protein - gene LOC file ##
 fa_gff_CDS <- fa_gff[as.character(fa_gff$V3)=="CDS",]
 fa_gff_CDS <- fa_gff_CDS[as.character(fa_gff_CDS$V2)=="RefSeq"]
@@ -90,17 +91,20 @@ CDS_full <- data.frame(chr=as.character(fa_gff_CDS$V1),method=as.character(fa_gf
                        gene_id=gff_gene,protein_id=gff_Prot)
 go_file <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/XP_sequences_Cvirginica_GCF_002022765.2_GO_Final.tab",colClasses = c(rep("character",times=6)))
 CDS_wGO <- merge(CDS_full,go_file,by.x = "protein_id",by.y = "SeqName",all.x = TRUE)
+head(CDS_wGO)
 saveRDS(CDS_wGO,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/CDS_wGoTerms_GeneLOC.RData")
 
-## For Exons ##
+#### For Exons ####
+fa_gff[1,]
 fa_gff_exon <- fa_gff[as.character(fa_gff$V3)=="exon",]
 fa_gff_exon <- fa_gff_exon[as.character(fa_gff_exon$V2)!="RefSeq",]
 exon_attr <- sub("(.*transcript_id=.{14}?).*","\\1",as.character(fa_gff_exon$V9),perl=TRUE)
 #Subsetting different attributes
-gff_ID <- sub("ID=(.+?);Parent=(.+?);.*gene=(.+?);.*transcript_id=(.{14})","\\1",exon_attr,perl=TRUE)
-gff_parent <- sub("ID=(.+?);Parent=(.+?);.*gene=(.+?);.*transcript_id=(.{14})","\\2",exon_attr,perl=TRUE)
-gff_gene <- sub("ID=(.+?);Parent=(.+?);.*gene=(.+?);.*transcript_id=(.{14})","\\3",exon_attr,perl=TRUE)
-gff_Prot <- sub("ID=(.+?);Parent=(.+?);.*gene=(.+?);.*transcript_id=(.{14})","\\4",exon_attr,perl=TRUE)
+gff_ID <- sub(".*ID=(.*?);.*","\\1",exon_attr,perl=TRUE)
+gff_parent <- sub(".*Parent=(.*?);.*","\\1",exon_attr,perl=TRUE)
+gff_gene <- sub(".*gene=(.*?);.*","\\1",exon_attr,perl=TRUE)
+gff_Prot <- sub(".*transcript_id=(.*?)","\\1",exon_attr,perl=TRUE)
+gff_Prot[substr(gff_Prot,1,1) != "X"] <- "NA" #Should change transcript_id to NA if missing proper ID
 
 exon_full <- data.frame(cbind(chr=as.character(fa_gff_exon$V1),
                         method=as.character(fa_gff_exon$V2),
@@ -124,11 +128,31 @@ exon_full$Parent <- as.character(exon_full$Parent)
 exon_full$gene_id <- as.character(exon_full$gene_id)
 exon_full$transcript_id <- as.character(exon_full$transcript_id)
 saveRDS(exon_full,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/Exon_GeneLoc.RData")
+### Notes
+# I found that the exon ids are unique but not quite continuous (a larger id range than there are number of ids), this appears to
+# a product of the .gff file, which appears to skip 9 ids with at least one occuring at a chromosome boundary. This should really impact
+# anything downstream, but helps explain why we are seemingly missing a few ids.
+
+## Alt Exon .gff file
+gff_exon_atr_partial <- sub("ID=(.+?);(.+?)","\\2",exon_attr,perl=TRUE)
+gff_exon_atr_update <- paste0("ID=",gff_gene,"_",gff_ID,";",gff_exon_atr_partial)
+exon_gff <- data.frame(fa_gff_exon[,1:8],gff_exon_atr_update)
+exon_gff[1,]
+write.table(exon_gff,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/Exons.gff",
+            sep="\t",col.names = FALSE,row.names = FALSE,quote = FALSE)
+
+fa_gff[144045:144055,]
+fa_gff[3305:3315,]
+exon_full[1575,]
+fa_gff_exon[1575,]
 
 ## Gene ##
-fa_gff_gene <- fa_gff[as.character(fa_gff$V3)=="gene",]
+fa_gff_gene <- fa_gff[(as.character(fa_gff$V3)=="gene" | as.character(fa_gff$V3)=="pseudogene"),]
 fa_gff_gene <- fa_gff_gene[as.character(fa_gff_gene$V2)!="RefSeq",]
+nrow(fa_gff_gene)
 gene_attr <- sub("(.*gene_biotype=.{*}?).*","\\1",as.character(fa_gff_gene$V9),perl=TRUE)
+
+gff_gene <- sub("ID=(.+?);.*gene=(.+?);.*","\\2",gene_attr,perl=TRUE)
 #Subsetting different attributes
 gff_ID <- sub("ID=(.+?);.*gene=(.+?);.*","\\1",gene_attr,perl=TRUE)
 #gff_parent <- sub("ID=(.+?);Parent=(.+?);.*gene=(.+?);.*gene_biotype=(.{14})","\\2",gene_attr,perl=TRUE)
