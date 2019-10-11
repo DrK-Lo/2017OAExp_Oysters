@@ -37,9 +37,9 @@ for (i in 1:length(bioc_packages_needed)){
 }
 ```
 
+ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/002/022/765/GCF_002022765.2_C_virginica-3.0/GCF_002022765.2_C_virginica-3.0_genomic.gff.gz
 
 ```{r, load gff}
-ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/002/022/765/GCF_002022765.2_C_virginica-3.0/GCF_002022765.2_C_virginica-3.0_genomic.gff.gz
 
 if(!file.exists("_ncbi_downloads")){
   gff.file <- getGFF(organism="Crassostrea virginica", gunzip=TRUE)
@@ -76,6 +76,8 @@ features <- rtracklayer::import(gff.file)
 head(features)
 seqnames(features)
 chrs <- as.character(seqnames(features)@values[1:10])
+
+levels(features$type)
 genes <- features[features$type=="gene" ,]
 exons <- features[features$type=="exon",]
 
@@ -101,6 +103,12 @@ kp <- plotKaryotype(genome=CV.genome[1:10], ideogram.plotter = NULL, chromosomes
 #kpAddCytobandsAsLine(kp)
 kpPlotDensity(kp, data=exons,window.size = 100000, col=adjustcolor("blue", 0.5), lwd=0.5, border=adjustcolor("blue", 0.5), r0=0, r1=1)
 kpPlotDensity(kp, data=genes,window.size = 100000, col=adjustcolor("red", 0.3), lwd=0.5, data.panel=2, r0=0, r1=-1)
+
+kp <- plotKaryotype(genome=CV.genome[1:10], ideogram.plotter = NULL, chromosomes=chrs, plot.type=2)
+kpAddCytobandsAsLine(kp)
+kpPlotDensity(kp, data=exons,window.size = 100000, col=adjustcolor("blue", 0.5), lwd=0.5, border=adjustcolor("blue", 0.5), data.panel=1)
+kpPlotDensity(kp, data=genes,window.size = 100000, col=adjustcolor("red", 0.3), lwd=0.5, data.panel=2) #this should plot on the bottom, but doesn't seem to work
+
 ```
 
 The first three required BED fields are:
@@ -117,24 +125,29 @@ Data from Alan Downey-Wall 2017 exposure experiment
 
 `CG_unstranded_BetaMatrix.RData` represents the beta values for each individual at all potential CpG sites based on the oyster genome. In this file i destranded paired CpG cytosines prior to calculating the beta value. The two important complimentary files to this one are  `CG_unstranded_summaryTable.RData` for relevant CpG position information and `CG_unstranded_TotalCountMatrix.RData` for the coverage.
 
+These files contain all cpgs identified by Bismarck using the oyster genome. It has not been filtered.
+
 Remove 17099 because of low coverage and high % duplicated reads.
 
-```{r}
+```{r load mantle data}
 
 list.files("~/Google Drive/LotterhosLab/2017-2020-Oyster OA Epigenetics/2017_CV_AdultExposureExp/Data/DNAm/Data/")
 mantle <- readRDS("~/Google Drive/LotterhosLab/2017-2020-Oyster OA Epigenetics/2017_CV_AdultExposureExp/Data/DNAm/Data/CG_unstranded_BetaMatrix.RData")
 colnames(mantle) <- paste0("s", colnames(mantle))
+head(mantle)
 
-#mantle <- as.data.frame(mantle)
-mantle1 <- data.table(mantle)
+mantle1 <- as.data.frame(mantle) # takes afew seconds
+#mantle1 <- data.table(mantle) # gives error with dplyr functions
 head(mantle1)
 
-mantle2 <- mantle1 %>% select(-c(s17099)) %>% mutate(betamean = rowMeans(mantle1))
+mantle2 <- mantle1 %>% dplyr::select(-c(s17099)) %>% dplyr::mutate(betamean = rowMeans(mantle1))
 mantle2$pos <- rownames(mantle)
 head(mantle2)
 rm(mantle, mantle1)
 
 mantle_pos <- readRDS("~/Google Drive/LotterhosLab/2017-2020-Oyster OA Epigenetics/2017_CV_AdultExposureExp/Data/DNAm/Data/CG_unstranded_summaryTable.RData")
+names(mantle_pos)[1:3] <- c("chrom", "chromStart", "chromEnd")
+  # bedfile naming system - not sure yet if this is necessary to work with ranges
 mantle_pos$pos <- paste(mantle_pos$chrom, mantle_pos$chromStart, sep="_")
 head(mantle_pos)
 
@@ -145,21 +158,68 @@ mantle_info <- readRDS("~/Google Drive/LotterhosLab/2017-2020-Oyster OA Epigenet
 head(mantle_info)
 
 
-names(mantle_pos)[1:3] <- c("chrom", "chromStart", "chromEnd")
+
 mantle_plot <- full_join(mantle_pos, mantle2)
 head(mantle_plot)
 
-### TO DO: read the karyotyper package to figure out how to plot mantle_plot$betamean
-### TO DO: Figure out how to convert this to GRANGEs
+#kp <- plotKaryotype(genome=CV.genome[1:10], ideogram.plotter = NULL, chromosomes=chrs)
+#kpAddCytobandsAsLine(kp)
+# kp
+# kpLines(kp, x=mantle_plot$chromStart, y=mantle_plot$betamean, data.panel = 1, chr=mantle_plot$chrom) DO NOT DO THIS - WAAAY TO MUCH INFO TO PLOT
+#kpAxis(kp, data.panel=1)
 ```
 
+Let's summarize this beta data and plot it for a custom window size.
 
+This code uses the split, apply, combine approach to produce data summaries.
+
+For more information, check out Vince Buffalo's Bioinformatics Book.
+
+```{r split and summarize functions}
+beta_split_chrom <- split(mantle_plot$beta, mantle_plot$chrom)
+str(beta_split_chrom)
+
+beta_pos_chrom  <- split(mantle_plot$chromStart, mantle_plot$chrom)
+str(beta_pos_chrom)
+
+summ_beta <- function(beta, pos, window1=10^5){
+  bins <- cut(pos, breaks=seq(1, max(pos), by = window1))
+  #beta_split <- split(beta, bins)
+  out <- do.call(rbind, lapply(split(beta, bins), summary))
+  out2 <- as.data.frame(out)
+  out2$mid <- seq(window1/2, (max(pos)-window1/2), by = window1)
+  out2$window <- rownames(out)
+  return(out2)
+}
+```
+
+Make a plot with Mantle Methylation on the top and exon density on the bottom
+```{r, mantle exon plot}
+png("Mantle2018Top_ExonDensityBottom.png", width=12, height=8, units="in", res=400)
+  kp <- plotKaryotype(genome=CV.genome, ideogram.plotter = NULL, chromosomes=chrs, 
+                      plot.type=2)
+  kpAddCytobandsAsLine(kp)
+  
+  for (i in 2:length(beta_split_chrom)){
+    a<- 
+  summ_beta(beta_split_chrom[[i]], beta_pos_chrom[[i]])
+  head(a)
+  kpLines(kp, x=a$mid, y=a$"1st Qu.", data.panel = 1, chr=names(beta_split_chrom[i]), col="grey")
+  kpLines(kp, x=a$mid, y=a$"3rd Qu.", data.panel = 1, chr=names(beta_split_chrom[i]), col="grey")
+  kpLines(kp, x=a$mid, y=a$Mean, data.panel = 1, chr=names(beta_split_chrom[i]))
+  }
+  
+  kpAxis(kp, data.panel=1, labels = c("", 0.5, 1))
+  
+  kpPlotDensity(kp, data=exons,window.size = 100000, col=adjustcolor("blue", 0.5), lwd=0.5, border=adjustcolor("blue", 0.5), data.panel=2, r0=0, r1=1)
+dev.off()  
+```
 
 ### Load methylation data for gonads
 
 Data from Yaamini V 2016 exposure experiment
 
-```{r}
+```
 bedfile <- "bedfiles/2019-04-09-All-5x-CpGs.bedgraph"
 if(!file.exists(bedfile)){
   dir.create("bedfiles")
