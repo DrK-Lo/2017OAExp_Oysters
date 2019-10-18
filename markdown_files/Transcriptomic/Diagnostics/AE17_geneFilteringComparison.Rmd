@@ -1,5 +1,5 @@
 ---
-title: "DEG_RSEM"
+title: "Exploration filtering and model criteria for differential gene analysis"
 author: "adowneywall"
 date: "8/13/2019"
 output: html_document
@@ -7,6 +7,11 @@ editor_options:
   chunk_output_type: console
 ---
 
+### Purpose  
+  
+The two primary purposes of this script are to (1) explore different strategies for pruning or filtering a gene (or transcript) count matrix to include only informative features (i.e. remove features that have low or sparse counts) and (2) take a closer look at the use of different model structures and contrasts for the purpose of differential expression analysis in the package `limma`. The latter purpose will serve to help clarify the best way to write the model in order to address the specific hypotheses we are interested in.
+  
+**Libraries**
 ```{r message=FALSE}
 ## Packages 
 library(matrixStats,quietly = TRUE)
@@ -20,9 +25,9 @@ library(variancePartition,quietly = TRUE)
 library(FSA,quietly = TRUE) # to use w arguement in hist()
 ```
 
-## Data  
+**Data**  
 
-**Gene Expression**  
+*Gene and Transcript Expression Matrices*  
 ```{r eval=TRUE}
 #### RSEM counts ####
 # Gene matrix
@@ -42,7 +47,7 @@ dim(rsem_t_c)
 # 67290 transcripts
 ```
   
-**Transcript File**  
+*Transcript annotation file*  
 ```{r eval=TRUE}
 #### Transcript File ####
 # Transcript file
@@ -55,7 +60,7 @@ kable(head(gene)) %>%
     scroll_box(width = "90%", height = "150px")
 ```
   
-**Meta Data**  
+*Sample meta data*  
 ```{r eval=TRUE}
 #### Meta Data ####
 meta <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
@@ -65,20 +70,8 @@ meta$SFVrn <- as.factor(paste0("D",meta$SFV))
 meta$Sample_Index <- as.factor(meta$sample_index)
 meta$TankID <- as.factor(meta$tankID)
 ```
-
-**Target Gene List - Primarily biomineralization associated genes**  
   
-At the moment these are not specifically investigated during the diff. gene analysis (all gene are examined). I mostly just wanted to confirm they were present and being expressed in my dataset using a simple histogram (below)  
-  
-```{r eval=TRUE}
-### Target List ###
-tl <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/Target_BiomineralizationGenes.csv")
-# 23 unique biomineralization genes 
-# 136 gene locations
-tl$Location <- as.character(tl$Location)
-```
-
-**Data Clean-up**  
+*Data Clean-up*  
   
 Here I reordered both the count matrices (gene and transcript) and annotation objects for when I combine them in the DGEList object downstream. 
 
@@ -117,24 +110,6 @@ kable(summary_df)%>%
     scroll_box(width = "90%", height = "125px")
 ```
   
-### **Histogram target vs total genes**  
-```{r echo=FALSE, fig.width=10, eval=TRUE}
-geneC_full_cpm <- cpm(geneC_full)
-geneC_sub <- geneC_full_cpm[!is.na(match(rownames(geneC_full_cpm),tl$Location)),]
-
-total <- data.frame(type="Total",log10_Expression=log10(rowSums((geneC_full_cpm))))
-target <- data.frame(type="Target",log10_Expression=log10(rowSums((geneC_sub))))
-full_vals <- rbind(total,target)
-  
-hist(total$log10_Expression,col=adjustcolor("red",alpha.f = 0.2),breaks=100,freq = FALSE,
-     xlim=c(-2,10),xlab="Log10 Expression",main="Gene Expression",)
-par(new=TRUE)
-hist(target$log10_Expression,col=adjustcolor("blue",alpha.f = 0.2),breaks=50,freq=FALSE,
-     xlim=c(-2,10),axes = FALSE,xlab="",ylab="",main="")
-legend(x=6.1,y=0.4,legend=c("All Genes","Biomineralization Genes"),pch=15,
-       col=c(adjustcolor("red",alpha.f = 0.2),adjustcolor("blue",alpha.f = 0.2)))
-```
-
 ### Plan  
   
 Using both gene and transcript count matrices generated using a `STAR` to `RSEM` workflow I wanted to examine differential expression using a standard linear fit modelling approach following a general `limma-voom` pipeline for the analysis. Within the pipeline I explore the impact of **two different filtering approaches** and **two different (but equivalent) linear model formula options**. The later was more of an exploration into the way in which `limma-voom` codes the model formula and how to approriately create contrasts.  
