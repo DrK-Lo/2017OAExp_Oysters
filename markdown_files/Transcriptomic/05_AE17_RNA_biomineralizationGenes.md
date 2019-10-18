@@ -9,13 +9,10 @@ adowneywall
 ## Packages 
 library(matrixStats,quietly = TRUE)
 library(edgeR,quietly = TRUE)
-library(limma,quietly = TRUE)
-library(fdrtool,quietly = TRUE)
-library(kableExtra,quietly = TRUE)
-library(DESeq2,quietly = TRUE)
 library(dplyr,quietly = TRUE)
-library(variancePartition,quietly = TRUE)
 library(FSA,quietly = TRUE) # to use w arguement in hist()
+library(ggplot2)
+library(cowplot)
 
 wd <- "/home/downeyam/Github/2017OAExp_Oysters"
 # This should be set to the path for the local version of the `2017OAExp_Oysters` github repo.
@@ -58,6 +55,7 @@ histogram (below)
 ``` r
 ### Target List ###
 tl <- read.csv(paste0(wd,"/input_files/RNA/references/Target_BiomineralizationGenes.csv"))
+tl <- tl[,1:10]
 # 23 unique biomineralization genes 
 # 136 gene locations
 tl$Location <- as.character(tl$Location)
@@ -128,3 +126,63 @@ legend(x=8,y=6,legend=c("All Transcripts","Biomineralization Transcripts"),pch=c
 ```
 
 ![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+``` r
+diffgeneTable<-topTable(geneDiff,number = Inf)
+diffgeneTable$Location <- rownames(diffgeneTable)
+diffgene_biomineralization <- left_join(tl,diffgeneTable,by="Location")
+diffgene_biomineralization <- diffgene_biomineralization[which(!is.na(diffgene_biomineralization$GENEID)),]
+diffgene_biomineralization$General_ID <- factor(diffgene_biomineralization$General_ID)
+
+#CvE_D9
+p1<-ggplot(diffgene_biomineralization,
+           aes(x=General_ID,y=CvE_D9,colour=General_ID)) + geom_abline(slope=0,intercept=0,colour="black") +geom_boxplot() +
+  labs(title="Control vs. Exposed : Day 9",y="Logfold Change",x="",colour="Biomineralization Genes") + theme_cowplot(12) +
+  ylim(-4,4) + theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
+#CvE_D80
+p2 <- ggplot(diffgene_biomineralization,
+             aes(x=General_ID,y=CvE_D80,colour=General_ID)) + geom_abline(slope=0,intercept=0,colour="black") +geom_boxplot() +
+  labs(title="Control vs. Exposed : Day 80",y="Logfold Change",x="") + theme_cowplot(12) +
+  ylim(-4,4)+ theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
+#C_D9vD80
+p3 <- ggplot(diffgene_biomineralization,
+             aes(x=General_ID,y=C_D9vD80,colour=General_ID)) + geom_abline(slope=0,intercept=0,colour="black") +geom_boxplot() +
+  labs(title="Control : Day 9 vs Day 80",y="Logfold Change",x="") + theme_cowplot(12) +
+  ylim(-4,4)+ theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
+#Diff
+p4 <- ggplot(diffgene_biomineralization,
+             aes(x=General_ID,y=Diff,colour=General_ID)) + geom_abline(slope=0,intercept=0,colour="black") +geom_boxplot() +
+  labs(title="Treatment:Time Interaction",y="Logfold Change",x="Biomineralization genes") + theme_cowplot(12) +
+  ylim(-4,4)+ theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
+
+prow <- plot_grid(
+  p1 + theme(legend.position="none"),
+  p2 + theme(legend.position="none"),
+  p3 + theme(legend.position="none"),
+  p4 + theme(legend.position="none"),
+  align = 'v',
+  labels = c("A", "B", "C","D"),
+  hjust = -1,
+  nrow = 4
+)
+```
+
+    ## Warning: Removed 1 rows containing non-finite values (stat_boxplot).
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_boxplot).
+
+``` r
+legend <- get_legend(
+  # create some space to the left of the legend
+  p1 + 
+    guides(color = guide_legend(ncol = 1)) +  
+    theme(legend.position = "right")
+)
+
+plot_grid(prow, legend, rel_widths = c(2.8, .8))
+```
+
+![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+Example code for this sort of grid
+plots:<https://github.com/wilkelab/cowplot/blob/master/vignettes/shared_legends.Rmd>
