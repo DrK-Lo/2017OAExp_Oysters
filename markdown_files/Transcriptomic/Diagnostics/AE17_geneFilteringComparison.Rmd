@@ -216,8 +216,6 @@ dge_gene_a1_norm <- calcNormFactors(dge_gene_a1,method = "TMMwsp") # gene - appr
 dge_gene_a2_norm <- calcNormFactors(dge_gene_a2,method = "TMMwsp") # gene - approach 2
 dge_tran_a1_norm <- calcNormFactors(dge_tran_a1,method="TMMwsp")   # transcript - approach 1
 
-test <- voom(dge_gene_a1_norm)
-head(test$E)
 ```
   
 ### Create design matrix
