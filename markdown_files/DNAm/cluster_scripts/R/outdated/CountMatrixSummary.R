@@ -113,124 +113,119 @@ saveRDS(tC_s_10,paste0(OUTPUT,"CG_stranded_tC_10.RData"))
 saveRDS(beta_s_10,paste0(OUTPUT,"CG_stranded_beta_10.RData"))
 
 
-geneToExonIndex <- match(exon$gene_id,gene$gene_id)
-sum(is.na(geneToExonIndex)) # 0 confirms there is matching gene for each exon
-gene_M <- gene[geneToExonIndex,]
-gene_rename <- c("gene_chr","gene_method","gene_feature",
-                 "gene_start","gene_end","gene_score","gene_strand",
-                 "gene_phase","gene_ID","gene_id")
-colnames(gene_M) <- gene_rename
-full_annotation <- cbind(exon,gene_M)
-col_select<-c(9,1,4,5,6,7,8,10,12,21,16,17,18,19,20,11)
-fa <- full_annotation[,col_select]
-fa$exonSize <-full2$end-full2$start 
-fa$geneSize <-full2$gene_end-full2$gene_start
-exon_place <- NULL
-for(i in 1:length(unique(fa$gene_id))){exon_place <- append(exon_place,c(1:nrow(fa[fa$gene_id == unique(fa$gene_id)[i],])))}
-fa$exon_place <- exon_place
-fa <- fa[,c(1:4,17,19,5:12,18,13:16)]
-rownames(fa) <- fa$exon_ID
+# Creates a single geneToExonIndex file
+# geneToExonIndex <- match(exon$gene_id,gene$gene_id)
+# sum(is.na(geneToExonIndex)) # 0 confirms there is matching gene for each exon
+# gene_M <- gene[geneToExonIndex,]
+# gene_rename <- c("gene_chr","gene_method","gene_feature",
+#                  "gene_start","gene_end","gene_score","gene_strand",
+#                  "gene_phase","gene_ID","gene_id")
+# colnames(gene_M) <- gene_rename
+# full_annotation <- cbind(exon,gene_M)
+# col_select<-c(9,1,4,5,6,7,8,10,12,21,16,17,18,19,20,11)
+# fa <- full_annotation[,col_select]
+# fa$exonSize <-full2$end-full2$start 
+# fa$geneSize <-full2$gene_end-full2$gene_start
+# exon_place <- NULL
+# for(i in 1:length(unique(fa$gene_id))){exon_place <- append(exon_place,c(1:nrow(fa[fa$gene_id == unique(fa$gene_id)[i],])))}
+# fa$exon_place <- exon_place
+# fa <- fa[,c(1:4,17,19,5:12,18,13:16)]
+# rownames(fa) <- fa$exon_ID
+# 
+# sT_f <- data.frame(sumTab_unstranded,exon_ID=NA,gene_chr=as.character("NA"),
+#                    exon_start=as.numeric("NA"),exon_end=as.numeric("NA"),
+#                    exonSize=as.numeric("NA"),exon_place=as.numeric("NA"),
+#                    score=as.character("NA"),strand=as.character("NA"),
+#                    phase=as.character("NA"),Parent=as.character("NA"),
+#                    transcript_id=as.character("NA"),gene_ID=as.character("NA"),
+#                    gene_start=as.numeric("NA"),gene_end=as.numeric("NA"),
+#                    geneSize=as.numeric("NA"),gene_score=as.character("NA"),
+#                    gene_strand=as.character("NA"),gene_phase=as.character("NA"),
+#                    gene_id=as.character("NA"))
+# sT_f[,c(6,7,12:17,21:24)]<-as.character("NA")
 
-sT_f <- data.frame(sumTab_unstranded,exon_ID=NA,gene_chr=as.character("NA"),
-                   exon_start=as.numeric("NA"),exon_end=as.numeric("NA"),
-                   exonSize=as.numeric("NA"),exon_place=as.numeric("NA"),
-                   score=as.character("NA"),strand=as.character("NA"),
-                   phase=as.character("NA"),Parent=as.character("NA"),
-                   transcript_id=as.character("NA"),gene_ID=as.character("NA"),
-                   gene_start=as.numeric("NA"),gene_end=as.numeric("NA"),
-                   geneSize=as.numeric("NA"),gene_score=as.character("NA"),
-                   gene_strand=as.character("NA"),gene_phase=as.character("NA"),
-                   gene_id=as.character("NA"))
-sT_f[,c(6,7,12:17,21:24)]<-as.character("NA")
 
+#### Creating CpG site subsets based on gene or exon regions ####
 
-for(i in 1:5){
-  Sys.sleep(0.001)
-  print(i)
-  temp <- fa[sT_f$chr[i]== fa$chr,]
-  temp <- temp[sT_f$end[i]   >= temp$gene_start,]
-  temp <- temp[sT_f$start[i] <= temp$gene_end,]
-  if(!is.logical(temp)){
-    sT_f[i,c(17:24)] <- temp[1,c(12:19)]
-  }
-}
-temp<-c(0,1)
-(temp[temp>2]>1)
-(nrow(temp[temp>2])>=1)
-is.logical(c(0,2))
+# This is currently slightly outdated. I created the `meta_gene` to identify CpGs that intersected with genes. Cataloging
+# which gene each genic CpG belonged too (Similar strategy was applied for exons to create `meta_exon`). However, I did this with 
+# the stranded data directly from bismark (the cytosine summary flag), but after conversationwith with Steven, it seems that it
+# would be better to do this with unstranded CpG data (combining both strand coverage counts). The current approach will like be
+# conservative (removing more sites due to insufficient coverage), but potentially reduce (or conversely enhance) the affect of PCR
+# biases.
 
-sprintf("Matching with genes....")
-# Cytosines within genes - variable thresholds
-mC_gene <- mC[meta_gene$cg_index,]
-umC_gene <- umC[meta_gene$cg_index,]
-tC_gene <- tC[meta_gene$cg_index,]
-beta_gene <- beta[meta_gene$cg_index,]
-# Prune by variabel min count thresholds
-tC_gene_min <- apply(tC_gene,1,min) # vector of minimum counts for each cpg
-# At least 1 per sample
-meta_gene_0 <- meta_gene[tC_gene_min>0,]
-mC_gene_0 <- mC_gene[tC_gene_min>0,]
-umC_gene_0 <- umC_gene[tC_gene_min>0,]
-tC_gene_0 <- tC_gene[tC_gene_min>0,]
-beta_gene_0 <- beta_gene[tC_gene_min>0,]
-# At least 5 per sample
-meta_gene_5 <- meta_gene[tC_gene_min>=5,]
-mC_gene_5 <- mC_gene[tC_gene_min>=5,]
-umC_gene_5 <- umC_gene[tC_gene_min>=5,]
-tC_gene_5 <- tC_gene[tC_gene_min>=5,]
-beta_gene_5 <- beta_gene[tC_gene_min>=5,]
-# At least 10 per sample
-meta_gene_10 <- meta_gene[tC_gene_min>=10,]
-mC_gene_10 <- mC_gene[tC_gene_min>=10,]
-umC_gene_10 <- umC_gene[tC_gene_min>=10,]
-tC_gene_10 <- tC_gene[tC_gene_min>=10,]
-beta_gene_10 <- beta_gene[tC_gene_min>=10,]
-
-saveRDS(mC_gene_5,"Final_mC_gene_5.RData")
-saveRDS(umC_gene_5,"Final_umC_gene_5.RData")
-saveRDS(tC_gene_5,"Final_tC_gene_5.RData")
-saveRDS(beta_gene_5,"Final_beta_gene_5.RData")
-saveRDS(mC_gene_10,"Final_mC_gene_10.RData")
-saveRDS(umC_gene_10,"Final_umC_gene_10.RData")
-saveRDS(tC_gene_10,"Final_tC_gene_10.RData")
-saveRDS(beta_gene_10,"Final_beta_gene_10.RData")
-
-sprintf("Matching with exons ...")
-# Cytosines with Exon - variable thresholds
-
-mC_exon <- mC[meta_exon$cg_index,]
-umC_exon <- umC[meta_exon$cg_index,]
-tC_exon <- tC[meta_exon$cg_index,]
-beta_exon <- beta[meta_exon$cg_index,]
-# Prune by variabel min count thresholds
-tC_exon_min <- apply(tC_exon,1,min) # vector of minimum counts for each cpg
-# At least 1 per sample
-meta_exon_0 <- meta_exon[tC_exon_min>0,]
-mC_exon_0 <- mC_exon[tC_exon_min>0,]
-umC_exon_0 <- umC_exon[tC_exon_min>0,]
-tC_exon_0 <- tC_exon[tC_exon_min>0,]
-beta_exon_0 <- beta_exon[tC_exon_min>0,]
-# At least 5 per sample
-meta_exon_5 <- meta_exon[tC_exon_min>=5,]
-mC_exon_5 <- mC_exon[tC_exon_min>=5,]
-umC_exon_5 <- umC_exon[tC_exon_min>=5,]
-tC_exon_5 <- tC_exon[tC_exon_min>=5,]
-beta_exon_5 <- beta_exon[tC_exon_min>=5,]
-# At least 10 per sample
-meta_exon_10 <- meta_exon[tC_exon_min>=10,]
-mC_exon_10 <- mC_exon[tC_exon_min>=10,]
-umC_exon_10 <- umC_exon[tC_exon_min>=10,]
-tC_exon_10 <- tC_exon[tC_exon_min>=10,]
-beta_exon_10 <- beta_exon[tC_exon_min>=10,]
-
-saveRDS(mC_exon_5,"Final_mC_exon_5.RData")
-saveRDS(umC_exon_5,"Final_umC_exon_5.RData")
-saveRDS(tC_exon_5,"Final_tC_exon_5.RData")
-saveRDS(beta_exon_5,"Final_beta_exon_5.RData")
-saveRDS(mC_exon_10,"Final_mC_exon_10.RData")
-saveRDS(umC_exon_10,"Final_umC_exon_10.RData")
-saveRDS(tC_exon_10,"Final_tC_exon_10.RData")
-saveRDS(beta_exon_10,"Final_beta_exon_10.RData")
+# sprintf("Matching with genes....")
+# # Cytosines within genes - variable thresholds
+# mC_gene <- mC[meta_gene$cg_index,]
+# umC_gene <- umC[meta_gene$cg_index,]
+# tC_gene <- tC[meta_gene$cg_index,]
+# beta_gene <- beta[meta_gene$cg_index,]
+# # Prune by variabel min count thresholds
+# tC_gene_min <- apply(tC_gene,1,min) # vector of minimum counts for each cpg
+# # At least 1 per sample
+# meta_gene_0 <- meta_gene[tC_gene_min>0,]
+# mC_gene_0 <- mC_gene[tC_gene_min>0,]
+# umC_gene_0 <- umC_gene[tC_gene_min>0,]
+# tC_gene_0 <- tC_gene[tC_gene_min>0,]
+# beta_gene_0 <- beta_gene[tC_gene_min>0,]
+# # At least 5 per sample
+# meta_gene_5 <- meta_gene[tC_gene_min>=5,]
+# mC_gene_5 <- mC_gene[tC_gene_min>=5,]
+# umC_gene_5 <- umC_gene[tC_gene_min>=5,]
+# tC_gene_5 <- tC_gene[tC_gene_min>=5,]
+# beta_gene_5 <- beta_gene[tC_gene_min>=5,]
+# # At least 10 per sample
+# meta_gene_10 <- meta_gene[tC_gene_min>=10,]
+# mC_gene_10 <- mC_gene[tC_gene_min>=10,]
+# umC_gene_10 <- umC_gene[tC_gene_min>=10,]
+# tC_gene_10 <- tC_gene[tC_gene_min>=10,]
+# beta_gene_10 <- beta_gene[tC_gene_min>=10,]
+# 
+# saveRDS(mC_gene_5,"Final_mC_gene_5.RData")
+# saveRDS(umC_gene_5,"Final_umC_gene_5.RData")
+# saveRDS(tC_gene_5,"Final_tC_gene_5.RData")
+# saveRDS(beta_gene_5,"Final_beta_gene_5.RData")
+# saveRDS(mC_gene_10,"Final_mC_gene_10.RData")
+# saveRDS(umC_gene_10,"Final_umC_gene_10.RData")
+# saveRDS(tC_gene_10,"Final_tC_gene_10.RData")
+# saveRDS(beta_gene_10,"Final_beta_gene_10.RData")
+# 
+# sprintf("Matching with exons ...")
+# # Cytosines with Exon - variable thresholds
+# 
+# mC_exon <- mC[meta_exon$cg_index,]
+# umC_exon <- umC[meta_exon$cg_index,]
+# tC_exon <- tC[meta_exon$cg_index,]
+# beta_exon <- beta[meta_exon$cg_index,]
+# # Prune by variabel min count thresholds
+# tC_exon_min <- apply(tC_exon,1,min) # vector of minimum counts for each cpg
+# # At least 1 per sample
+# meta_exon_0 <- meta_exon[tC_exon_min>0,]
+# mC_exon_0 <- mC_exon[tC_exon_min>0,]
+# umC_exon_0 <- umC_exon[tC_exon_min>0,]
+# tC_exon_0 <- tC_exon[tC_exon_min>0,]
+# beta_exon_0 <- beta_exon[tC_exon_min>0,]
+# # At least 5 per sample
+# meta_exon_5 <- meta_exon[tC_exon_min>=5,]
+# mC_exon_5 <- mC_exon[tC_exon_min>=5,]
+# umC_exon_5 <- umC_exon[tC_exon_min>=5,]
+# tC_exon_5 <- tC_exon[tC_exon_min>=5,]
+# beta_exon_5 <- beta_exon[tC_exon_min>=5,]
+# # At least 10 per sample
+# meta_exon_10 <- meta_exon[tC_exon_min>=10,]
+# mC_exon_10 <- mC_exon[tC_exon_min>=10,]
+# umC_exon_10 <- umC_exon[tC_exon_min>=10,]
+# tC_exon_10 <- tC_exon[tC_exon_min>=10,]
+# beta_exon_10 <- beta_exon[tC_exon_min>=10,]
+# 
+# saveRDS(mC_exon_5,"Final_mC_exon_5.RData")
+# saveRDS(umC_exon_5,"Final_umC_exon_5.RData")
+# saveRDS(tC_exon_5,"Final_tC_exon_5.RData")
+# saveRDS(beta_exon_5,"Final_beta_exon_5.RData")
+# saveRDS(mC_exon_10,"Final_mC_exon_10.RData")
+# saveRDS(umC_exon_10,"Final_umC_exon_10.RData")
+# saveRDS(tC_exon_10,"Final_tC_exon_10.RData")
+# saveRDS(beta_exon_10,"Final_beta_exon_10.RData")
 
 ## NOTE: This reads in a count matrix from the bedgraph option
  # which by default only considers CpGs
@@ -238,60 +233,104 @@ saveRDS(beta_exon_10,"Final_beta_exon_10.RData")
 sprintf("Creating summaries...")
 #### Summaries ####
 
+# Reading in Data saved from the earlier gene subsetting step
+# Currently only reading in info for genes with min coverage of 5 for all samples
+setwd("/home/downeyam/Github/2017OAExp_Oysters/input_files/DNAm")
+meta_gene_5<-readRDS("Final_meta_gene_5.RData")
+mC_gene_5<-readRDS("Final_mC_gene_5.RData")
+mC_gene_5 <- data.frame(mC_gene_5)
+umC_gene_5<-readRDS("Final_umC_gene_5.RData")
+umC_gene_5 <- data.frame(umC_gene_5)
+tC_gene_5<-readRDS("Final_tC_gene_5.RData")
+tC_gene_5 <- data.frame(tC_gene_5)
+beta_gene_5 <- readRDS("Final_beta_gene_5.RData")
+beta_gene_5_row <- rownames(beta_gene_5)
+beta_gene_5 <- data.frame(beta_gene_5)
+rownames(beta_gene_5) <- beta_gene_5_row
+# Reading in metadata to subset data later
+sample_meta<-readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
+sm <- sample_meta[sample_meta$ID != "17099",]
+sm_index<-1:nrow(sm)
+
+dim(meta_gene_5)
+sum(is.na(meta_gene_5))
+# Check to ensure there aren't any NAs
+dim(beta_gene_5)
+# Same number of loci
+
+# Confirming the rows (CpGs) all match and are sorted the same.
+identical(rownames(beta_gene_5),rownames(meta_gene_5))
+
 # Descriptive Methylation 
-# All CpGs
-beta_mean <- rowMeans(beta)
-beta_sd <- unlist(array(beta,1,sd))
-# All CpGs with counts
-beta_0_mean <- rowMeans(beta_0)
-beta_0_sd <- unlist(array(beta_0,1,sd))
-beta_0_CV <- beta_0_sd/beta_0_mean
-beta_5_mean <- rowMeans(beta_5)
-beta_5_sd <- unlist(array(beta_5,1,sd))
-beta_5_CV <- beta_5_sd/beta_5_mean
-beta_10_mean <- rowMeans(beta_10)
-beta_10_sd <- unlist(array(beta_10,1,sd))
-beta_10_CV <- beta_10_sd/beta_10_mean
+# # All CpGs
+# beta_mean <- rowMeans(beta)
+# beta_sd <- unlist(array(beta,1,sd))
+# # All CpGs with counts
+# beta_0_mean <- rowMeans(beta_0)
+# beta_0_sd <- unlist(array(beta_0,1,sd))
+# beta_0_CV <- beta_0_sd/beta_0_mean
+# beta_5_mean <- rowMeans(beta_5)
+# beta_5_sd <- unlist(array(beta_5,1,sd))
+# beta_5_CV <- beta_5_sd/beta_5_mean
+# beta_10_mean <- rowMeans(beta_10)
+# beta_10_sd <- unlist(array(beta_10,1,sd))
+# beta_10_CV <- beta_10_sd/beta_10_mean
 ### CpGs in genes
-beta_gene_0_mean <- rowMeans(beta_gene_0)
-beta_gene_0_sd <- unlist(array(beta_gene_0,1,sd))
-beta_gene_0_CV <- beta_gene_0_sd/beta_gene_0_mean
+#beta_gene_0_mean <- rowMeans(beta_gene_0)
+#beta_gene_0_sd <- unlist(array(beta_gene_0,1,sd))
+#beta_gene_0_CV <- beta_gene_0_sd/beta_gene_0_mean
 beta_gene_5_mean <- rowMeans(beta_gene_5)
 beta_gene_5_sd <- unlist(array(beta_gene_5,1,sd))
 beta_gene_5_CV <- beta_gene_5_sd/beta_gene_5_mean
-beta_gene_10_mean <- rowMeans(beta_gene_10)
-beta_gene_10_sd <- unlist(array(beta_gene_10,1,sd))
-beta_gene_10_CV <- beta_gene_10_sd/beta_gene_10_mean
-## CpG w/ 10threshold - split by condition and time
-beta_gene_10_control_9 <- beta_gene_10[,c(3,5,6,17,18,19)]
-beta_gene_10_control_80 <- beta_gene_10[,c(1,2,8,11,22,23)]
-beta_gene_10_exposed_9 <- beta_gene_10[,c(7,9,12,13,15,21)]
-beta_gene_10_exposed_80 <- beta_gene_10[,c(4,10,14,16,20,24)]
-# CpG w/ 10 threshold sumary split by condition and time 
-# Control - Day 9
-beta_gene_10_control_9_mean <- rowMeans(beta_gene_10_control_9)
-beta_gene_10_control_9_sd <- unlist(array(beta_gene_10_control_9,1,sd))
-beta_gene_10_control_9_CV <- beta_gene_10_control_9_sd/beta_gene_10_control_9_mean
-# Control - Day 80
-beta_gene_10_control_80_mean <- rowMeans(beta_gene_10_control_80)
-beta_gene_10_control_80_sd <- unlist(array(beta_gene_10_control_80,1,sd))
-beta_gene_10_control_80_CV <- beta_gene_10_control_80_sd/beta_gene_10_control_80_mean
-# Exposed - Day 9
-beta_gene_10_exposed_9_mean <- rowMeans(beta_gene_10_exposed_9)
-beta_gene_10_exposed_9_sd <- unlist(array(beta_gene_10_exposed_9,1,sd))
-beta_gene_10_exposed_9_CV <- beta_gene_10_exposed_9_sd/beta_gene_10_exposed_9_mean
-# Exposed - Day 80
-beta_gene_10_exposed_80_mean <- rowMeans(beta_gene_10_exposed_80)
-beta_gene_10_exposed_80_sd <- unlist(array(beta_gene_10_exposed_80,1,sd))
-beta_gene_10_exposed_80_CV <- beta_gene_10_exposed_80_sd/beta_gene_10_exposed_80_mean
+#beta_gene_10_mean <- rowMeans(beta_gene_10)
+#beta_gene_10_sd <- unlist(array(beta_gene_10,1,sd))
+#beta_gene_10_CV <- beta_gene_10_sd/beta_gene_10_mean
+#### CpG w/ 10threshold - split by condition and time ###
 
-# Gene Summary Table
-gene_summary <- cbind(beta_gene_10_mean,beta_gene_10_sd,beta_gene_10_CV,
-                      beta_gene_10_control_9_mean,beta_gene_10_control_9_sd,beta_gene_10_control_9_CV,
-                      beta_gene_10_control_80_mean,beta_gene_10_control_80_sd,beta_gene_10_control_80_CV,
-                      beta_gene_10_exposed_9_mean,beta_gene_10_exposed_9_sd,beta_gene_10_exposed_9_CV,
-                      beta_gene_10_exposed_80_mean,beta_gene_10_exposed_80_sd,beta_gene_10_exposed_80_CV)
-saveRDS(gene_summary,"Final_beta_gene_summary.RData")
+
+beta_gene_5_control_9 <- beta_gene_5[,sm_index[sm$SFV == "09.400"]]
+beta_gene_5_control_80 <- beta_gene_5[,c(sm_index[sm$SFV == "80.400"])]
+beta_gene_5_exposed_9 <- beta_gene_5[,sm_index[sm$SFV == "09.2800"]]
+beta_gene_5_exposed_80 <- beta_gene_5[,sm_index[sm$SFV == "80.2800"]]
+head(beta_gene_5_control_9)
+#### CpG w/ 10 threshold sumary split by condition and time ###
+# Control - Day 9
+beta_gene_5_control_9_mean <- rowMeans(beta_gene_5_control_9)
+beta_gene_5_control_9_sd <- unlist(array(beta_gene_5_control_9,1,sd))
+beta_gene_5_control_9_CV <- beta_gene_5_control_9_sd/beta_gene_5_control_9_mean
+# Control - Day 80
+beta_gene_5_control_80_mean <- rowMeans(beta_gene_5_control_80)
+beta_gene_5_control_80_sd <- unlist(array(beta_gene_5_control_80,1,sd))
+beta_gene_5_control_80_CV <- beta_gene_5_control_80_sd/beta_gene_5_control_80_mean
+# Exposed - Day 9
+beta_gene_5_exposed_9_mean <- rowMeans(beta_gene_5_exposed_9)
+beta_gene_5_exposed_9_sd <- unlist(array(beta_gene_5_exposed_9,1,sd))
+beta_gene_5_exposed_9_CV <- beta_gene_5_exposed_9_sd/beta_gene_5_exposed_9_mean
+# Exposed - Day 80
+beta_gene_5_exposed_80_mean <- rowMeans(beta_gene_5_exposed_80)
+beta_gene_5_exposed_80_sd <- unlist(array(beta_gene_5_exposed_80,1,sd))
+beta_gene_5_exposed_80_CV <- beta_gene_5_exposed_80_sd/beta_gene_5_exposed_80_mean
+
+# All CpG Gene Summary Table
+gene_summary <- data.frame(Gene = meta_gene_5$gene_ID,gene_id=meta_gene_5$gene_id,
+                      chr=meta_gene_5$chr_1,pos= meta_gene_5$pos,
+                      start=meta_gene_5$start,end=meta_gene_5$end,
+                      beta_gene_5_mean,beta_gene_5_sd,beta_gene_5_CV,
+                      beta_gene_5_control_9_mean,beta_gene_5_control_9_sd,beta_gene_5_control_9_CV,
+                      beta_gene_5_control_80_mean,beta_gene_5_control_80_sd,beta_gene_5_control_80_CV,
+                      beta_gene_5_exposed_9_mean,beta_gene_5_exposed_9_sd,beta_gene_5_exposed_9_CV,
+                      beta_gene_5_exposed_80_mean,beta_gene_5_exposed_80_sd,beta_gene_5_exposed_80_CV)
+#saveRDS(gene_summary,"/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/Final_beta_gene_5_summary.RData")
+
+gl <- data.frame(gene_id=meta_gene_5$gene_id,
+                         beta_gene_5_mean,beta_gene_5_sd,beta_gene_5_CV,
+                         beta_gene_5_control_9_mean,beta_gene_5_control_9_sd,beta_gene_5_control_9_CV,
+                         beta_gene_5_control_80_mean,beta_gene_5_control_80_sd,beta_gene_5_control_80_CV,
+                         beta_gene_5_exposed_9_mean,beta_gene_5_exposed_9_sd,beta_gene_5_exposed_9_CV,
+                         beta_gene_5_exposed_80_mean,beta_gene_5_exposed_80_sd,beta_gene_5_exposed_80_CV)
+
+test <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/Exon_GeneLoc.RData")
+### NEED TO UPDATE FOR EXONS #####
 
 ### CpGs in exons
 beta_exon_0_mean <- rowMeans(beta_exon_0)

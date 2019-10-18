@@ -19,6 +19,7 @@ library(sf)
 library(adegenet)
 library(ggplot2)
 library(ape)
+library(factoextra) # for the fviz_eig function
 ```
 
 ## **Script Description**  
@@ -30,47 +31,70 @@ library(ape)
 
 ## **Data**  
 
+Data Description:
+* Using count matrices post filtration. Genes that were express in at least 5 individuals within a single treatment were retained. I explored using several variations of count matriced that have been normalized or transformed to better account for either (a) differences among library sizes among samples, (b) large variation in expression within a sample between genes. Specifically, I look at:
+    * non-normalized count matrix with log2 transformation
+    * normalized (implemented using `TMM` procedure in `EdgeR`) count matrix with log2 transformation
+    * normalized (same prodecure as above) with individual weight approach from limma (using `voomWithQualityWeights()`)
+
 Steps:  
-* Read in dataframe with metadata for each samples including, treatment, time, population, lane of sequencing, and variable that contains each unique combination level between treatment and time.  
-* Read in gene (or transcript) abundance matrix generated from the '01_salmon_countMatrix.Rmd' script.  
-* Remove uninformative genes from count matrix.  
+* Read in dataframes
+    * Metadata data.frame including, treatment, time, population, lane of sequencing, and variable that contains each unique combination level between treatment and time.  
+    * Count matrices : gene (or transcript) abundance matrix  
+* Perform PERMANOVA using `adonis` from `vegan` package.
+* Perform PCA 
+* Perform DAPC
+
+
 
 ### Current files
-```{r}
+```{r fileREADIN}
 ## Meta Data for the Model
 model<-readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
 
-#### Transcript File ####
-tran <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/STAR_gnomon_tximportGeneFile.RData")
-# Gene File
-gene <- tran[!duplicated(tran$GENEID),]
-rm(tran)
-# This is the filtered count matrix
-RSEM <-  readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_mapping/RSEM_output/RSEM_gene_Summary.Rdata")
-# Separate out RSEM counts and rename rows with LOC ID
-rsem_c <- RSEM$Count
-rm(RSEM)
-#Rename loci
-loc_rsem <- gene$GENEID[match(row.names(rsem_c),gene$gene_id)]
-row.names(rsem_c) <- loc_rsem
-#Remove low variation (or no variation) loci (needed for downstream stuff to work)
-keep_rsem <- rowSums(cpm(rsem_c)>1) >= (0.5 * 24)
-rsem_red <- rsem_c[keep_rsem, ]
-#counts_Rdat <- readRDS(file = "/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/Normalized_CountMatrix/Scenario1_normalizedVoom.RData")
-#log2(seq(0,1,by=0.01))
-counts <- cpm(rsem_red)
-gc_reduce <-  counts #log2(counts+1)
+### Transcript Matrix ###
+#tran <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/STAR_gnomon_tximportGeneFile.RData")
+
+### Gene Matrix ###
+# Version 1 - Count matrix w/o edgeR normalization and standard voom (log2-cpm) transformation
+gc <-  readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/Transcriptomic/DGEListObj_filterApproach2.RData")
+manual_transformation <- log2(cpm(gc$counts+0.5))
+gc_voom <- voom(gc)
+
+manual_transformation[1:5,1:5]
+gc_voom$E[1:5,1:5]
+# Interesting using voom (which is suppose to transform data to log2-counts per million (logCPM), is very similar but not identical to manual performing this transformation on the raw counts.
+
+gc_qualityweights <-  readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/Transcriptomic/DGEListObj_withIndWeights_filterApproach2_plannedContrastMatrix.RData")
+
+# Examining the impact of transformation among approaches
+# Expression for the first 5 genes and samples
+manual_transformation[1:5,1:5] # manual tranforming data into counts per million (CPM) and then taking the log2
+gc_voom$E[1:5,1:5] # Peforming the same operation but in the function voom
+gc_qualityweights$E[1:5,1:5] # Look at the transformation after the edgeR normalization step. This object represents the version of the
+
+# Checking out the library size variation between methods
+# Should be similar since they are all transformed into cpm and log transformed
+colSums(manual_transformation)
+colSums(gc_voom$E) # Transformed by no normalization factors
+plot(colSums(gc_voom$E)~gc_voom$targets$lib.size)
+#Interesting the differences in lib. size among samples after transformation is not driven, 
+#by variation in lib. size from the sequencer.
+colSums(gc_qualityweights$E) # Transformed with voom + normalization (TMM from edgeR)
+
+# Manual transformation vs. voom no normalization
+plot(colSums(manual_transformation)~colSums(gc_voom$E)) # Very well correlated
+#Voom vs. voom with normalization
+plot(colSums(gc_voom$E)~colSums(gc_qualityweights$E),
+     xlim=c(72000,75000),ylim=c(72000,75000))
+abline(b=1,a=0)
+# Voom with normalization manually included vs voom with normalization
+plot(gc_qualityweights$targets$norm.factors*colSums(gc_voom$E)~colSums(gc_qualityweights$E),
+     xlim=c(65000,85000),ylim=c(65000,85000))
+abline(b=1,a=0)
+#Looking at the lib. sizes for each sample after transformation from different methods shows pretty poor correlation when compared to post normalized counts.
+
 ```
-
-### Outdated files (2019-08-12)
-gc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610_counts/geneMatrixAbundance_default.RData")
-gc_reduce <- gc[rowSums(gc)>100,]
-gc_reduce <- gc_reduce[rowMeans(gc_reduce)<10000,]
-
-tc <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/salmon_pipeline/run20190610_counts/tranMatrixAbundance_default.RData")
-tc_reduce <- tc[rowSums(tc)>40,]
-tc_reduce <- tc_reduce[rowSums(tc_reduce)<10000,]
-
 
 # Based on Gene (and isoform) level data
 
@@ -79,17 +103,15 @@ tc_reduce <- tc_reduce[rowSums(tc_reduce)<10000,]
 * Testing for statistic differential between treatment, time, and treatment:time  
 
 ```{r}
-test <- t(scale(t(gc_reduce)))
-test2 <- test + abs(min(test))
-hist(rowMeans(test))
-hist(rowMeans(test2))
-mean(test2[1,])
-sd(gc_reduce[,1])
+# Standard voom 
+(out_gc <- adonis(t(gc_voom$E)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
 
-(out_gc <- adonis(t(gc_reduce)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
-(out_gc <- adonis(t(test2)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
-(out_gc <- adonis((test2)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
-?adonis()
+(out_gc <- adonis(t(gc_voom$E*gc_voom$weights)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
+
+# Counts from quality weights EList object
+(out_gc <- adonis(t(gc_qualityweights$E)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
+# Multiple counts by individual weights
+(out_gc <- adonis(t(gc_qualityweights$E*gc_qualityweights$weights)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
 #(out_tc <- adonis(t(tc_reduce)~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
 ```
 
@@ -97,14 +119,54 @@ sd(gc_reduce[,1])
 
 ### Plot in multivariate space with RDA (treatment and time)
 ```{r}
+### Just using the count matrix generated after filtering and standard normalization pipeline ###
+ge_pca <- prcomp(t(gc_qualityweights$E))
+fviz_eig(ge_pca)
+# Quick pca plot
+fviz_pca_ind(ge_pca, 
+             #label = "none", # hide individual labels
+             habillage = model$SFV, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07","green"),
+             addEllipses = TRUE, axes = c(1,2),ellipse.level=0.90 # Concentration ellipses  
+)
 
-#prin_comp<-rda(t(test2),scale = TRUE)
-prin_comp<-rda(t(test2))
-sum_pri <- summary(prin_comp)
-pca_scores<-scores(prin_comp)
-colnames(gc_reduce)
-#pca <- prcomp(t(gc_reduce))
-pca <- prcomp(t(test2))
+### Removing individual 17005 which seems like an outlier ###
+ge_pca_outlierRM <- prcomp(t(gc_qualityweights$E[,-1]))
+fviz_eig(ge_pca_outlierRM)
+# Quick pca plot
+fviz_pca_ind(ge_pca_outlierRM, 
+             #label = "none", # hide individual labels
+             habillage = model$SFV[-1], # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07","green"),
+             addEllipses = TRUE, axes = c(1,2),ellipse.level=0.90 # Concentration ellipses   
+            
+)
+
+### Use individual weights ###
+ge_pca <- prcomp(t(gc_qualityweights$E*gc_qualityweights$weights))
+fviz_eig(ge_pca)
+# Quick pca plot
+fviz_pca_ind(ge_pca, 
+             #label = "none", # hide individual labels
+             habillage = model$SFV, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07","green"),
+             addEllipses = TRUE, axes = c(1,2),ellipse.level=0.90 # Concentration ellipses 
+)
+
+fviz_pca_ind(ge_pca, 
+             #label = "none", # hide individual labels
+             habillage = model$SFV, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07","green"),
+             addEllipses = TRUE, axes = c(2,3),ellipse.level=0.90 # Concentration ellipses 
+)
+# Interesting based on the PCA we see the most separation by time x treatment in the second and third
+# PCs compared to other count matrix variations, but we didn;t see anything significant in the PERMANOVA. 
+# One reason for this is looking at the first PC we see most of the variation is due to individual variation.
+```
+
+```{r}
+#### Custom PCA ####
+pca <- prcomp(t(gc_qualityweights$E))
 eigs <- pca$sdev^2
 
 color_comb <- c("lightblue4","royalblue3","tomato","darkred") # colors for population 
@@ -116,13 +178,12 @@ model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
 model$pch <- 16
 model$pch[model$colors == color_comb[2] | model$colors == "darkred"] <- 10
 
-ordiplot(prin_comp,type="n",
+ordiplot(pca,type="n",
          xlab=paste0("PC1  (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
          ylab=paste0("PC2  (",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
 
-orditorp(prin_comp,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = model$pch)
-#ordiellipse(prin_comp,model$SFV,conf=0.90,col = color_comb,lwd = 3)
-ordispider(prin_comp,model$SFV,col = color_comb,lwd=2.5)
+orditorp(pca,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = model$pch)
+ordispider(pca,model$SFV,col = color_comb,lwd=2.5)
 legend(x=c(4,14),y=c(12,17),
        legend = c("Day 09 : Ambient",
                   "Day 80 : Ambient",
@@ -135,40 +196,33 @@ text(x = 6 ,y = -6,
      paste0("P_Time = ",round(out_gc$aov.tab$`Pr(>F)`[2],5),"*"),pos=4)
 text(x = 6 ,y = -7, 
      paste0("P_Interaction = ",round(out_gc$aov.tab$`Pr(>F)`[5],3)),pos=4)
-```
 
-### Plot colored by population  
-```{r}
+### Plot colored by population ###
 ordiplot(prin_comp,type="n",
          xlab=paste0("PC1 ",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
          ylab=paste0("PC2 ",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
 orditorp(prin_comp,display="sites",labels = FALSE,col=model$Pop,cex = 2,pch = 16)
 legend(x=100,y=100,legend = c("Ipswich","Rowley 1","Rowley 2"),pch = 16,col=unique(model$Pop),xpd = .25)
 ```
-  
-### Cumulative Variance Plot  
-```{r}
-out <- prcomp(gc_reduce)
-vars <- apply(out$x, 2, var)  
-props <- vars / sum(vars)
-cumsum(props)
-plot(cumsum(props)*100~c(1:24),ylab=c("Cumulative Variance (%)"),xlab=c("PCs"))
-```
 
 ### TWO STEP DAPC: first create discriminant function from TP 9 samples and predict coordinates on df for day 80 samples.  
   
 **Creating DF by treatment with first timepoint**  
 ```{r}
-early_time_counts <- test2[,model$Day == 9]
-early_time_counts <- gc_reduce[,model$Day == 9]
+gc_comb <- gc_qualityweights$E*gc_qualityweights$weights
+early_time_counts_V1 <- gc_comb[,model$Day == 9]
+early_time_counts_V2 <- gc_qualityweights$E[,model$Day == 9]
 early_time_meta <- model[model$Day == 9,]
 
-dapc_treatment_10<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=8,n.da=2)
+dapc_treatment_V1_2 <- dapc(t(early_time_counts_V1),early_time_meta$treatment,n.pca=2,n.da=1)
+dapc_treatment_V2_8<-dapc(t(early_time_counts),early_time_meta$treatment,n.pca=8,n.da=1)
 # PCs = 8
 # clusters = 1
-early_time_meta$dt <- unlist(dapc_treatment_10$ind.coord[,1])
 
-ggplot(early_time_meta,aes(dt,fill=as.factor(treatment),colour=as.factor(treatment))) + 
+early_time_meta$V1_2 <- unlist(dapc_treatment_V1_2$ind.coord[,1])
+early_time_meta$V2_8 <- unlist(dapc_treatment_V2_8$ind.coord[,1])
+
+ggplot(early_time_meta,aes(V2_8,fill=as.factor(treatment),colour=as.factor(treatment))) + 
   geom_density(alpha=0.1) + xlim(-15,15) + 
   labs(title="Discriminant Function for Treatment on Day 9 (based on 8 PCs)",
        x="Discriminant function 1",
@@ -181,7 +235,7 @@ ggplot(early_time_meta,aes(dt,fill=as.factor(treatment),colour=as.factor(treatme
 
 Looking at which genes are driving the patterns between the two treatments
 ```{r}
-#contrib_treatment <- loadingplot(dapc_treatment_10$var.contr, axis=1,thres=.05, lab.jitter=1)
+contrib_treatment <- loadingplot(dapc_treatment_V2_8$var.contr, axis=1,thres=.05, lab.jitter=1)
 ```
 
 Looking at the most important locus based on loading
@@ -197,16 +251,19 @@ Looking at the most important locus based on loading
 **Mapping 
 Day 80 samples**  
 ```{r}
-late_time_counts <- test2[,model$Day == 80]
-late_time_counts <- gc_reduce[,model$Day == 80]
+late_time_counts_V1 <- gc_comb[,model$Day == 80]
+late_time_counts_V2 <- gc_qualityweights$E[,model$Day == 80]
 late_time_meta <- model[model$Day == 80,]
 
-predict_values <- predict.dapc(dapc_treatment_10,t(late_time_counts))
-late_time_meta$dt <-unlist(predict_values$ind.scores[,1])
+predict_values_V1_2 <- predict.dapc(dapc_treatment_V1_2,t(late_time_counts_V1))
+predict_values_V2_8 <- predict.dapc(dapc_treatment_V2_8,t(late_time_counts_V2))
+
+late_time_meta$V1_2 <-unlist(predict_values_V1_2$ind.scores[,1])
+late_time_meta$V2_8 <-unlist(predict_values_V2_8$ind.scores[,1])
 
 whole_meta<- rbind(early_time_meta,late_time_meta)
 
-ggplot(whole_meta,aes(dt,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+ggplot(whole_meta,aes(V1_2,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
   geom_density(alpha=0.1) + xlim(-12,12) + 
   labs(x="Discriminant function 1",
        colour="Day.Treatment",

@@ -226,7 +226,7 @@ dge_gene_a1 <- DGEList(geneC_a1,genes = gene_final_a1) # counts - rsem
 dge_gene_a2 <- DGEList(geneC_a2,genes = gene_final_a2) # counts - rsem
 dge_tran_a1 <- DGEList(tranC_a1,genes = tran_final) # counts - rsem
 
-#saveRDS(geneC,"/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/STAR_mapping/RSEM_output/GeneCountMatrix_Filtered_DGEListObj.RData")
+#saveRDS(dge_gene_a2,"/home/downeyam/Github/2017OAExp_Oysters/results/Transcriptomic/DGEListObj_filterApproach2.RData")
 ```
   
 ### Normalization with edgeR  
@@ -240,6 +240,9 @@ dge_tran_a1 <- DGEList(tranC_a1,genes = tran_final) # counts - rsem
 dge_gene_a1_norm <- calcNormFactors(dge_gene_a1,method = "TMMwsp") # gene - approach 1
 dge_gene_a2_norm <- calcNormFactors(dge_gene_a2,method = "TMMwsp") # gene - approach 2
 dge_tran_a1_norm <- calcNormFactors(dge_tran_a1,method="TMMwsp")   # transcript - approach 1
+
+test <- voom(dge_gene_a1_norm)
+head(test$E)
 ```
   
 ### Create design matrix
@@ -289,6 +292,7 @@ contr_mat <- makeContrasts(
   
 * Use `voomWithQualityWeights` from `limma` package  
   * Part of limma package. Will transform count data to log2-count per million (logCPM), and estimate the mean-variance relationship. This will then be leveraged to compute the appropriate observation-level weights.  
+  * " When a multi-dimensional scaling plot from a designed RNA-seq experiment indicates the presenceof outlier samples, it is possible to combine the observation-level weighting strategy used in voomwith sample-specific quality weights (as described in the section above on Array Quality Weights) todown-weight outlier samples. This capability is implemented in thevoomWithQualityWeightsfunction. "
   
 **Note**: I am performing the transformation on both filtered gene sets (a1 vs a2) and passing along both design matrices (o1 vs. o2). At a result there will be 4 different gene feature objects and 1 transcript feature (a1 + o1) object.  
   
@@ -312,6 +316,12 @@ tran_voom <- voomWithQualityWeights(dge_tran_a1_norm, design,plot = TRUE)
 plotMDS(tran_voom,col=as.numeric(interaction(meta$treatment,meta$timepoint)),main="Samples by Treatment and Timepoint - Transcripts")
 # Simple MDS with samples colored by their site
 plotMDS(tran_voom,col=as.numeric(meta$Pop),main="Samples by Site - Transcripts")
+
+# Saving the final transformation of the data (after individual weights)
+# Going with Approach 2 and option 2 given this seems to make the most biological and experimental
+# sense. (i.e. keep genes with expression in at least one treatment X time level and using
+# specific contrasts for the specific hypotheses we with to test.
+#saveRDS(dge_gene_a2_o2_voom,"/home/downeyam/Github/2017OAExp_Oysters/results/Transcriptomic/DGEListObj_withIndWeights_filterApproach2_plannedContrastMatrix.RData")
 ```
   
 Looks like based on the mean-variance plots the relationship between sd or variance and expression looks reasonable for gene and transcript features and for either filtering approach.
@@ -397,8 +407,8 @@ bayes_gene_a2_o1_contr <- eBayes(lmf_gene_a2_o1_wContr,robust=TRUE)
 #Transcript
 bayes_tran_contr <- eBayes(lmf_tran_wContr,robust=TRUE)
 
-#saveRDS(gene_fit2_contr,"/home/downeyam/Github/2017OAExp_Oysters/results/DiffExpression_gene_Limma_voom_summaryObject.RData")
-#saveRDS(tran_fit2_contr,"/home/downeyam/Github/2017OAExp_Oysters/results/DiffExpression_transcript_Limma_voom_summaryObject.RData")
+#saveRDS(bayes_gene_a2_o1_contr,"/home/downeyam/Github/2017OAExp_Oysters/results/Transcriptomic/EBayesObj_gene_withIndWeights_filterApproach2_plannedContrastMatrix.RData")
+#saveRDS(tran_fit2_contr,"/home/downeyam/Github/2017OAExp_Oysters/results/EBayesObj_transcript_withIndWeights_filterApproach2_plannedContrastMatrix.RData")
 ```
   
 ### Top Candidate Tables  
@@ -632,3 +642,7 @@ Seems like no matter how you run the pipeline the findings are the same. We don'
   
 3) **Gene vs. Transcript Features**: Similar to the gene level analysis, there wasn't much evidence of differential expression of the transcripts (isoforms). Interestingly, the top candidate lists were not equivalent between gene and transcript level features, potentially highlighting that certain isoforms may be particularly responsive to certain treatments, but the signal may be swamped out at the gene level which considered all isoforms for that gene. However, at this point it is difficult to say since we didn't much evidence of differential expression at either level.  
   
+### Conclusions
+
+From these findings I decided to run with the second filtering option (i.e. `approach 2`), which only retained genes or transcripts that were present in at least one treatment-time level in at least 5 samples. This seems like the most sensible filtering criteria to ensure that one genes that display consistent expression in at least one treatment-time level are kept. In addition, we confirmed that the custom contrast matrix and planned comparisons are performing the way they should be, so I will be focusing on the potentially differentially expressed genes (and transcripts) from those contrasts.
+

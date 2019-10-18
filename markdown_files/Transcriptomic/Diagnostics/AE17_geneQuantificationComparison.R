@@ -25,20 +25,19 @@ rsem_c <- RSEM$Count
 gMat <- read.delim("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/C_virginica_gene_count_final.txt",sep = " ")
 # Reduce to only include overlapping genes 
 gMatrv <- gMat[na.exclude(match(rownames(s_counts),rownames(gMat))),]
-na.
 
 #### Transcript File ####
 tran <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/RNA/references/STAR_gnomon_tximportGeneFile.RData")
 # Gene File
 gene <- tran[!duplicated(tran$GENEID),]
 
-  #### Meta Data ####
-  meta <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190718.RData")
-  meta$sampl_nameSimple <- substr(meta$sample_name,start = 4,stop=9)
-  #Creat new factor levels (one for each level combination)
-  meta$SFVrn <- as.factor(paste0("D",meta$SFV))
-  meta$Sample_Index <- as.factor(meta$sample_index)
-  meta$TankID <- as.factor(meta$tankID)
+#### Meta Data ####
+meta <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
+meta$sampl_nameSimple <- substr(meta$sample_name,start = 4,stop=9)
+#Creat new factor levels (one for each level combination)
+meta$SFVrn <- as.factor(paste0("D",meta$SFV))
+meta$Sample_Index <- as.factor(meta$sample_index)
+meta$TankID <- as.factor(meta$tankID)
   
 #### Data Manipulation ####
 # Separate out STAR and RSEM counts and rename rows with LOC ID
@@ -99,6 +98,7 @@ cor_mat <- rbind(starVs,starVsls,starVrsem,sVsls,sVrsem,slsVrsem)
 corr_mean <- cbind(apply(cor_mat,1,mean),apply(cor_mat,1,sd))
 colnames(corr_mean) <- c("mean","sd")
 kableExtra::kable(corr_mean) %>% kableExtra::kable_styling()
+
 ###### LIMMA - VOOM PIPELINE #######
 
 #### Filtering and normalization - limma - all samples - RSEM/salmon_lengthscaled/salmon ####
