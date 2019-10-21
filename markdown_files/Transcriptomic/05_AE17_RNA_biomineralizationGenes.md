@@ -28,9 +28,8 @@ geneCounts <- readRDS(paste0(wd,"/results/Transcriptomic/gene_preNormalization_D
 gc_log <- log2(cpm(geneCounts$counts))
 tranCounts <- readRDS(paste0(wd,"/results/Transcriptomic/transcript_preNormalization_DGEListObj.RData"))
 tc_log <- log2(cpm(tranCounts$counts))
-
 geneDiff <- readRDS(paste0(wd,"/results/Transcriptomic/gene_EBayesObj.RData"))
-tranDiff <- readRDS(paste0(wd,"/results/transcript_EBayesObj.RData"))  
+tranDiff <- readRDS(paste0(wd,"/results/Transcriptomic/transcript_EBayesObj.RData"))  
 ```
 
 *Sample meta data*
@@ -69,6 +68,48 @@ tl$Location <- as.character(tl$Location)
 
 ![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
+**Histogram number of isoforms for each gene**
+
+``` r
+iso_count <- unlist(table(tranCounts$genes$GENEID))
+head(unlist(iso_count))
+```
+
+    ## 
+    ## LOC111099029 LOC111099030 LOC111099033 LOC111099034 LOC111099035 
+    ##            1            1            1            1            1 
+    ## LOC111099036 
+    ##            1
+
+``` r
+isoform_count <- data.frame(Location=names(iso_count),counts=as.numeric(iso_count))
+
+isoform_count_bio <- isoform_count[which(!is.na(match(isoform_count$Location,tl$Location))),]
+
+total <- data.frame(type="Total",Number_of_Isoforms=isoform_count$counts)
+target <- data.frame(type="Target",Number_of_Isoforms=isoform_count_bio$counts)
+full_vals <- rbind(total,target)
+  
+hist(total$Number_of_Isoforms,
+     col=adjustcolor("red",alpha.f = 0.2),
+     breaks=100,
+     freq = FALSE,
+     xlim=c(0,10),xlab="Num. of Isoforms",main="Isoform Counts")
+abline(v=mean(total$Number_of_Isoforms[total$Number_of_Isoforms>=0]),col=adjustcolor("red",alpha.f = 0.8),lwd=5)
+par(new=TRUE)
+hist(target$Number_of_Isoforms,
+     col=adjustcolor("blue",alpha.f = 0.2),
+     breaks=50,
+     freq=FALSE,
+     xlim=c(0,10),axes = FALSE,xlab="",ylab="",main="")
+legend(x=7,y=3,legend=c("All Genes","Biomineralization Genes"),pch=15,
+       col=c(adjustcolor("red",alpha.f = 0.2),adjustcolor("blue",alpha.f = 0.2)),
+       bty="n")
+abline(v=mean(target$Number_of_Isoforms[target$Number_of_Isoforms>0]),col=adjustcolor("blue",alpha.f = 0.8),lwd=5)
+```
+
+![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
 **Between treatment-time level variation in
 genes**
 
@@ -96,7 +137,7 @@ legend(x=8,y=6,legend=c("All Genes","Biomineralization Genes"),pch=c(1,16),
        bty="n")
 ```
 
-![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 **Between treatment-time level variation in
 transcripts**
@@ -125,7 +166,7 @@ legend(x=8,y=6,legend=c("All Transcripts","Biomineralization Transcripts"),pch=c
        bty="n")
 ```
 
-![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ``` r
 diffgeneTable<-topTable(geneDiff,number = Inf)
@@ -182,7 +223,7 @@ legend <- get_legend(
 plot_grid(prow, legend, rel_widths = c(2.8, .8))
 ```
 
-![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 Example code for this sort of grid
 plots:<https://github.com/wilkelab/cowplot/blob/master/vignettes/shared_legends.Rmd>

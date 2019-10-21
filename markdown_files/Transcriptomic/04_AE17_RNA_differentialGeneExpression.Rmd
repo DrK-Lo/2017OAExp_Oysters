@@ -53,29 +53,37 @@ head(t_top)
 
 ### Volcano Plots
 ```{r eval=TRUE,echo=FALSE,fig.width=10}
-par(mfrow=c(2,2))
+par(mfrow=c(2,1))
 plot(-log10(gc_diff$p.value[,1])~gc_diff$coefficients[,1],
      xlab="Log2 Fold Change",
      ylab="-log10(p)",
+     xlim=c(-8,8),
+     ylim=c(0,4),
      main="Ambient vs. Exposed - Day 9")
 points(-log10(gc_diff$p.value[abs(gc_diff$coefficients[,2])>2,1])~gc_diff$coefficients[abs(gc_diff$coefficients[,2])>2,1],
        col="red",pch=16)
 
 plot(-log10(gc_diff$p.value[,2])~gc_diff$coefficients[,2],
-     xlab="Log2Fold Change",
+     xlab="Log2 Fold Change",
      ylab="-log10(p)",
+     xlim=c(-8,8),
+     ylim=c(0,4),
      main="Ambient vs. Exposed - Day 80")
 ```
 
 ### CvE on Day 9 : CvE on Day 80  
 ```{r}
-plot(gc_diff$coefficients[,1]~gc_diff$coefficients[,2])
+par(mfrow=c(1,1))
 tl$Location <- as.character(tl$Location)
 gc_diff_bio <- gc_diff[which(!is.na(match(gc_diff$genes$GENEID,tl$Location))),]
 
-plot(gc_diff$coefficients[,1]~gc_diff$coefficients[,2],col=adjustcolor("red",alpha.f = 0.4),xlim=c(-8,8),ylim=c(-8,8))
+plot(gc_diff$coefficients[,1]~gc_diff$coefficients[,2],
+     col=adjustcolor("red",alpha.f = 0.4),
+     xlim=c(-8,8),ylim=c(-8,8),
+     xlab="Log2 Fold Change : Day 80",
+     ylab="Log2 Fold Change : Day 9")
 abline(h=0,col="black")
 abline(v=0,col="black")
 points(gc_diff_bio$coefficients[,1]~gc_diff_bio$coefficients[,2],
-       col=adjustcolor("blue",alpha.f=0.8),pch=16)
+       col=adjustcolor("blue",alpha.f=0.7),pch=16)
 ```
