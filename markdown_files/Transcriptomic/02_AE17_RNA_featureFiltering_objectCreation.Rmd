@@ -282,7 +282,7 @@ bayes_tran_contr <- eBayes(lmf_tran_wContr,robust=TRUE)
 
 # Saving Files
 saveRDS(bayes_gene_a2_o1_contr,paste0(wd,"/results/Transcriptomic/gene_EBayesObj.RData"))
-saveRDS(bayes_tran_contr,paste0(wd,"/results/transcript_EBayesObj.RData"))  
+saveRDS(bayes_tran_contr,paste0(wd,"/results/Transcriptomic/transcript_EBayesObj.RData"))  
 # Ready to perform a differential analyses
 ```
   
