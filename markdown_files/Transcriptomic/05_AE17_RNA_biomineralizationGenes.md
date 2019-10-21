@@ -110,6 +110,32 @@ abline(v=mean(target$Number_of_Isoforms[target$Number_of_Isoforms>0]),col=adjust
 
 ![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
+**Alternative : stacked bar plot**
+
+``` r
+target_iso_summary <- table(target$Number_of_Isoforms)
+total_iso_summary <- table(total$Number_of_Isoforms )
+
+target_sum <- data.frame(name="target",isoform_num=names(target_iso_summary),Frequency=as.numeric(target_iso_summary)/sum(as.numeric(target_iso_summary)))
+total_sum <- data.frame(name="total",isoform_num=names(total_iso_summary),Frequency=as.numeric(total_iso_summary)/sum(as.numeric(total_iso_summary)))
+
+all_sum <- rbind(total_sum,target_sum)
+
+all_sum$isoform_num <- factor(all_sum$isoform_num, levels = c(order(levels(all_sum$isoform_num)),"20+"))
+levels(all_sum$isoform_num)
+```
+
+    ##  [1] "1"   "2"   "3"   "4"   "5"   "6"   "7"   "8"   "9"   "10"  "11" 
+    ## [12] "12"  "13"  "14"  "15"  "16"  "17"  "18"  "19"  "20+"
+
+``` r
+all_sum$isoform_num[is.na(all_sum$isoform_num)] <- "20+"
+ggplot(all_sum, aes(x=isoform_num,y=Frequency,colour=name,fill=name)) +geom_bar(position="dodge", stat="identity") +
+  labs(colour="Genes",fill="Genes")
+```
+
+![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
 **Between treatment-time level variation in
 genes**
 
@@ -137,7 +163,7 @@ legend(x=8,y=6,legend=c("All Genes","Biomineralization Genes"),pch=c(1,16),
        bty="n")
 ```
 
-![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 **Between treatment-time level variation in
 transcripts**
@@ -166,7 +192,7 @@ legend(x=8,y=6,legend=c("All Transcripts","Biomineralization Transcripts"),pch=c
        bty="n")
 ```
 
-![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 ``` r
 diffgeneTable<-topTable(geneDiff,number = Inf)
@@ -223,7 +249,7 @@ legend <- get_legend(
 plot_grid(prow, legend, rel_widths = c(2.8, .8))
 ```
 
-![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](05_AE17_RNA_biomineralizationGenes_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 Example code for this sort of grid
 plots:<https://github.com/wilkelab/cowplot/blob/master/vignettes/shared_legends.Rmd>
