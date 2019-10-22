@@ -11,6 +11,8 @@ The bayesian binomial regression outputs run on each CpG loci using the BRMS scr
 * `Final_DNAm_gene_BRMS_modelSummary.RData`
 * `Final_DNAm_gene_BRMS_plannedComparisons.RData`
 
+[Script](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/DNAm/cluster_scripts/R/08_diffMethylation_brms_aggregate.R)
+
 Code run on cluster in R:
 ```
 setwd("/shared_lab/20180226_RNAseq_2017OAExp/DNAm/processed_samples/07_brmsSummary")
