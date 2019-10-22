@@ -57,28 +57,28 @@ for(i in 2:nrow(pos)){
   t3 <- readRDS(list.files(pattern=paste0(pos[i,1],"_",pos[i,2],"_plannedComparisons")))
   
   # Updating marginal effects
-  mme$marg_estimate[c(pos[i,1]:pos[i,2])] <- t1$marg_estimate[c(pos[i,1]:pos[i,2])]
-  mme$se_estimate[c(pos[i,1]:pos[i,2])] <- t1$se_estimate[c(pos[i,1]:pos[i,2])]
-  mme$l_estimate[c(pos[i,1]:pos[i,2])] <- t1$l_estimate[c(pos[i,1]:pos[i,2])]
-  mme$u_estimate[c(pos[i,1]:pos[i,2])] <- t1$u_estimate[c(pos[i,1]:pos[i,2])]
+  mme$marg_estimate[c(pos[i,1]:pos[i,2]),] <- t1$marg_estimate[c(pos[i,1]:pos[i,2]),]
+  mme$se_estimate[c(pos[i,1]:pos[i,2]),] <- t1$se_estimate[c(pos[i,1]:pos[i,2]),]
+  mme$l_estimate[c(pos[i,1]:pos[i,2]),] <- t1$l_estimate[c(pos[i,1]:pos[i,2]),]
+  mme$u_estimate[c(pos[i,1]:pos[i,2]),] <- t1$u_estimate[c(pos[i,1]:pos[i,2]),]
   
   # Updating model Summary
-  ms$Estimate[c(pos[i,1]:pos[i,2])] <- t2$Estimate[c(pos[i,1]:pos[i,2])]
-  ms$Est.Error[c(pos[i,1]:pos[i,2])] <- t2$Est.Error[c(pos[i,1]:pos[i,2])]
-  ms$CI.Lower[c(pos[i,1]:pos[i,2])] <- t2$CI.Lower[c(pos[i,1]:pos[i,2])]
-  ms$CI.Upper[c(pos[i,1]:pos[i,2])] <- t2$CI.Upper[c(pos[i,1]:pos[i,2])]
-  ms$Rhat[c(pos[i,1]:pos[i,2])] <- t2$Rhat[c(pos[i,1]:pos[i,2])]
-  ms$Bulk_ESS[c(pos[i,1]:pos[i,2])] <- t2$Bulk_ESS[c(pos[i,1]:pos[i,2])]
-  ms$Tail_ESS[c(pos[i,1]:pos[i,2])] <- t2$Tail_ESS[c(pos[i,1]:pos[i,2])]
+  ms$Estimate[c(pos[i,1]:pos[i,2]),] <- t2$Estimate[c(pos[i,1]:pos[i,2]),]
+  ms$Est.Error[c(pos[i,1]:pos[i,2]),] <- t2$Est.Error[c(pos[i,1]:pos[i,2]),]
+  ms$CI.Lower[c(pos[i,1]:pos[i,2]),] <- t2$CI.Lower[c(pos[i,1]:pos[i,2]),]
+  ms$CI.Upper[c(pos[i,1]:pos[i,2]),] <- t2$CI.Upper[c(pos[i,1]:pos[i,2]),]
+  ms$Rhat[c(pos[i,1]:pos[i,2]),] <- t2$Rhat[c(pos[i,1]:pos[i,2]),]
+  ms$Bulk_ESS[c(pos[i,1]:pos[i,2]),] <- t2$Bulk_ESS[c(pos[i,1]:pos[i,2]),]
+  ms$Tail_ESS[c(pos[i,1]:pos[i,2]),] <- t2$Tail_ESS[c(pos[i,1]:pos[i,2]),]
   
   # Planned Comparisons
-  mpc$Estimate[c(pos[i,1]:pos[i,2])] <- t3$Estimate[c(pos[i,1]:pos[i,2])]
-  mpc$Est.Error[c(pos[i,1]:pos[i,2])] <- t3$Est.Error[c(pos[i,1]:pos[i,2])]
-  mpc$CI.Lower[c(pos[i,1]:pos[i,2])] <- t3$CI.Lower[c(pos[i,1]:pos[i,2])]
-  mpc$CI.Upper[c(pos[i,1]:pos[i,2])] <- t3$CI.Upper[c(pos[i,1]:pos[i,2])]  
-  mpc$Evid.Ratio[c(pos[i,1]:pos[i,2])] <- t3$Evid.Ratio[c(pos[i,1]:pos[i,2])]
-  mpc$Post.Prob[c(pos[i,1]:pos[i,2])] <- t3$Post.Prob[c(pos[i,1]:pos[i,2])]
-  mpc$Significant[c(pos[i,1]:pos[i,2])] <- t3$Significant[c(pos[i,1]:pos[i,2])]
+  mpc$Estimate[c(pos[i,1]:pos[i,2]),] <- t3$Estimate[c(pos[i,1]:pos[i,2]),]
+  mpc$Est.Error[c(pos[i,1]:pos[i,2]),] <- t3$Est.Error[c(pos[i,1]:pos[i,2]),]
+  mpc$CI.Lower[c(pos[i,1]:pos[i,2]),] <- t3$CI.Lower[c(pos[i,1]:pos[i,2]),]
+  mpc$CI.Upper[c(pos[i,1]:pos[i,2]),] <- t3$CI.Upper[c(pos[i,1]:pos[i,2]),]  
+  mpc$Evid.Ratio[c(pos[i,1]:pos[i,2]),] <- t3$Evid.Ratio[c(pos[i,1]:pos[i,2]),]
+  mpc$Post.Prob[c(pos[i,1]:pos[i,2]),] <- t3$Post.Prob[c(pos[i,1]:pos[i,2]),]
+  mpc$Significant[c(pos[i,1]:pos[i,2]),] <- t3$Significant[c(pos[i,1]:pos[i,2]),]
 }
 
 ### Saving Files
