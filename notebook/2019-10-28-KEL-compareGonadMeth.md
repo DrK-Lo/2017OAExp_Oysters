@@ -12,10 +12,10 @@ Alan defaulted to having the start position for the cytosine on the positive str
 So for example, Alan has a methylation call at 88-89, but how should this correspond to Yaamini's pair 86-87 and 87-88?
 
 ### Example Yaamini gonad data
-![](2019-10-28-Yaamini-gonad.png)
+![](img/2019-10-28-Yaamini-gonad.png)
 
 ### Example Alan Mantle data
-![](2019-10-28-Alan-mantle.png)
+![](img/2019-10-28-Alan-mantle.png)
 
 
 
