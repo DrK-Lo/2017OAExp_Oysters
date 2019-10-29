@@ -1,0 +1,195 @@
+---
+title: "AE17_ExpressionPCA_withLoadings"
+author: "adowneywall"
+date: "9/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+## Additional Analysis  
+  
+### Examining water chem in multi dimensions
+```{r}
+par(mfrow=c(1,1))
+epf_cCarbChem <- epf_cal[!is.na(epf_cal$EPF_DIC_Start),]
+
+chemNames <- c("EPF_pH","EPF_DIC_Start","EPF_Ca_Start")
+epf_cCarbChem_r <- subset(epf_cCarbChem,select = chemNames )
+
+cCarb_pca <- prcomp(epf_cCarbChem_r,scale=TRUE)
+fviz_eig(cCarb_pca)
+
+fviz_pca_var(cCarb_pca,
+             title="Variable Vectors - Total Carbonate Chem Data ",
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+
+group1 <- as.factor(epf_cCarbChem$pCO2)
+fviz_pca_biplot(cCarb_pca, repel = TRUE,
+                title="Individuals and Variable Vectors - Total Carbonate Chem Data (Ellipse = CI) ",
+                col.ind = group1, # color by groups
+                palette = c("#00AFBB",  "#FC4E07","darkseagreen"),
+                addEllipses = TRUE,
+                ellipse.type = "confidence",
+                legend.title = "pCO2",
+                col.var = "#2E9FDF" # Variables color
+                #col.ind = "#696969"  # Individuals color
+                )
+
+group2 <- interaction(epf_cCarbChem$pCO2,epf_cCarbChem$timepoint)
+fviz_pca_biplot(cCarb_pca, repel = TRUE,label = c("var"),
+                col.ind = group2, # color by groups
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                addEllipses = TRUE,
+                ellipse.type = "confidence",
+                legend.title = "pCO2.SampleDay",
+                col.var = "#2E9FDF" # Variables color
+                #col.ind = "#696969"  # Individuals color
+                )
+
+### Just Samples from the actual exposure (acclimation points removed)
+exposure_cCarbChem <- epf_cCarbChem[epf_cCarbChem$timepoint > 0,]
+chemNames <- c("EPF_pH","EPF_DIC_Start","EPF_Ca_Start")
+exposure_cCarbChem_r <- subset(exposure_cCarbChem,select = chemNames )
+
+cCarb_pca2 <- prcomp(exposure_cCarbChem_r,scale=TRUE)
+fviz_eig(cCarb_pca2)
+
+group3 <- interaction(exposure_cCarbChem$pCO2,exposure_cCarbChem$timepoint)
+fviz_pca_biplot(cCarb_pca2, repel = TRUE,label = c("var"),
+                title="Individuals and Variable Vectors - Exposure Only Carbonate Chem Data (Ellipse = CI) ",
+                col.ind = group3, # color by groups
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                addEllipses = TRUE,
+                ellipse.type = "confidence",
+                legend.title = "pCO2",
+                col.var = "#2E9FDF" # Variables color
+                #col.ind = "#696969"  # Individuals color
+                )
+
+### Just Samples we sequenced 
+seq_cCarbChem <- just_seq[!is.na(just_seq$EPF_DIC_Start),]
+chemNames <- c("EPF_pH","EPF_DIC_Start","EPF_Ca_Start")
+seq_cCarbChem_r <- subset(seq_cCarbChem,select = chemNames )
+
+cCarb_pca3 <- prcomp(seq_cCarbChem_r,scale=TRUE)
+fviz_eig(cCarb_pca3)
+
+group3 <- interaction(seq_cCarbChem$pCO2,seq_cCarbChem$timepoint)
+fviz_pca_biplot(cCarb_pca3, repel = TRUE,label = c("var"),
+                title="Individuals and Variable Vectors - Sequenced Samples Only Carbonate Chem Data (Ellipse = CI) ",
+                col.ind = group3, # color by groups
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                addEllipses = TRUE,
+                ellipse.type = "confidence",
+                legend.title = "pCO2",
+                col.var = "#2E9FDF" # Variables color
+                #col.ind = "#696969"  # Individuals color
+                )
+```
+
+```{r}
+library(ggplot2)
+library(limma)
+library(mgcv)
+library(factoextra) # for the fviz_eig function
+
+# Summary DNA Methylation data for samples with >= 5 counts per sample
+m_sum <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/Final_beta_gene_5_summary.RData")
+m_sum$gene_id <- as.character(m_sum$gene_id)
+# DGEList object for gene expression data
+ge <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/Transcriptomic/DGEListObj_withIndWeights_filterApproach2_plannedContrastMatrix.RData")
+# EBayes object (diff expression) for gene expression data
+diff_g <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/Transcriptomic/EBayesObj_gene_withIndWeights_filterApproach2_plannedContrastMatrix.RData")
+
+# Quick visualization of the weight corrected data
+counts <- ge$weights
+colnames(counts) <- sample_meta$ID
+rownames(counts) <- ge$genes$GENEID
+ge_pca <- prcomp(t(counts))
+fviz_eig(ge_pca)
+
+nrow(ge_pca$x)
+fviz_pca_ind(ge_pca,
+             label = "none", # hide individual labels
+             habillage = sample_meta$SFV, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07","green"),
+             addEllipses = TRUE, axes = c(2,3) # Concentration ellipses   
+            
+)
+
+ggbiplot(ge_pca,groups = sample_meta$Pop,ellipse = TRUE,choices = c(1,3),
+         labels.size = 5,var.axes = FALSE)
+ggbiplot(ge_pca,groups = sample_meta$Pop,ellipse = TRUE,choices = c(2,3),
+         labels.size = 5,var.axes = FALSE)
+
+ggbiplot(ge_pca,groups = sample_meta$Time,ellipse = TRUE,choices = c(1,3),
+         labels.size = 5,var.axes = FALSE)
+ggbiplot(ge_pca,groups = sample_meta$Time,ellipse = TRUE,choices = c(2,3),
+         labels.size = 5,var.axes = FALSE)
+
+ggbiplot(ge_pca,groups = sample_meta$Treatment,ellipse = TRUE,choices = c(1,3),
+         labels.size = 5,var.axes = FALSE)
+ggbiplot(ge_pca,groups = sample_meta$Treatment,ellipse = TRUE,choices = c(2,3),
+         labels.size = 5,var.axes = FALSE)
+
+library(ggbiplot)
+data(wine)
+
+wine.pca <- prcomp(wine, scale. = TRUE)
+ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
+         groups = wine.class, ellipse = TRUE, circle = TRUE) +
+  scale_color_discrete(name = '') +
+  theme(legend.direction = 'horizontal', legend.position = 'top')
+
+
+
+
+#### Data Preparation ####
+#Identify which genes overlap between gene expression data and DNAm data
+
+diff_table <- topTable(diff_g,p.value = 1,n=Inf)
+colnames(diff_table)[3] <- "gene"
+colnames(diff_table)[1] <- "gene_id"
+head(diff_table)
+head(m_sum)
+comb <- inner_join(diff_table,m_sum,by="gene_id")
+
+duplicated(m_sum$gene_id)
+
+## Subset to the variable of interest for PCA
+compare <- 
+
+## Perform PCA
+ge_pca <- prcomp(t(ge$weights))
+fviz_eig(ge_pca)
+
+## Graphically examine
+group3 <- interaction(sm$SFV)
+fviz_pca_biplot(ge_pca, repel = TRUE)
+
+label = c("var"),
+                title="Individuals and Variable Vectors - Sequenced Samples Only Carbonate Chem Data (Ellipse = CI) ",
+                col.ind = group3, # color by groups
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                addEllipses = TRUE,
+                ellipse.type = "confidence",
+                legend.title = "pCO2",
+                col.var = "#2E9FDF" # Variables color
+                #col.ind = "#696969"  # Individuals color
+)
+
+
+
+```

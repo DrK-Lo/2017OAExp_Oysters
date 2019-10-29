@@ -1,0 +1,89 @@
+---
+title: "Differential Expression Analyses"
+author: "adowneywall"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Library**
+```{r message=FALSE}
+## Packages 
+library(matrixStats,quietly = TRUE)
+library(edgeR,quietly = TRUE)
+library(dplyr,quietly = TRUE)
+library(FSA,quietly = TRUE) # to use w arguement in hist()
+library(ggplot2)
+library(cowplot)
+library(limma)
+
+wd <- "/home/downeyam/Github/2017OAExp_Oysters"
+# This should be set to the path for the local version of the `2017OAExp_Oysters` github repo.
+```
+
+**Data**
+```{r}
+## Meta Data for the Model
+#model<-readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
+# Gene
+
+gc_diff <- readRDS(paste0(wd,"/results/Transcriptomic/gene_EBayesObj.RData"))
+# Transcripts
+tc_diff <- readRDS(paste0(wd,"/results/Transcriptomic/transcript_EBayesObj.RData"))
+# Biomineralization Genes
+tl <- read.csv(paste0(wd,"/input_files/RNA/references/Target_BiomineralizationGenes.csv"))
+
+```
+
+### Top table of Genes
+```{r}
+g_top <- topTable(gc_diff,number = Inf)
+head(g_top)
+```
+
+### Top table of Transcripts
+```{r}
+t_top <- topTable(tc_diff,number=Inf)
+head(t_top)
+```
+
+### Volcano Plots
+```{r eval=TRUE,echo=FALSE,fig.width=10}
+par(mfrow=c(2,1))
+plot(-log10(gc_diff$p.value[,1])~gc_diff$coefficients[,1],
+     xlab="Log2 Fold Change",
+     ylab="-log10(p)",
+     xlim=c(-8,8),
+     ylim=c(0,4),
+     main="Ambient vs. Exposed - Day 9")
+points(-log10(gc_diff$p.value[abs(gc_diff$coefficients[,2])>2,1])~gc_diff$coefficients[abs(gc_diff$coefficients[,2])>2,1],
+       col="red",pch=16)
+
+plot(-log10(gc_diff$p.value[,2])~gc_diff$coefficients[,2],
+     xlab="Log2 Fold Change",
+     ylab="-log10(p)",
+     xlim=c(-8,8),
+     ylim=c(0,4),
+     main="Ambient vs. Exposed - Day 80")
+```
+
+### CvE on Day 9 : CvE on Day 80  
+```{r}
+par(mfrow=c(1,1))
+tl$Location <- as.character(tl$Location)
+gc_diff_bio <- gc_diff[which(!is.na(match(gc_diff$genes$GENEID,tl$Location))),]
+
+plot(gc_diff$coefficients[,1]~gc_diff$coefficients[,2],
+     col=adjustcolor("red",alpha.f = 0.4),
+     xlim=c(-8,8),ylim=c(-8,8),
+     xlab="Log2 Fold Change : Day 80",
+     ylab="Log2 Fold Change : Day 9")
+abline(h=0,col="black")
+abline(v=0,col="black")
+points(gc_diff_bio$coefficients[,1]~gc_diff_bio$coefficients[,2],
+       col=adjustcolor("blue",alpha.f=0.7),pch=16)
+```

@@ -9,26 +9,27 @@ This repository was created to keep track of the code and preliminary analyses f
 
 ## Analysis (in progress)
 
-### Transcriptomic Analysis
+### [Transcriptomic Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/Transcriptomic)
+  * [01 - Creating Feature Count Matrices]()
+  * [02 - Filtering and Normalization](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Transcriptomic/02_AE17_RNA_featureFiltering_objectCreation.md)
+  * [03 - Multivariate Analyses]()
+  * [04 - Differential Expression]()
+  * [05 - Biomineralization Genes](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Transcriptomic/05_AE17_RNA_biomineralizationGenes.md)
+  * [Extra Scripts](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/Transcriptomic/RNAseq_Additional)
+  * [Diagnostic Scripts](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/Transcriptomic/Diagnostics)
 
-1. **Mapping and Transcript Quantification**: This was done with two different pipelines, `STAR` and `salmon`.
-  - [STAR / RSEM Pipeline](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/STAR_pipeline)
-  - [SALMON Pipeline](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Salmon_pipeline/README.md)
-2. [**Differential Gene Analysis**](): Three primary programs were used to estimate differential expression, `edgr-limma-voom`,`DESeq2`,`sleuth`
-  - [Edgr-limma-voom]()
-  - [DESeq2]()
-  - [Sleuth]()
-3. [**Gene Ontology**]()
+### [DNA methylation Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/DNAm)
 
-### DNA methylation Analysis
+### [Genomic References](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/References)
 
-### Phenotypes 
-  - [EPF Phenotype Analysis](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/AE17_epfPhenotype.md)
+### [Phenotypes](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/Phenotype_Analysis)
+  * [EPF Full Timeseries](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/1_AE17_epf_Total.md)
+  * [Calcification](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/3A_AE17_calcification_FullAnalysis.md)
+  * [Full Carbonate Chemistry - in supplemental](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/Phenotype_Analysis/2_AE17_epf_carbChem.md)
 
-### [Water Chemistry]() 
+### [Water Chemistry](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/WC) 
 
-
-### Extra 
+### Extra (outdated)
 
 - [Read Count Break Down](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/readAnalysis.md): Summarized raw read, alignment, and final gene count data for each individual. This file also contains a preliminary look at the unfiltered ```geneCount``` matrix. Specifically, the proportion of counts that fall in the upper 10,5,and1% of genes and how the counts of those genes compare between treatments.
 - [Gene Count Matrix Comparison](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/extra/starReRun_17005_comparison.md): This was a brief comparisons between the geneCounts for sample 17005 generated during the original Original STAR Pipeline run (MAR-2018) and new STAR Pipeline run which used the same data and sample parameters.

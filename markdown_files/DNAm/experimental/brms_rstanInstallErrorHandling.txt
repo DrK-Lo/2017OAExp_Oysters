@@ -1,0 +1,54 @@
+
+##### Error when trying binomial mixed model with brms on linux cluster ####
+
+>       m.out2 <- brm(mC | trials(size)~ time*trt + (1|tankID), data=temp,
++                    family = binomial(), iter=5000, control = list(max_treedepth = 15, adapt_delta=0.99))
+Compiling the C++ model
+Start sampling
+
+ *** caught segfault ***
+address 0x20, cause 'memory not mapped'
+
+Traceback:
+ 1: Module(module, mustStart = TRUE)
+ 2: .getModulePointer(x)
+ 3: new("Module", .xData = <environment>)$stan_fit4model9b3914f1dfaa_5ebef1e8424272f9f2d56ea1a767a123
+ 4: new("Module", .xData = <environment>)$stan_fit4model9b3914f1dfaa_5ebef1e8424272f9f2d56ea1a767a123
+ 5: eval(call("$", mod, paste("stan_fit4", model_cppname, sep = "")))
+ 6: eval(call("$", mod, paste("stan_fit4", model_cppname, sep = "")))
+ 7: object@mk_cppmodule(object)
+ 8: .local(object, ...)
+ 9: .fun(object = .x1, data = .x2, pars = .x3, include = .x4, iter = .x5,     seed = .x6, init = .x7, warmup = .x8, thin = .x9, control = .x10,     show_messages = .x11, chains = .x12, cores = .x13)
+10: .fun(object = .x1, data = .x2, pars = .x3, include = .x4, iter = .x5,     seed = .x6, init = .x7, warmup = .x8, thin = .x9, control = .x10,     show_messages = .x11, chains = .x12, cores = .x13)
+11: eval(expr, envir, ...)
+12: eval(expr, envir, ...)
+13: eval2(call, envir = args, enclos = parent.frame())
+14: do_call(rstan::sampling, args)
+15: brm(mC | trials(size) ~ time * trt + (1 | tankID), data = temp,     family = binomial(), iter = 5000, control = list(max_treedepth = 15,         adapt_delta = 0.99))
+
+### Potential reasons for segfault
+a) A buggy program / command, which can be only fixed by applying patch.
+b) It can also appear when you try to access an array beyond the end of an array under C programming.
+c) Inside a chrooted jail this can occur when critical shared libs, config file or /dev/ entry missing.
+d) Sometime hardware or faulty memory or driver can also create problem.
+e) Maintain suggested environment for all computer equipment (overheating can also generate this problem)
+
+## Interestingly I don't have this problem on my local computer running the same data, these makes me think that something went wrong with the install of brms and associated packages, which seems plausible since I had to do a complete work around to get the packages installed initially.
+
+## It seems like the issue emerges during the sampling step
+
+## ERROR: the sampling() function called from rstan.
+
+## SOURCE OF ERROR: According to rstan github issue this seems to be caused by different compiliers being used by rstan vs. Rcpp. I suppose this makes sense given the issues with compiliers when we installed rstan and brms.
+
+## SOLUTION: Uninstall and reinstall Rcpp and associated packages. When they are reinstalled they should be installed using the same compiliers that were used by rstan.
+
+R Code:
+
+remove.packages(c("Rcpp","RcppEigen","StanHeaders","brms","rstan"))
+install.packages(c("Rcpp","RcppEigen","StanHeaders","brms","rstan"))
+
+# There was some discussion that order matters here, so make sure to put rstan and brms last, and call the Rcpp library first in your script.
+
+# Dicussion of issue on github: https://github.com/stan-dev/rstan/issues/333
+

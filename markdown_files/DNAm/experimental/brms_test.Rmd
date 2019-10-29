@@ -1,0 +1,166 @@
+---
+title: "BRMS Example"
+author: "adowneywall"
+date: "9/27/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages("rstan",dependencies = TRUE)
+library(rstan)
+#9install.packages("brms",dependencies = TRUE)
+library(brms)
+library(lme4)
+library(multcomp)
+```
+
+```{r}
+# Using practice dataset 
+# ?cbpp from lme4 package
+
+#Using traditional glmer 
+glmer_out <- glmer(cbind(incidence,size-incidence)~period + (1|herd),
+                   family=binomial(),data=cbpp)
+#Using bayesian (mcmc) approach from brms
+brms <- brm(incidence|trials(size)~period+(1|herd),
+            family=binomial(), control = list(adapt_delta=0.9),
+            data=cbpp)
+
+# Summaries
+summary(glmer_out)
+summary(brms)
+
+# Targeted hypothesis testing
+(hyp1 <- hypothesis(brms, "period2-period4 = 0"))
+plot(hyp1,ignore_prior=TRUE)
+```
+
+### Examining brms with our sample data
+```{r}
+setwd("/home/downeyam/Github/2017OAExp_Oysters/input_files")
+mC <- readRDS("DNAm/Final_mC_gene_5.RData")
+uC <- readRDS("DNAm/Final_umC_gene_5.RData")
+meta <- readRDS("DNAm/Final_meta_gene_5.RData")
+
+## Sample data (treatment, site, etc)
+meta_sample <- readRDS("meta/metadata_20190811.RData")
+meta_sample <- meta_sample[meta_sample$ID!="17099",] # Already removed from count matrices
+meta_sample$tank <- as.factor(meta_sample$tank)
+meta_sample$shelf <- as.factor(meta_sample$shelf)
+
+
+# Group 1: Methylation Difference between treatments at day 9
+# This will be used for down stream glmer binomial mixed model test
+beta<-mC/(mC+uC)
+beta.9C <- beta[,meta_sample$SFV == "09.400"]
+beta.9E <- beta[,meta_sample$SFV == "09.2800"]
+beta.9C_mean <- rowMeans(beta.9C)
+beta.9E_mean <- rowMeans(beta.9E)
+beta_mean_diff <- beta.9C_mean-beta.9E_mean
+beta_mean_diff <- data.frame(index=c(1:length(beta_mean_diff)),beta_diff=beta_mean_diff)
+beta_mean_diff_order <- beta_mean_diff[rev(order(abs(beta_mean_diff$beta_diff))),]
+
+# Top target CpG based on mean difference between treatments on day 9
+head(beta_mean_diff_order)
+target<-beta_mean_diff_order$index[1]
+plot(unlist(beta[target,])~meta_sample$SFV,ylim=c(0,1),
+     xlab="Time.Treatment",ylab="% Methylation",maint=paste0("Locus ",target))
+meta[target,]
+```
+
+```{r}
+temp <- data.frame(mC=as.numeric(unlist(mC[target,])),
+                   size=as.numeric(c(unlist(mC[target,])+unlist(uC[target,]))),
+                   levels=meta_sample$SFV,
+                   shelf=meta_sample$shelf,
+                   tank=meta_sample$tank,
+                   time=meta_sample$Time,
+                   trt=meta_sample$Treatment,
+                   tankID=meta_sample$tankID)
+boxplot(mC/size~levels, data=temp)
+
+m.out <- brm(mC | trials(size)~ levels + (1|tankID), data=temp,
+            family = binomial(), iter=5000, control = list(max_treedepth = 15, adapt_delta=0.99))
+summary(m.out)
+plot(m.out)
+str(posterior_samples(m.out))
+plot(marginal_effects(m.out), ask = FALSE)
+
+par(mfrow=c(1,2))
+# Resids from glmer_out
+boxplot(resid(glmer_out)~temp$tankID,main="GLMER Resids x TankID",xlab="Tank ID",ylab="Residuals",ylim=c(-14,14))
+# Resids from brm_out
+boxplot(resid(brm_out)[,1]~temp$tankID,main="BRMS Resids x TankID",xlab="Tank ID",ylab="Residuals",ylim=c(-14,14))
+# Looks like brm does a better job
+plot(resid(glmer_out)~resid(brm_out)[,1])
+abline(b=1,a=0,col="red")
+
+## Script for planned comparisons when using the proper time*treatment factor formula in glmer
+(group <- paste0(temp$time,":",temp$trt))
+(mod_matrix <- model.matrix(glmer_out))
+(agg_mod_matrix <- aggregate(mod_matrix~group,FUN=mean))
+rownames(agg_mod_matrix) <- agg_mod_matrix$group
+agg_mod_matrix <- agg_mod_matrix[,-1]
+lc2 <- as.matrix(agg_mod_matrix)
+
+k <- rbind("400v2800_9"=lc2["09:2800",]-lc2["09:400",],
+           "400v2800_80"=lc2["80:2800",]-lc2["80:400",],
+           "400_9_80"=lc2["80:400",]-lc2["09:400",]
+           )
+summary(glht(glmer_out ,linfct=k),adjusted(type = "fdr"))
+
+
+# 400 v 2800 Day 9
+?hypothesis()
+#(hypothesis(brm_out,"tankID",scope="ranef"))
+(hypothesis(brm_out,"trt2800 > 0"))
+(hypothesis(brm_out,"trt2800 < 0"))
+(hypothesis(brm_out,"trt2800 = 0",scope="coef",group="tankID"))
+# 400 v 2800 Day 80
+(hypothesis(brm_out,"(trt2800+time80:trt2800)/2=0")) #Not sure about this one
+# 400 v 400 from day 9 to 80
+(hypothesis(brm_out,"time80=0"))
+```
+
+### Katies Code
+```{r}
+boxplot(mc/size~level, data=a)
+e <- a
+e$uc[e$level=="400_09"] <- e$uc[e$level=="400_09"] + 5
+e$size=e$mc + e$uc
+boxplot(mc/size~level, data=e)
+# note that we need to re-code so that 400_09 is base
+m4.1 <- brm(mc | trials(size)~ level + (1|tankID), data=e,
+            family = binomial(), iter=5000, control = list(max_treedepth = 15, adapt_delta=0.99))
+summary(m4.1)
+plot(m4.1)
+str(posterior_samples(m4.1))
+plot(marginal_effects(m4.1), ask = FALSE)
+alph = 0.0001
+(h_2800.80E2800.09_a0.0001 <- hypothesis(m4.1, "level2800_80=0", class="b", alpha=alph))
+  # Is 2800_80 different from 2800_09
+(h_400.09E2800.09_a0.0001 <-hypothesis(m4.1, "level400_09=0", class="b", alpha=alph))
+  # Is day 9 at 400 the same as 2800_09
+(h_400.80E2800.09_a0.0001 <-hypothesis(m4.1, "level400_80=0", class="b", alpha=alph))
+  # Is day 80 at 400 the same as 2800_09
+(h_2800.80E400.09_a0.0001 <- hypothesis(m4.1, "level2800_80=level400_09", class="b", alpha=alph))
+(h_2800.80E400.80_a0.0001 <-hypothesis(m4.1, "level2800_80=level400_80", class="b", alpha=alph))
+(h_400.09E400.80_a0.0001 <-hypothesis(m4.1, "level400_09=level400_80", class="b", alpha=alph))
+(h_Time_a0.0001 <-hypothesis(m4.1, "level400_09 + 2*Intercept = 2*Intercept + level2800_80 + level400_80", class="b", alpha=alph))
+  # I think this is testing if Day 9 is different from Day 80
+str(h)
+(h_Treatment_a0.0001 <-hypothesis(m4.1, "level400_09 + level400_80 + 2*Intercept= 2*Intercept + level2800_80 ", class="b", alpha=alph))
+  # I think this is testing if 400 is different from 2800
+(h_Interaction <-hypothesis(m4.1, "(Intercept+level400_09)-(Intercept)= (Intercept+level400_80)-(Intercept + level2800_80) ", class="b", alpha=0.001))
+  # I think this is testing if the difference between treatments at day 9 is different from the difference between treatments at day 80
+str(h)
+```
+
+
+```
