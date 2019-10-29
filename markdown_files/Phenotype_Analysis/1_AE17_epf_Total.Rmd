@@ -28,7 +28,22 @@ source("/home/downeyam/R/basicR_functions.R")
 **RData version of data**
 ```{r}
 pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryPhenotypeData_without81.RData")
+pheno2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/finalFullPhenotypeData.RData")
 pheno_red <- pheno[pheno$timepoint != 81,]
+```
+
+**Creating subtable for sample info for BCO-DMO Database**
+```{r}
+colnames(pheno)
+pheno$pCO2_cat <- as.character(pheno$pCO2.x)
+pheno$pCO2_cat[pheno$pCO2_cat == "2800"] <- "High_OA"
+## Subsetting full pheno for BCO-DMO data
+col <- c("ID","sample_date","timepoint","pCO2_cat","shelf","tank","WaterSample_ID","PopOrigin","sequenced","width","length","wet_wgtcorr","dry_wgt","Len_Wgt_Index","HN_Index")
+pheno_ind <- subset(pheno,select =col)
+colnames(pheno_ind)[4] <- "treatment"
+colnames(pheno_ind)[7] <- "tankID"
+colnames(pheno_ind)[8] <- "collection_site"
+write.csv(pheno_ind,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_SampleInfo.csv")
 ```
 
   
