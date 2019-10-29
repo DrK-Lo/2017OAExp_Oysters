@@ -27,4 +27,13 @@ Tank chemistry was measured three times a week  (M,W,F) for temperature, salinit
     * `Seawater` : Output pH scale
     * `Lee et al. 2010` : BI Value
     
-    
+### Output Values
+
+| Parameter | Collection | Description | Units |
+|:---------:|:----------:|:-----------:|:-----:|
+| pH_measured | M,W,F  | measured pH | unitless |
+| Salinity | M,W,F | salinity | PSU |
+| CT | Biweekly | dissolved inorganic carbon | |
+| AT | Biweekly | Alkalinity | |
+| pH_out | Biweekly | calculated pH | unitless |
+
