@@ -8,7 +8,7 @@ output: html_document
 setwd("~/Documents/GitHub/2017OAExp_Oysters/markdown_files/compareGonadMantle")
 
 ```{r, install}
-packages_needed <- c("scales", "biomartr", "rio", "tidyverse", "googledrive","data.table"
+packages_needed <- c("scales", "biomartr", "rio", "tidyverse", "googledrive","data.table", "matrixStats"
                      )
 
 for (i in 1:length(packages_needed)){
@@ -40,12 +40,17 @@ for (i in 1:length(bioc_packages_needed)){
 ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/002/022/765/GCF_002022765.2_C_virginica-3.0/GCF_002022765.2_C_virginica-3.0_genomic.gff.gz
 
 ```{r, load gff}
+if(!(getwd()=="/Users/lotterhos/Documents/GitHub/2017OAExp_Oysters/markdown_files/compareGonadMantle")){setwd("/Users/lotterhos/Documents/GitHub/2017OAExp_Oysters/markdown_files/compareGonadMantle")}
+
 
 if(!file.exists("_ncbi_downloads")){
   gff.file <- getGFF(organism="Crassostrea virginica", gunzip=TRUE)
 }
 #gff.file <-"./ref_C_virginica-3.0_top_level.gff3"
 gff.file <- "_ncbi_downloads/annotation/Crassostrea_virginica_genomic_refseq.gff"
+
+gff.sorted <- "_ncbi_downloads/gffsorted.gff"
+system(paste("sortBed -i", gff.file,">", gff.sorted))
 
 header.lines <- readLines(gff.file)
 
@@ -161,12 +166,100 @@ head(mantle_info)
 
 mantle_plot <- full_join(mantle_pos, mantle2)
 head(mantle_plot)
+dim(mantle_plot)
 
 #kp <- plotKaryotype(genome=CV.genome[1:10], ideogram.plotter = NULL, chromosomes=chrs)
 #kpAddCytobandsAsLine(kp)
 # kp
 # kpLines(kp, x=mantle_plot$chromStart, y=mantle_plot$betamean, data.panel = 1, chr=mantle_plot$chrom) DO NOT DO THIS - WAAAY TO MUCH INFO TO PLOT
 #kpAxis(kp, data.panel=1)
+
+```
+
+
+### Calculate CV in treatment means for each CpG in mantle
+```{r}
+which(colnames(mantle_plot) %in% gsub("RNA", "s", mantle_info$sample_name[mantle_info$treatment==400 & mantle_info$Day==9]))
+
+mantle_plot$mean_400_day9 <- rowMeans(mantle_plot[,which(colnames(mantle_plot) %in% gsub("RNA", "s", mantle_info$sample_name[mantle_info$treatment==400 & mantle_info$Day==9]))])
+mantle_plot$mean_400_day80 <- rowMeans(mantle_plot[,which(colnames(mantle_plot) %in% gsub("RNA", "s", mantle_info$sample_name[mantle_info$treatment==400 & mantle_info$Day==80]))])
+mantle_plot$mean_2800_day9 <- rowMeans(mantle_plot[,which(colnames(mantle_plot) %in% gsub("RNA", "s", mantle_info$sample_name[mantle_info$treatment==2800 & mantle_info$Day==9]))])
+mantle_plot$mean_2800_day80 <- rowMeans(mantle_plot[,which(colnames(mantle_plot) %in% gsub("RNA", "s", mantle_info$sample_name[mantle_info$treatment==2800 & mantle_info$Day==80]))])
+  
+head(mantle_plot)
+
+#this is slow, it takes a few minutes
+  # sd_trt_means <- apply(mantle_plot[,c("mean_400_day9", "mean_400_day80", "mean_2800_day9", "mean_2800_day80")], 1, sd)
+
+# this is so much faster!
+sd_trt_means <- rowSds(as.matrix(mantle_plot[,c("mean_400_day9", "mean_400_day80", "mean_2800_day9", "mean_2800_day80")]))
+hist(sd_trt_means)
+
+mantle_plot$CV_trt_means <-   sd_trt_means/mantle_plot$betamean
+
+hist(mantle_plot$CV_trt_means)
+
+mantle_plot$CV_trt_means[mantle_plot$betamean<0.05] <- NA
+  # check if large CV values were coming from low methylated loci
+hist(mantle_plot$CV_trt_means)
+head(mantle_plot)
+
+h<- ggplot(mantle_plot, aes(betamean, CV_trt_means))
+# this takes a minute but it works
+h + geom_hex()
+
+h<- ggplot(mantle_plot, aes(sd_trt_means, CV_trt_means))
+# this takes a minute but it works
+h + geom_hex()
+#
+
+
+```
+
+## Summarize features with Bedtools
+
+```{r}
+list.files()
+#this takes a few secs
+mantle_bed <- "bedfiles/mantle_meanBeta.bed"
+whichcols <- c("chrom", "chromStart", "chromEnd", "betamean",  "mean_400_day9", "mean_400_day80", "mean_2800_day9", "mean_2800_day80")
+
+# This takes a minute
+write_delim(mantle_plot[,whichcols], mantle_bed, col_names =FALSE , delim="\t")
+write_delim(data.frame(t(whichcols)), paste0(mantle_bed, ".header.txt"), col_names=FALSE)
+
+system(paste("head", mantle_bed))
+
+gff.sorted
+system(paste0("head -n30 ",gff.sorted))
+#bedtools map requires each input file to be sorted by genome coordinate.
+
+# This line calculates the number of CpGs per feature in the gff file
+# Takes one minute
+  system(paste0("bedtools intersect -a ", gff.sorted, " -b ", mantle_bed, " -c > bedfiles/numCpGperFeature.txt"))
+  system("head bedfiles/numCpGperFeature.txt")
+
+# This line calculates the mean of betamean (average methylation across all individuals) for each feature
+## Note hard coding for column 4 betamean
+  system(paste0("bedtools map -a ", gff.sorted, " -b ", mantle_bed, " -c 4 -o mean > bedfiles/meanBetaPerFeature.txt"))
+  system("head bedfiles/meanBetaPerFeature.txt")
+
+# This line calculates the mean of betamean (average methylation across all individuals) for each feature  
+## Note hard coding for column 5 CV_trt_means
+# Note that I previously removed the CpGs with very low differences in mehtylation across treatment but very high CV
+# because of the division by a very low mean methylation (filtered betamean > 0.05, see last chunk of code)
+  mantle_bed2 <- "bedfiles/mantle_meanBeta2_CV.bed"
+  whichcols2 <- c("chrom", "chromStart", "chromEnd", "betamean", "CV_trt_means", "mean_400_day9", "mean_400_day80", "mean_2800_day9", "mean_2800_day80")
+  write_delim(mantle_plot[which(!(is.na(mantle_plot$CV_trt_means))),whichcols2], mantle_bed2, col_names =FALSE , delim="\t")
+  write_delim(data.frame(t(whichcols2)), paste0(mantle_bed2, ".header.txt"), col_names=FALSE)  
+    
+  system(paste0("bedtools map -a ", gff.sorted, " -b ", mantle_bed2, " -c 4,5 -o mean > bedfiles/mean_betamean_CVTrtMeans_PerFeature_filteredBetameanGT05.txt"))
+  
+  
+  
+  system("head bedfiles/mean_betamean_CVTrtMeans_PerFeature_filteredBetameanGT05.txt")
+
+
 ```
 
 Let's summarize this beta data and plot it for a custom window size.
@@ -217,9 +310,125 @@ dev.off()
 
 ### Load methylation data for gonads
 
-Data from Yaamini V 2016 exposure experiment
+Data from Yaamini V 2016 exposure experiment. Gonads were analyzed from 10 individuals. These files were downloaded from Robert's lab server.
+
+There are 10 files (1 for each individual) and each file was filtered to CpGs with 5x coverage for that individual. There are 5 columns in each file:
+`("chrom", "chromStart", "chromEnd", "beta", "coverage")`
+where `beta` is the percent methylation and `coverage` is the coverage for that individual.
+
+
+* MBD Cv 31 =1
+* MBD Cv 32 = 2
+* MBD Cv 33 = 3
+* MBD Cv 35 = 4
+* MBD Cv 36 = 5
+* MBD Cv 103 = 6
+* MBD Cv 104 = 7
+* MBD Cv 105 = 8
+* MBD Cv 106 = 9
+* MBD Cv 108 = 10
+
+
+```{r}
+link <- "https://gannet.fish.washington.edu/spartina/2019-10-15-paper-gonad-meth/analyses/2019-03-07-IGV-Verification/"
+file_list <- paste0("zr2096_",1:10,"_s1_R1_val_1_bismark_bt2_pe.deduplicated.bismark.cov_5x.percentMeth.cov")
+
+if(!file.exists(bedfile)){
+  dir.create("bedfiles")
+}
+
+### Download the files
+for (i in 1:length(file_list)){
+  if(!file.exists(paste0("bedfiles/", file_list[i]))){
+    download.file(paste0(link, file_list[i]), paste0("bedfiles/", file_list[i]))
+  }
+}
+
+
+### Read the files
+for (i in 1:length(file_list)){
+  gonads <- read.table(paste0("bedfiles/", file_list[i]))
+  cat(i, "gonads", dim(gonads), '\n')
+  colnames(gonads) <- c("chrom", "chromStart", "chromEnd", paste0("beta_",i), paste0("coverage_",i))
+  if(i==1){
+    gonadsall <- gonads
+  }else{
+    gonadsall <- full_join(gonadsall, gonads)
+    cat(i, "gonadsall", dim(gonadsall), '\n')
+  }
+}
+
+head(gonadsall)
+hist(log10(gonads$coverage))
+min(gonads$coverage)
+
+# For now I am going to assume anything not captured by MBD has 0% methylation:
+gonadsall[is.na(gonadsall)] <- 0
+head(gonadsall)
+
+whichbeta <- grep("beta", colnames(gonadsall))
+
+gonadsall$beta_gonad <- rowMeans(gonadsall[,whichbeta])
+gonadsall$beta_gonad <- gonadsall$beta_gonad/100
+hist(gonadsall$beta_gonad)
+```
+
+Before comparing Alan's and Yaamini's data, I want to check to make sure their positions line up (and they don't):
+
+```{r}
+dim(mantle_plot)
+dim(gonadsall)
+
+levels(gonadsall$chrom)
+
+gonadsall %>% filter(chrom=="NC_007175.2")  %>% arrange(chromStart) %>% head(20)
+mantle_plot %>% filter(chrom=="NC_007175.2") %>% arrange(chromStart) %>% head(20)
+
+gonadsall %>% filter(chrom=="NC_035780.1")  %>% arrange(chromStart) %>% head(20)
+
+# The left join leaves us with sites in the gonads data only
+allcomp <- full_join(gonadsall[gonadsall$chrom=="NC_007175.2",c("chrom", "chromStart", "chromEnd", "beta_gonad")],
+                     mantle_plot[gonadsall$chrom=="NC_007175.2",c("chrom", "chromStart", "chromEnd", "C_motif", "Tri_motif", "pos", "betamean")])  
+allcomp <- allcomp[order(allcomp$chromStart),]
+head(allcomp, 50)
+
+dim(allcomp)
+
+h <- ggplot(allcomp, aes(allcomp$beta_gonad, allcomp$betamean))
+h + geom_bin2d()
 
 ```
+
+
+In general, Yaamini has some data 
+
+What's more, the data Yaamini sent me appear to have different positions mapped in different individuals.
+
+Alan Downey-Wall 10:45
+
+So I used coverage2cytosine from bismark to determine the coverage for each cytosine, which takes the chromosome coordinates from the genome file:
+
+Text from there github: Starting from the coverage output, the Bismark methylation extractor can optionally also output a genome-wide cytosine methylation report. The module coverage2cytosine (part of the Bismark package) may also be run individually. It is also sorted by chromosomal coordinates but also contains the sequence context and is in the following format:
+`<chromosome> <position> <strand> <count methylated> <count unmethylated> <C-context> <trinucleotide context>`
+
+The main difference to the bedGraph or coverage output is that every cytosine on both the top and bottom strands will be considered irrespective of whether they were actually covered by any reads in the experiment or not. For this to work one has to also specify the genome that was used for the Bismark alignments using the option --genome_folder <path>. As for the bedGraph mode, this will only consider cytosines in CpG context by default but can be extended to cytosines in any sequence context by using the option --CX (cf. Appendix (III)). Be aware though that this might mean an output with individual lines for more than 1.1 billion cytosines for any large mammalian genome...
+
+Here is a link to the code I used to destrand: https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/DNAm/cluster_scripts/R/04_countMatrixFromCytoSummary.R
+
+I defaulted to having the start position for the cytosine on the positive strand, and the end position for the cytosine on the negative strand.
+
+```{r}
+sum(!(mantle_plot$chromStart < mantle_plot$chromEnd))
+sum(!(mantle_plot$chromStart - mantle_plot$chromEnd)== -1)
+```
+
+
+
+
+
+
+
+
 bedfile <- "bedfiles/2019-04-09-All-5x-CpGs.bedgraph"
 if(!file.exists(bedfile)){
   dir.create("bedfiles")
