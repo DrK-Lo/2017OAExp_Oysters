@@ -1,2 +1,4 @@
 _ncbi_downloads/*
+.DS_Store
+.Rhistory
 bedfiles/*
