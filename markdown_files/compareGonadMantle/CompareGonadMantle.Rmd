@@ -50,7 +50,10 @@ if(!file.exists("_ncbi_downloads")){
 gff.file <- "_ncbi_downloads/annotation/Crassostrea_virginica_genomic_refseq.gff"
 
 gff.sorted <- "_ncbi_downloads/gffsorted.gff"
-system(paste("sortBed -i", gff.file,">", gff.sorted))
+if(!(file.exists(gff.sorted))){
+  system(paste("sortBed -i", gff.file,">", gff.sorted))
+}
+
 
 header.lines <- readLines(gff.file)
 
@@ -285,51 +288,7 @@ system(paste0("head -n30 ",gff.sorted))
    
 ```
 
-Let's summarize this beta data and plot it for a custom window size.
 
-This code uses the split, apply, combine approach to produce data summaries.
-
-For more information, check out Vince Buffalo's Bioinformatics Book.
-
-```{r split and summarize functions}
-beta_split_chrom <- split(mantle_plot$beta, mantle_plot$chrom)
-str(beta_split_chrom)
-
-beta_pos_chrom  <- split(mantle_plot$chromStart, mantle_plot$chrom)
-str(beta_pos_chrom)
-
-summ_beta <- function(beta, pos, window1=10^5){
-  bins <- cut(pos, breaks=seq(1, max(pos), by = window1))
-  #beta_split <- split(beta, bins)
-  out <- do.call(rbind, lapply(split(beta, bins), summary))
-  out2 <- as.data.frame(out)
-  out2$mid <- seq(window1/2, (max(pos)-window1/2), by = window1)
-  out2$window <- rownames(out)
-  return(out2)
-}
-```
-
-Make a plot with Mantle Methylation on the top and exon density on the bottom
-```{r, mantle exon plot}
-png("Mantle2018Top_ExonDensityBottom.png", width=12, height=8, units="in", res=400)
-  kp <- plotKaryotype(genome=CV.genome, ideogram.plotter = NULL, chromosomes=chrs, 
-                      plot.type=2)
-  kpAddCytobandsAsLine(kp)
-  
-  for (i in 2:length(beta_split_chrom)){
-    a<- 
-  summ_beta(beta_split_chrom[[i]], beta_pos_chrom[[i]])
-  head(a)
-  kpLines(kp, x=a$mid, y=a$"1st Qu.", data.panel = 1, chr=names(beta_split_chrom[i]), col="grey")
-  kpLines(kp, x=a$mid, y=a$"3rd Qu.", data.panel = 1, chr=names(beta_split_chrom[i]), col="grey")
-  kpLines(kp, x=a$mid, y=a$Mean, data.panel = 1, chr=names(beta_split_chrom[i]))
-  }
-  
-  kpAxis(kp, data.panel=1, labels = c("", 0.5, 1))
-  
-  kpPlotDensity(kp, data=exons,window.size = 100000, col=adjustcolor("blue", 0.5), lwd=0.5, border=adjustcolor("blue", 0.5), data.panel=2, r0=0, r1=1)
-dev.off()  
-```
 
 ### Load methylation data for gonads
 
@@ -395,6 +354,92 @@ gonadsall$beta_gonad <- rowMeans(gonadsall[,whichbeta])
 gonadsall$beta_gonad <- gonadsall$beta_gonad/100
 hist(gonadsall$beta_gonad)
 ```
+
+
+Let's summarize this beta data and plot it for a custom window size.
+
+This code uses the split, apply, combine approach to produce data summaries.
+
+For more information, check out Vince Buffalo's Bioinformatics Book.
+
+```{r split and summarize functions}
+beta_split_chrom_mantle <- split(mantle_plot$beta, mantle_plot$chrom)
+str(beta_split_chrom_mantle)
+
+beta_pos_chrom_mantle  <- split(mantle_plot$chromStart, mantle_plot$chrom)
+str(beta_pos_chrom_mantle)
+
+beta_split_chrom_gonads <- split(gonadsall$beta_gonad, gonadsall$chrom)
+str(beta_split_chrom_gonads)
+
+beta_pos_chrom_gonads  <- split(gonadsall$chromStart, gonadsall$chrom)
+str(beta_pos_chrom_gonads)
+
+summ_beta <- function(beta, pos, window1=10^5){
+  bins <- cut(pos, breaks=seq(1, max(pos), by = window1))
+  #beta_split <- split(beta, bins)
+  out <- do.call(rbind, lapply(split(beta, bins), summary))
+  out2 <- as.data.frame(out)
+  out2$mid <- seq(window1/2, (max(pos)-window1/2), by = window1)
+  out2$window <- rownames(out)
+  return(out2)
+}
+```
+
+Make a plot with Mantle Methylation on the top and Gonad on the bottom
+```{r, mantle exon plot}
+png("Mantle2017Top_Gonad2016Bottom.png", width=12, height=8, units="in", res=400)
+  kp <- plotKaryotype(genome=CV.genome, ideogram.plotter = NULL, chromosomes=chrs, 
+                      plot.type=2)
+  kpAddCytobandsAsLine(kp)
+  mantle_summ <- list()
+  gonad_summ <- list()
+  
+  for (i in 2:length(beta_split_chrom_mantle)){
+    a<- 
+  summ_beta(beta_split_chrom_mantle[[i]], beta_pos_chrom_mantle[[i]])
+  head(a)
+  kpLines(kp, x=a$mid, y=a$"1st Qu.", data.panel = 1, chr=names(beta_split_chrom_mantle[i]), col="grey")
+  kpLines(kp, x=a$mid, y=a$"3rd Qu.", data.panel = 1, chr=names(beta_split_chrom_mantle[i]), col="grey")
+  kpLines(kp, x=a$mid, y=a$Mean, data.panel = 1, chr=names(beta_split_chrom_mantle[i]), col="darkviolet")
+  mantle_summ[[i]] <- a
+  
+   b<- 
+  summ_beta(beta_split_chrom_gonads[[i]], beta_pos_chrom_gonads[[i]])
+  head(b)
+  kpLines(kp, x=b$mid, y=b$"1st Qu.", data.panel = 2, chr=names(beta_split_chrom_gonads[i]), col="grey")
+  kpLines(kp, x=b$mid, y=b$"3rd Qu.", data.panel = 2, chr=names(beta_split_chrom_gonads[i]), col="grey")
+  kpLines(kp, x=b$mid, y=b$Mean, data.panel = 2, chr=names(beta_split_chrom_gonads[i]), col="chocolate3")
+  gonad_summ[[i]] <- b
+  }
+  
+  
+  kpAxis(kp, data.panel=1, labels = c("", 0.5, 1), cex=0.5)
+  kpAxis(kp, data.panel=2, labels = c("", 0.5, 1), cex=0.5)
+  
+  #kpPlotDensity(kp, data=exons,window.size = 100000, col=adjustcolor("blue", 0.5), lwd=0.5, border=adjustcolor("blue", 0.5), data.panel=2, r0=0, r1=1)
+dev.off()  
+```
+
+Overall correspondence between mantle and gonad at the regional level
+```{r}
+pdf("Mantle_vs_Gonad_10KBwindows.pdf", width=6, height=8)
+  #str(mantle_summ)
+  #str(gonad_summ)
+  par(mar=c(2,2,0,0), mfrow=c(5,2), oma=c(3,3,0.1,0.1))
+  for (i in 2:length(mantle_summ)){
+    plot(mantle_summ[[i]]$Mean, gonad_summ[[i]]$Mean, bty="n", xlab="", ylab="", xlim=c(0,1), ylim=c(0,1), col=adjustcolor("darkorchid4",0.4))
+    abline(0,1, col="darkgrey")
+    text(0, 0.9, names(beta_split_chrom_gonads[i]), adj=0)
+    text(0.9, 0.1, round(cor(mantle_summ[[i]]$Mean, gonad_summ[[i]]$Mean), 2))
+  }
+  mtext("Mean Mantle Methylation (100 KB windows)", outer=TRUE, side=1, line=1)
+  mtext("Mean Gonad Methylation (100 KB windows)", outer=TRUE, side=2, line=1)
+dev.off()
+```
+
+
+
 
 Before comparing Alan's and Yaamini's data, I want to check to make sure their positions line up (and they don't):
 
