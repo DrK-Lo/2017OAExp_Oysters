@@ -35,6 +35,7 @@ d_beta <- readRDS(paste0(wd,"/input_files/DNAm/Final_beta_gene_5.RData"))
 Summarized CpGs that were significantly different after correction for all comparisons. Hypomethylation refers to CpGs that had significant lower methylation in our OA treatment compared to the ambient conditions or on day 80 compared to day 9. The opposity is the case (methylation is higher) if hypermethylated.  
 
 ```{r}
+
 cols <- colnames(d_meth$Significant)
 sum_mat <- matrix(0,nrow=1,ncol=length(cols))
 for(i in 1:length(cols)){
