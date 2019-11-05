@@ -658,8 +658,9 @@ ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.fa
 ### FINAL FIGURE
 
 ```{r}
+png("/home/downeyam/Desktop/temp/test.png",
+    width = 15,height = 15,units = "cm",res = 200)
 par(mfrow=c(2,2))
-
 ## GENE EXPRESSION PCA 
 pca <- prcomp(t(gc_qualityweights$E))
 eigs <- pca$sdev^2
@@ -757,8 +758,7 @@ legend(x=c(4,6),y=c(1.9,1.7),bty = "n",
                 alpha("blue",0.7),
                 alpha("red3",0.7)),
        density = c(1000,1000,50,50),angle = c(0,0,45,0))
-ggsave("/home/downeyam/Desktop/temp/test.png", width = 20, height = 20, units = "cm")
-
+dev.off()
 ```
 
 
