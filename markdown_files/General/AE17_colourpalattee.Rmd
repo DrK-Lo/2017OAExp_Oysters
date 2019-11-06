@@ -22,6 +22,8 @@ pal <- brewer.pal(n = 12, name = 'Paired')
 
 Tried to select colors that were colour blind friendly and also represent colors the viewer might naturally associate with treatments.
 
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/color-blind-friendly-palette-12.png)
+
 ### Color selection  
 Selecting three colors (blue,red,and yellowish for 3 treatments)
 Plus two shades of blue and red for the two timepoints (molecular only)
