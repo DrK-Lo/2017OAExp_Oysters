@@ -26,7 +26,10 @@ pal <- brewer.pal(n = 12, name = 'Paired')
 ```
 
 Tried to select colors that were colour blind friendly and also
-represent colors the viewer might naturally associate with treatments.
+represent colors the viewer might naturally associate with
+treatments.
+
+![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/color-blind-friendly-palette-12.png)
 
 ### Color selection
 
