@@ -15,6 +15,7 @@ library(BiocManager)
 #BiocManager::install("rtracklayer")
 library(rtracklayer)
 library(dplyr)
+library(edgeR)
 library(factoextra) # for the fviz_eig function
 
 wd <- "/home/downeyam/Github/2017OAExp_Oysters"
@@ -66,26 +67,26 @@ rm(rsem_c)
 **DNA Methylation Summary**
 ```{r}
 ## Gene level Methylation Summary - All CpGs - comp5 code
-cpgMean <- read.table("/shared_lab/20180226_RNAseq_2017OAExp/DNAm/processed_samples/08_geneLevelSummary/DNAm_Data/meanBetaPerFeature.txt",header = FALSE, sep="\t",stringsAsFactors=FALSE, quote="")
-
-## CpG Annotation
-# cpg <- read.table("/shared_lab/20180226_RNAseq_2017OAExp/DNAm/processed_samples/08_geneLevelSummary/DNAm_Data/CpGsAnnotated.bed",header = FALSE, sep="\t",stringsAsFactors=FALSE, quote="")
+# cpgMean <- read.table("/shared_lab/20180226_RNAseq_2017OAExp/DNAm/processed_samples/08_geneLevelSummary/DNAm_Data/meanBetaPerFeature.txt",header = FALSE, sep="\t",stringsAsFactors=FALSE, quote="")
 
 #Local machine code
 # All cpgs 
 cpgMean_all <-  read.table(paste0(wd,"/results/DNAm/meanBetaPerFeature.txt"),header = FALSE, sep="\t",stringsAsFactors=FALSE, quote="")
 # CpGs with coverage of 5
-# cpgMean <-  read.table(paste0(wd,"/results/DNAm/mean_betamean_CVTrtMeans_PerFeature_filteredBetameanGT05.txt"),header = FALSE, sep="\t",stringsAsFactors=FALSE, quote="")
+cpgMean <-  read.table(paste0(wd,"/results/DNAm/mean_betamean_CVTrtMeans_PerFeature_filteredBetameanGT05.txt"),header = FALSE, sep="\t",stringsAsFactors=FALSE, quote="")
 
 cpgMean_all_gene <- cpgMean_all[cpgMean_all$V3 == "gene",]
 cpgMean_gene <- cpgMean[cpgMean$V3 == "gene",]
 rm(cpgMean)
+```
 
-## Quick tangent to determine # of exons 
+
+**Count # of exons per Gene**
+```{r}
 cpgMean_all_exon <- cpgMean_all[cpgMean_all$V3 == "exon",]
 gene_type_byExon <- sub(".*gbkey=(.*?);.*","\\1",cpgMean_all_exon$V9,perl=TRUE)
 # Selecting out exons within genes we care about  (no t or rRNA)
-tf_mRNA <- gene_type_byExon == "mRNA" | gene_type_byExon == "ncRNA" |  gene_type_byExon == "misc_RNA" |  gene_type_byExon == "exon"
+tf_mRNA <- gene_type_byExon == "mRNA" | gene_type_byExon == "ncRNA" | gene_type_byExon == "misc_RNA" |  gene_type_byExon == "exon"
 #Pulling out geneID 
 gene_ID_inExons <- sub(".*GeneID:(.[0-9]{1,8}).*","\\1",cpgMean_all_exon$V9,perl=TRUE)
 gene_ID_inExons_filtered <- as.numeric(gene_ID_inExons[tf_mRNA])
@@ -105,8 +106,11 @@ exons <- left_join(exons,exon_cpg_means)
 #remove the na
 exons <- exons[!exons$GENEID == "NA",]
 colnames(exons)[3:4] <- c("exon_cpg_counts","exon_cpg_means")
+```
 
-### Extract gene locations
+
+**Extract gene locations**
+```{r}
 # This is to merge DNA methylation data with gene expression data
 #Total CpG data
 gene_ID <- sub(".*GeneID:(.*?);.*","\\1",cpgMean_all_gene$V9,perl=TRUE)
@@ -140,6 +144,8 @@ ge_dnam <- left_join(initial,exons)
 ge_dnamV2 <- ge_dnam[!is.na(ge_dnam$cpgCount_total),]
 out <- match(ge_dnamV2$GENEID,rownames(geneC_all))
 
+
+
 geneC_new <- geneC_all[match(ge_dnamV2$GENEID,rownames(geneC_all)),]
 identical(rownames(geneC_new),ge_dnamV2$GENEID)
 
@@ -165,8 +171,10 @@ sum(keep_D80.400)
 
 keep_gene_a2 <- rowSums(cbind(keep_D9.2800,keep_D9.400,
                                  keep_D80.2800,keep_D80.400)) >= 1
+
 # Filter low coverage genes
-geneC_a2 <- voom(geneC_new[keep_gene_a2, ])
+geneC_new_t <- voom(geneC_new)
+geneC_a2 <- geneC_new_t$E[keep_gene_a2, ]
 #geneC_Elist <- cpm(geneC_a2)
 #geneC_a2 <- geneC_Elist$E
 
@@ -207,23 +215,24 @@ colnames(ge_sum) <- c("Expression","Expression_CV")
 ```{r}
 col <- c("gene_length","cpgMean_filtered","cpgCV_filtered","cpgCount_total","Exon_Count") 
 cpg_pca <- subset(ge_dnamV2,select=col)
+str(cpg_pca)
 colnames(cpg_pca) <- c("gene_length","Methylation","Methylation CV","CpGs","Exons")
 cpg_pca$Methylation <- as.numeric(as.character(cpg_pca$Methylation))
 cpg_pca$`Methylation CV`<- as.numeric(as.character(cpg_pca$`Methylation CV` ))
-cpg_pca_rv <- cpg_pca[!is.na(cpg_pca$Methylation | cpg_pca$`Methylation CV`),]
-
-
-ge_sum <- ge_sum[!is.na(cpg_pca$Methylation | cpg_pca$`Methylation CV`),]
-final_pca <- data.frame(ge_sum,cpg_pca_rv)
-
+## Futher reducing the dnam matrix and gene count matrix down to size.
+final_pca <- data.frame(ge_sum,cpg_pca)
+final_pca <- final_pca[!is.na(final_pca$Methylation | final_pca$Methylation.CV),]
 sum(is.na(final_pca[,1]))
+#[1] 19805
 ```
+Number of loci included in analysis : `{r}sum(is.na(final_pca[,1]))`
 
 **PCA **
 ```{r}
 # Perform pca
 pca_obj <- prcomp(final_pca,scale=TRUE)
-
+str(final_pca)
+hist(final_pca$Expression_CV)
 # Scree plot 
 fviz_eig(pca_obj,addlabels = TRUE)
 
@@ -234,7 +243,7 @@ fviz_pca_var(pca_obj,
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE     # Avoid text overlapping
              )
-
+par(mfrow=c(3,1))
 # Contributions of variables to PC1
 fviz_contrib(pca_obj, choice = "var", axes = 1, top = 10)
 # Contributions of variables to PC2
@@ -242,7 +251,7 @@ fviz_contrib(pca_obj, choice = "var", axes = 2, top = 10)
 # Contributions of variables to PC3
 fviz_contrib(pca_obj, choice = "var", axes = 3, top = 10)
 
-fviz_pca_ind(pca_obj,
+    fviz_pca_ind(pca_obj,
              label = "none" # hide individual labels
 )
 ind <- get_pca_ind(pca_obj)
@@ -256,7 +265,7 @@ head(gene)
 **Plotting Expression CV by Methylation**
 ```{r}
 # From PCA we see interesting relationship between DNA methylation and gene CV
-ggplot(final_pca,aes(y=Methylation,x=ExpressionCV_9C))+geom_point() + geom_smooth()
+ggplot(final_pca,aes(y=Methylation,x=abs(Expression_CV)))+geom_point() + geom_smooth()
 
 ## Looking at mean methylation acros quantiles of gene CV
 qq<-cut(final_pca$ExpressionCV_9C,

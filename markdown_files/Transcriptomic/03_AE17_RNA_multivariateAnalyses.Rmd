@@ -106,7 +106,8 @@ rm(gc_voom)
 
 
 ## Analysis - Gene level Expression
-### PERMANOVA (implements using adonis from vegan package)
+
+#### PERMANOVA (implements using adonis from vegan package)
 
 * Testing for statistic differential between treatment, time, and treatment:time  
 
@@ -657,7 +658,7 @@ ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.fa
 ```
   
   
-### FINAL FIGURE
+## FINAL FIGURE
 
 ```{r eval=FALSE}
 png("/home/downeyam/Desktop/temp/test.png",
