@@ -13,6 +13,9 @@ library(ggplot2)
 library(lmerTest)
 library(car)
 source("/home/downeyam/R/basicR_functions.R")
+library(RColorBrewer)
+pal <- brewer.pal(n = 12, name = 'Paired')
+col_perm <- c(pal[1:2],pal[5:6],pal[12])
 ```
 
 ### Data
@@ -92,6 +95,9 @@ ggplot(calcification_red,aes(x=pCO2.x,y=Pcnt_DailyChange_Exposure,
                          group=(pCO2.x))) + geom_boxplot()
 ggplot(calcification_red,aes(x=pCO2_calc,y=Pcnt_DailyChange_Exposure,
                          group=(pCO2.x))) + geom_point()
+# Briefly check out potential site specific effects
+boxplot(calcification_red$Pcnt_DailyChange_Exposure~calcification_red$PopOrigin*calcification_red$pCO2_fac)
+# No obvious site specific effevt
 ```
 
 ## Calcification vs Environment and Time - Statistical Analysis
@@ -128,9 +134,11 @@ step(cal_wo81_fixed)
 cal_wo81_final <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc+timepoint,data=calcification_red)
 # Type 3
 Anova(cal_wo81_final,type=2)
+# Same general interpretation as all timepoints. Treatment is significant and time doesn't matter.
 
 # Plot post hoc testing
 plot(TukeyHSD(aov(Pcnt_DailyChange_ExposureAdj~pCO2_fac+timepoint_fac, data=calcification_red)))
+#Post hoc reveals that its the 2800 being significantly differen't thatn either 900 or 400 that is driving the pattern
 ```
 
 **Regression**
@@ -146,8 +154,7 @@ cal_simple <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc+timepoint_fac,data=calci
 (cal_sum <- summary(cal_simple))
 # Treatment but not time significant. I guess I will only plot a fitted line based on the simplest model with only treatment.
 cal_pCO2 <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc,data=calcification_red)
-summary(cal_pCO2)
-plot(cal_simple)
+(sum_store <- summary(cal_pCO2))
 # A few slightly wonky points, but no major violations
 ```
 
@@ -155,12 +162,13 @@ plot(cal_simple)
 
 ### Preliminary calcification plot vs. EPF carb chemistry
 ```{r}
-# Calcification vs pH
+#Calcification vs pH
+# All points
 ggplot(calcification,aes(x=EPF_pH,
                          y=Pcnt_DailyChange_ExposureAdj,
                          colour=pCO2_calc)) +
   geom_point() + geom_smooth(method="lm")+labs(colour="pCO2",y="Calcification(Adj)")
-
+# Removing tp 81 because points were wonky
 ggplot(calcification_red,aes(x=EPF_pH,
                          y=Pcnt_DailyChange_ExposureAdj,
                          colour=pCO2_calc)) +
@@ -173,15 +181,19 @@ ggplot(calcification_red[calcification_red$carb_chem == "Y",],aes(x=EPF_DIC,
                          y=Pcnt_DailyChange_Exposure,
                          colour=log(pCO2_calc))) +
   geom_point() + geom_smooth(method="lm")
+# Trend but hard to say anything given the lack of points
 
 # EPF Calcite Sat. vs calcification
 ggplot(calcification_red[calcification_red$carb_chem == "Y",],aes(x=EPF_Calcite_Calc,
                          y=Pcnt_DailyChange_Exposure,
                          colour=log(pCO2_calc))) +
   geom_point() + geom_smooth(method="lm")
+
+# Hard to say whats going on, but it looks like DIC is negatively correlated with calcification rate, while there seems to be a very moderate negative relationship between calcite saturation and calcification.
 ```
 
 ### Statistical Analysis
+
 ```{r}
 #Check the impact of random factors, they didn't seem to help o they were removed
 calVspH_full <- lmer(Pcnt_DailyChange_ExposureAdj ~ EPF_pH * timepoint + (1|PopOrigin) + (1|shelf/tank),data=calcification_red)
@@ -190,21 +202,22 @@ ranova(calVspH_full)
 summary(calVspH_full)
 # None of the random effects were significant to I will remove
 # Simple lm with interaction
-calVspH_fixed_inter <- lm(Pcnt_DailyChange_ExposureAdj ~ EPF_pH + timepoint ,data=calcification_red)
+calVspH_fixed_inter <- lm(Pcnt_DailyChange_ExposureAdj ~ EPF_pH * timepoint ,data=calcification_red)
 summary(calVspH_fixed_inter)
 # Model significant but no individual explanatory variables (decided to remove interaction)
 # Removing interaction
 calVspH_fixed <- lmer(Pcnt_DailyChange_ExposureAdj ~ EPF_pH + (1|tank:shelf) ,data=calcification_red)
 (calVpH_fized_out <- summary(calVspH_fixed))
+ranova(calVspH_fixed)
 # Treatment significant but not time
+# Little evidence of a tank effect so it's removed
 calVspH_final <- lm(Pcnt_DailyChange_ExposureAdj ~ EPF_pH ,data=calcification_red)
-(calVpH_fized_out <- summary(calVspH_fixed))
+(calVpH_fized_out <- summary(calVspH_final))
 # With out without random effect of tank the relationship between EPF pH and calcification is significant
 
 ```
 
 ## Final Plots 
-
 ```{r}
 ##### Plot 1 #####
 #Mean calcification rate 
@@ -221,7 +234,8 @@ mean_cal <- data.frame(pCO2=mean_cal$pCO2.x,Rel_Change=mean_cal$Pcnt_DailyChange
 out <- summary(lm(Pcnt_DailyChange_ExposureAdj~pCO2.x,data=calcification_red))
 
 p <- ggplot(mean_cal,aes(x=pCO2,y=Rel_Change)) + geom_hline(aes(yintercept=0),linetype="dotted") +
-  geom_point(aes(size=6)) + ylim(-0.085,0.08) + xlim(300,3200) + 
+  geom_point(aes(size=6,shape=as.factor(pCO2))) + ylim(-0.085,0.08) + xlim(300,3200) + 
+  scale_shape_manual(values=c(16,15,17))+
   geom_errorbarh(aes(xmin=xmin, xmax=xmax)) + 
   geom_errorbar(aes(ymin=ymin,ymax=ymax),width=75) +
   geom_abline(slope = out$coefficients[2,1],intercept = out$coefficients[1,1]) 
@@ -241,22 +255,28 @@ p1<-t + ylab("Calcification (% change per day)") + xlab("pCO2 (ppm)") +
   theme(legend.position="none",plot.margin = unit(c(5, 1, 1, 1), "lines")) 
 p1
 
+## Plot 2
+calcification_red$pCO2_name <- "NA"
 calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[1]] <-  "Ambient"
-calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[2]] <-  "OA 1000" 
+calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[2]] <-  "OA 900" 
 calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[3]] <-  "OA 2800"
 calcification_red$pCO2_name <- as.factor(calcification_red$pCO2_name)
+levels(calcification_red$pCO2_name) <- levels(calcification_red$pCO2_name)[c(1,3,2)]
 
-p <- ggplot(calcification_red,aes(x=EPF_pH,y=Pcnt_DailyChange_ExposureAdj,colour=pCO2_name)) + 
-  geom_point(size=4) + ylim(-0.085,0.08) +
-  scale_color_manual(values=c("lightblue4","goldenrod","tomato")) +
+p <- ggplot(calcification_red,aes(x=EPF_pH,y=Pcnt_DailyChange_ExposureAdj,colour=pCO2_name)) +
+  geom_point(size=4,aes(shape=pCO2_name)) + ylim(-0.085,0.08) +
+  scale_color_manual(values=c(col_perm[2],col_perm[5],col_perm[4])) +
+  scale_shape_manual(values=c(16,15,17))+
   geom_abline(slope = calVpH_fized_out$coefficients[2,1],intercept = calVpH_fized_out$coefficients[1,1]) 
+
 t <- p + theme_bw(base_size = 16) + 
   theme(panel.border = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = c(0.15,.85),
         axis.line = element_line(colour = "black")) 
-p2<-t + ylab("Calcification (% change per day)") + xlab("EPF pH (NBS)") + labs(colour="pCO2 (ppm)") +
+
+p2<-t + ylab("Calcification (% change per day)") + xlab("EPF pH (NBS)") + labs(colour="pCO2 (ppm)",shape="pCO2 (ppm)") +
 guides(shape = guide_legend(override.aes = list(size = 4))) +
    coord_cartesian(clip = 'off') +
    geom_text(
@@ -273,7 +293,7 @@ p2
 multiplot(p1, p2,cols=2)
 ```
 
-### Base Plot versions (outdated)
+Base Plot versions (outdated)
 ```{r echo=FALSE}
 # Base plot
 # bp <- plot(mean_cal$Pcnt_DailyChange_ExposureAdj~as.numeric(as.character(mean_cal$pCO2.x)),
@@ -400,17 +420,16 @@ Anova (type three)
 ```{r}
 Anova(cal_wo81_final,type=3)
 ```
-Regression
+Regression (preferred over an ANOVA)
 ```{r}
-summary(cal_analysis2)
+sum_store
 ```
-
 
 Calcification vs EPF pH
 $$Calcification_{Adj} = EPF_{pH}$$
 Regression
 ```{r}
-summary(calVspH_fixed)
+summary(calVspH_final)
 ```
 
 ### Interpretation
@@ -419,16 +438,15 @@ summary(calVspH_fixed)
 * There is a significant effect of treatment on calcification rate, which is driven by a significant decrease in calcification at the high OA treatment (2800), relative to either ambient or moderate OA. Although it would appear that there is a subtle different in the moderate OA vs. ambient conditions too, but we don't have the power to detect it.  
 
 **Calcification vs. EPF pH**  
-* Model show there is a significant positive relationship between EPF_ph and calcification.
+* Model shows there is a significant positive relationship between EPF_ph and calcification.
 * Note this was not run on the other EPF carb chem parameters due to very low sample size, but from the plots it looked like DIC did not have the same relationship.
 
 ### Additional Notes  
 * The choice to remove tp 81 was driven by the EPF pH. which seemed to have some measured issues (as observed in the pH under ambient being very acidic compared to all other tps). Rather than selectively keep some measures from that timepoint or using that timepoint only for calcification I decided to remove it given that that particular sampling was extra anyways and that we we used consistent individuals for all analysis.
 
 
-# Second Version of the analysis redoing calcificiation estimates
-
-```{r}
+**Second Version of the analysis redoing calcificiation estimates**
+```{r eval=FALSE}
 cal_v2$sample_date
 cal_v2$DryWgtDate <- as.Date(paste0(substr(cal_v2$sample_date,1,4),"/",substr(cal_v2$sample_date,5,6),"/",substr(cal_v2$sample_date,7,8)))
 cal_v2$date_bw2_asDate <- as.character(cal_v2$date_bw2_asDate)
