@@ -148,8 +148,6 @@ out <- match(ge_dnamV2$GENEID,rownames(geneC_all))
 
 geneC_new <- geneC_all[match(ge_dnamV2$GENEID,rownames(geneC_all)),]
 identical(rownames(geneC_new),ge_dnamV2$GENEID)
-
-
 ```
 
 ## Removing poorly covered genes (same threshold as differential expression)
@@ -201,7 +199,7 @@ gene_cv_80C <-  apply(geneC_a2[,meta$SFVrn=="D80.400"],1,cv)
 gene_Mean_80E <- rowMeans(geneC_a2[,meta$SFVrn=="D80.2800"])
 gene_cv_80E <-  apply(geneC_a2[,meta$SFVrn=="D80.2800"],1,cv)
 
-trt_cv <- apply(cbind(gene_cv_9C,gene_Mean_9E,gene_Mean_80C,gene_Mean_80E),1,cv)
+trt_cv <- apply(cbind(gene_Mean_9C,gene_Mean_9E,gene_Mean_80C,gene_Mean_80E),1,cv)
 diff <- gene_Mean_9C-gene_Mean_9E
 
 # Make gene expression data frame
@@ -209,6 +207,10 @@ diff <- gene_Mean_9C-gene_Mean_9E
 #colnames(ge_sum) <- c("Expression_diff","Expression_9C","ExpressionCV_9C","Expression_9E")
 ge_sum <- data.frame(gene_Mean,trt_cv)
 colnames(ge_sum) <- c("Expression","Expression_CV")
+sum(ge_sum$Expression_CV)
+hist(ge_sum$Expression_CV)
+ge_sum[abs(ge_sum$Expression_CV)>100,]
+geneC_new[rownames(geneC_new)=="LOC111114812",]
 ```
 
 **Create dataframes for PCA**
@@ -223,7 +225,7 @@ cpg_pca$`Methylation CV`<- as.numeric(as.character(cpg_pca$`Methylation CV` ))
 final_pca <- data.frame(ge_sum,cpg_pca)
 final_pca <- final_pca[!is.na(final_pca$Methylation | final_pca$Methylation.CV),]
 sum(is.na(final_pca[,1]))
-#[1] 19805
+#[1] 19663
 ```
 Number of loci included in analysis : `{r}sum(is.na(final_pca[,1]))`
 
@@ -251,7 +253,7 @@ fviz_contrib(pca_obj, choice = "var", axes = 2, top = 10)
 # Contributions of variables to PC3
 fviz_contrib(pca_obj, choice = "var", axes = 3, top = 10)
 
-    fviz_pca_ind(pca_obj,
+fviz_pca_ind(pca_obj,
              label = "none" # hide individual labels
 )
 ind <- get_pca_ind(pca_obj)

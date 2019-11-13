@@ -3,6 +3,8 @@ title: "AE17_colorPalatte"
 author: "adowneywall"
 date: "11/6/2019"
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -22,7 +24,10 @@ pal <- brewer.pal(n = 12, name = 'Paired')
 
 Tried to select colors that were colour blind friendly and also represent colors the viewer might naturally associate with treatments.
 
+```{r eval=FALSE}
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/color-blind-friendly-palette-12.png)
+
+```
 
 ### Color selection  
 Selecting three colors (blue,red,and yellowish for 3 treatments)
@@ -49,12 +54,18 @@ legend("bottom",col=col_perm[c(2,5,4)],horiz = TRUE,
 #### Bar plots (and other filled plots)
 ```{r fig.width=10,fig.height=10}
 par(lwd=5) # This is apparently the way to create thicker lines in filled spaces.
-bp <- barplot(c(2,4,6,8),
+bp <- barplot(c(2,4,6,8),border=c(col_perm[1],col_perm[2],col_perm[3],"black"),
               col=c(col_perm[1],col_perm[2],col_perm[3],col_perm[4]),
               density = c(8,1000,8,1000),angle = c(45,0,0,0),
-              names.arg = c("Ambient - Day 9","Ambient - Day80",
-                            "High OA - Day 9","High OA - Day80"))
+              names.arg = c("Ambient - Day 9","Ambient - Day 80",
+                            "High OA - Day 9","High OA - Day 80"))
+legend(x=1,y=7,
+       legend=c("Ambient - Day 9","Ambient - Day 80",
+                            "High OA - Day 9","High OA - Day 80"),
+       bty = "n",pch=22,cex=1,
+       col = c(col_perm[1],col_perm[2],col_perm[3],col_perm[4]))
 ```
+
 
 #### Point plots
 ```{r fig.width=10,fig.height=10}
@@ -83,3 +94,7 @@ wes_palette(n=5, name="Zissou1")
 pal <- wes_palette("Zissou1", 100, type = "continuous")
 barplot(c(2,4,6,8),col=c(pal[1],pal[25],pal[85],pal[100]))
 ```
+
+
+Additional graphing thoughts:  
+[Note about using barplot in base R](https://www.r-graph-gallery.com/209-the-options-of-barplot) 

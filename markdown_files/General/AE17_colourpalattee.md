@@ -29,7 +29,9 @@ Tried to select colors that were colour blind friendly and also
 represent colors the viewer might naturally associate with
 treatments.
 
+``` r
 ![](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/markdown_files/img/color-blind-friendly-palette-12.png)
+```
 
 ### Color selection
 
@@ -53,7 +55,7 @@ legend("bottom",col=col_perm[c(2,5,4)],horiz = TRUE,
        legend=c("Ambient","Moderate OA","High OA"))
 ```
 
-![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
 ``` r
 # Symbols and colour are unique for each treatment
@@ -65,14 +67,19 @@ legend("bottom",col=col_perm[c(2,5,4)],horiz = TRUE,
 
 ``` r
 par(lwd=5) # This is apparently the way to create thicker lines in filled spaces.
-bp <- barplot(c(2,4,6,8),
+bp <- barplot(c(2,4,6,8),border=c(col_perm[1],col_perm[2],col_perm[3],"black"),
               col=c(col_perm[1],col_perm[2],col_perm[3],col_perm[4]),
               density = c(8,1000,8,1000),angle = c(45,0,0,0),
-              names.arg = c("Ambient - Day 9","Ambient - Day80",
-                            "High OA - Day 9","High OA - Day80"))
+              names.arg = c("Ambient - Day 9","Ambient - Day 80",
+                            "High OA - Day 9","High OA - Day 80"))
+legend(x=1,y=7,
+       legend=c("Ambient - Day 9","Ambient - Day 80",
+                            "High OA - Day 9","High OA - Day 80"),
+       bty = "n",pch=22,cex=1,
+       col = c(col_perm[1],col_perm[2],col_perm[3],col_perm[4]))
 ```
 
-![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 #### Point plots
 
@@ -90,7 +97,7 @@ legend(x=.01,y=.5,col=col_perm[1:4],horiz = TRUE,cex=1.0,
                 "High OA - Day 9","High OA - Day80"))
 ```
 
-![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 #### Alternative colour scheme - Zissou1 in wesanderson library
 
@@ -109,11 +116,15 @@ library(wesanderson)
 wes_palette(n=5, name="Zissou1")
 ```
 
-![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
 pal <- wes_palette("Zissou1", 100, type = "continuous")
 barplot(c(2,4,6,8),col=c(pal[1],pal[25],pal[85],pal[100]))
 ```
 
-![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
+![](AE17_colourpalattee_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
+
+Additional graphing thoughts:  
+[Note about using barplot in base
+R](https://www.r-graph-gallery.com/209-the-options-of-barplot)
