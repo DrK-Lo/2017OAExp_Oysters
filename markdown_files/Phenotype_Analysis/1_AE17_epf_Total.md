@@ -10,7 +10,23 @@ data**
 
 ``` r
 pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryPhenotypeData_without81.RData")
+pheno2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/finalFullPhenotypeData.RData")
 pheno_red <- pheno[pheno$timepoint != 81,]
+```
+
+**Creating sub table for sample info for BCO-DMO Database**
+
+``` r
+colnames(pheno)
+pheno$pCO2_cat <- as.character(pheno$pCO2.x)
+pheno$pCO2_cat[pheno$pCO2_cat == "2800"] <- "High_OA"
+## Subsetting full pheno for BCO-DMO data
+col <- c("ID","sample_date","timepoint","pCO2_cat","shelf","tank","WaterSample_ID","PopOrigin","sequenced","width","length","wet_wgtcorr","dry_wgt","Len_Wgt_Index","HN_Index")
+pheno_ind <- subset(pheno,select =col)
+colnames(pheno_ind)[4] <- "treatment"
+colnames(pheno_ind)[7] <- "tankID"
+colnames(pheno_ind)[8] <- "collection_site"
+write.csv(pheno_ind,"/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_SampleInfo.csv")
 ```
 
 ## Plans
@@ -26,7 +42,7 @@ pheno_red <- pheno[pheno$timepoint != 81,]
     exposure (not acclimation)
 
 **Exploratory plots**
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-3-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-3-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-4-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-4-4.png)<!-- -->
 
 ### **Statistical Analysis**
 
@@ -50,12 +66,11 @@ epfAllTP_full <- lmer(EPF_pH~pCO2_fac*timepoint + (1|PopOrigin) + (1|shelf/tank)
 
 ``` r
 # Warning singular fit - Indicates model is overfit and some of the the random effects will need to be removed. I use a ranova below to determine which effects are uninformative and are candidates for removal.
-
 # Check distribution of residuals
 plot(epfAllTP_full)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 ``` r
 # They look fairly homoscedastic
@@ -63,9 +78,10 @@ qqnorm(resid(epfAllTP_full))
 qqline(resid(epfAllTP_full))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
 
 ``` r
+# Passes basic diagnostic test so we proceed with anova
 anova(epfAllTP_full)
 ```
 
@@ -107,12 +123,11 @@ Shelf**
 ``` r
 epfAllTP_red <- lmer(EPF_pH~pCO2_fac*timepoint + (1|tank:shelf),data=epf_exp)
 # Prevented singular fit issue this time
-
 # Check distribution of residuals
 plot(epfAllTP_red)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 ``` r
 # They look fairly homoscedastic
@@ -120,7 +135,7 @@ qqnorm(resid(epfAllTP_red))
 qqline(resid(epfAllTP_red))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
 
 ``` r
 # Fairly normal
@@ -128,7 +143,7 @@ qqline(resid(epfAllTP_red))
 ggplot(epf_exp,aes(y=resid(epfAllTP_red),x=timepoint_fac,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + geom_boxplot()
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-5-3.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-6-3.png)<!-- -->
 
 ``` r
 ggplot(epf_exp,aes(y=resid(epfAllTP_red),x=timepoint,colour=pCO2_fac)) + geom_point()
@@ -136,10 +151,11 @@ ggplot(epf_exp,aes(y=resid(epfAllTP_red),x=timepoint,colour=pCO2_fac)) + geom_po
 
     ## Don't know how to automatically pick scale for object of type difftime. Defaulting to continuous.
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-5-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-6-4.png)<!-- -->
 
 ``` r
 # Nothing obvious
+## Second model passes diagnostics so we proceed to anova and also do some model testing.
 
 # Compare full model to one with tank as the only random effect
 anova(epfAllTP_full,epfAllTP_red)
@@ -173,7 +189,7 @@ ranova(epfAllTP_red) # Significant tank effect
 # Comparing the two models  (full and w/ tank only there is no difference)
 # We keep the simpler model
 
-summary(epfAllTP_red) # Significant tp:2800 interaction, although not very satisfying if we want to look within tps
+summary(epfAllTP_red) 
 ```
 
     ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
@@ -211,6 +227,10 @@ summary(epfAllTP_red) # Significant tp:2800 interaction, although not very satis
     ## timepoint   -0.531  0.376     0.376                     
     ## pCO2_fc900:  0.385 -0.533    -0.273     -0.726          
     ## pCO2_f2800:  0.385 -0.273    -0.533     -0.726  0.527
+
+``` r
+# Significant tp:2800 interaction, although not very satisfying if we want to look within tps
+```
 
 #### **EPF pH total data - treatment (continuous) and time (continuous)**
 
@@ -260,7 +280,7 @@ whole_cont_tank <- lmer(EPF_pH~scale(epf_exp$pCO2_calc)*scale(epf_exp$timepoint)
 plot(whole_cont_tank)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 # They look fairly homoscedastic
@@ -268,7 +288,7 @@ qqnorm(resid(whole_cont_tank))
 qqline(resid(whole_cont_tank))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
 
 ``` r
 # Fairly normal
@@ -332,14 +352,138 @@ Test: 2-way ANOVA - Full Model (Fixed and Random Factors)
 \* Random Factors: Population, Shelf, Tank (nested in Shelf)  
 \* Tested for normality and variance assumptions \*
 
-**Full
-Model**
+**Full Model**
 
 ``` r
-epfAllTP_full <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/tank),data=epf_exp) 
+epf_exp$tankID <- interaction(epf_exp$tank,epf_exp$shelf)
+epfAllTP_full_1 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/tank),data=epf_exp) 
 ```
 
     ## boundary (singular) fit: see ?isSingular
+
+``` r
+epfAllTP_full_2 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tank/shelf),data=epf_exp)
+```
+
+    ## boundary (singular) fit: see ?isSingular
+
+``` r
+epfAllTP_full_3 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf),data=epf_exp)
+epfAllTP_full_4 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tank:shelf),data=epf_exp)
+epfAllTP_full_5 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tankID),data=epf_exp)
+
+# Model 1 (Ideal Model) : too complex leads to singularity of random effects
+# Model 1 and Model 2 are equivalent and lead to singularity issues
+# Model 4 and 5 equivalent
+# Start with model 5
+
+epfAllTP_full <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tank/shelf),data=epf_exp) 
+```
+
+    ## boundary (singular) fit: see ?isSingular
+
+``` r
+summary(epfAllTP_full)
+```
+
+    ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
+    ## lmerModLmerTest]
+    ## Formula: 
+    ## EPF_pH ~ pCO2_fac * timepoint_fac + (1 | PopOrigin) + (1 | tank/shelf)
+    ##    Data: epf_exp
+    ## 
+    ## REML criterion at convergence: 43.1
+    ## 
+    ## Scaled residuals: 
+    ##      Min       1Q   Median       3Q      Max 
+    ## -2.42582 -0.47612  0.02696  0.58161  2.97005 
+    ## 
+    ## Random effects:
+    ##  Groups     Name        Variance Std.Dev.
+    ##  shelf:tank (Intercept) 0.00559  0.07476 
+    ##  tank       (Intercept) 0.01126  0.10610 
+    ##  PopOrigin  (Intercept) 0.00000  0.00000 
+    ##  Residual               0.05919  0.24328 
+    ## Number of obs: 107, groups:  shelf:tank, 18; tank, 3; PopOrigin, 3
+    ## 
+    ## Fixed effects:
+    ##                               Estimate Std. Error        df t value
+    ## (Intercept)                   7.398272   0.120615 17.978000  61.338
+    ## pCO2_fac900                   0.143954   0.146941 81.507684   0.980
+    ## pCO2_fac2800                 -0.202495   0.146941 81.507684  -1.378
+    ## timepoint_fac2                0.155132   0.140458 73.593137   1.104
+    ## timepoint_fac9                0.009597   0.140458 73.593137   0.068
+    ## timepoint_fac22               0.026058   0.140458 73.593137   0.186
+    ## timepoint_fac50               0.125721   0.140458 73.593137   0.895
+    ## timepoint_fac79               0.169559   0.147831 75.092938   1.147
+    ## pCO2_fac900:timepoint_fac2   -0.231597   0.198637 73.593137  -1.166
+    ## pCO2_fac2800:timepoint_fac2  -0.214702   0.198637 73.593137  -1.081
+    ## pCO2_fac900:timepoint_fac9   -0.054702   0.198637 73.593137  -0.275
+    ## pCO2_fac2800:timepoint_fac9   0.435700   0.198637 73.593137   2.193
+    ## pCO2_fac900:timepoint_fac22  -0.138207   0.198637 73.593137  -0.696
+    ## pCO2_fac2800:timepoint_fac22  0.102878   0.198637 73.593137   0.518
+    ## pCO2_fac900:timepoint_fac50  -0.090211   0.198637 73.593137  -0.454
+    ## pCO2_fac2800:timepoint_fac50 -0.223609   0.198637 73.593137  -1.126
+    ## pCO2_fac900:timepoint_fac79  -0.255543   0.203918 74.386239  -1.253
+    ## pCO2_fac2800:timepoint_fac79 -0.314942   0.203918 74.386239  -1.544
+    ##                              Pr(>|t|)    
+    ## (Intercept)                    <2e-16 ***
+    ## pCO2_fac900                    0.3301    
+    ## pCO2_fac2800                   0.1720    
+    ## timepoint_fac2                 0.2730    
+    ## timepoint_fac9                 0.9457    
+    ## timepoint_fac22                0.8533    
+    ## timepoint_fac50                0.3737    
+    ## timepoint_fac79                0.2550    
+    ## pCO2_fac900:timepoint_fac2     0.2474    
+    ## pCO2_fac2800:timepoint_fac2    0.2833    
+    ## pCO2_fac900:timepoint_fac9     0.7838    
+    ## pCO2_fac2800:timepoint_fac9    0.0314 *  
+    ## pCO2_fac900:timepoint_fac22    0.4888    
+    ## pCO2_fac2800:timepoint_fac22   0.6061    
+    ## pCO2_fac900:timepoint_fac50    0.6511    
+    ## pCO2_fac2800:timepoint_fac50   0.2639    
+    ## pCO2_fac900:timepoint_fac79    0.2141    
+    ## pCO2_fac2800:timepoint_fac79   0.1267    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    ## 
+    ## Correlation matrix not shown by default, as p = 18 > 12.
+    ## Use print(x, correlation=TRUE)  or
+    ##     vcov(x)        if you need it
+
+    ## convergence code: 0
+    ## boundary (singular) fit: see ?isSingular
+
+``` r
+step(epfAllTP_full)
+```
+
+    ## boundary (singular) fit: see ?isSingular
+
+    ## Backward reduced random-effect table:
+    ## 
+    ##                  Eliminated npar  logLik    AIC    LRT Df Pr(>Chisq)   
+    ## <none>                        22 -21.526 87.051                        
+    ## (1 | PopOrigin)           1   21 -21.526 85.051 0.0000  1   0.999929   
+    ## (1 | shelf:tank)          2   20 -22.104 84.209 1.1574  1   0.281999   
+    ## (1 | tank)                0   19 -26.349 90.698 8.4890  1   0.003573 **
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Backward reduced fixed-effect table:
+    ## Degrees of freedom method: Satterthwaite 
+    ## 
+    ##                        Eliminated Sum Sq Mean Sq NumDF  DenDF F value
+    ## pCO2_fac:timepoint_fac          0 1.3752 0.13752    10 87.011  2.1454
+    ##                         Pr(>F)  
+    ## pCO2_fac:timepoint_fac 0.02895 *
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Model found:
+    ## EPF_pH ~ pCO2_fac + timepoint_fac + (1 | tank) + pCO2_fac:timepoint_fac
 
 ``` r
 # Warning singular fit - Indicates model is overfit and some of the the random effects will need to be removed. I use a ranova below to determine which effects are uninformative and are candidates for removal.
@@ -348,7 +492,7 @@ epfAllTP_full <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/t
 plot(epfAllTP_full)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ``` r
 # They look fairly homoscedastic
@@ -356,35 +500,35 @@ qqnorm(resid(epfAllTP_full))
 qqline(resid(epfAllTP_full))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
 
 ``` r
+# Meets assumptions but still has singular fit issues
 anova(epfAllTP_full)
 ```
 
     ## Type III Analysis of Variance Table with Satterthwaite's method
-    ##                        Sum Sq  Mean Sq NumDF  DenDF F value  Pr(>F)  
-    ## pCO2_fac               0.4810 0.240501     2  3.010  4.0718 0.13928  
-    ## timepoint_fac          0.2738 0.054761     5 73.998  0.9271 0.46844  
-    ## pCO2_fac:timepoint_fac 1.4058 0.140583    10 73.990  2.3801 0.01664 *
+    ##                         Sum Sq Mean Sq NumDF  DenDF F value   Pr(>F)   
+    ## pCO2_fac               0.92746 0.46373     2 12.585  7.8352 0.006162 **
+    ## timepoint_fac          0.27858 0.05572     5 73.767  0.9414 0.459501   
+    ## pCO2_fac:timepoint_fac 1.39300 0.13930    10 73.755  2.3536 0.017893 * 
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
 # Interaction is significant here 
-ranova(epfAllTP_full)
+ranova(epfAllTP_full_5)
 ```
 
     ## ANOVA-like table for random-effects: Single term deletions
     ## 
     ## Model:
-    ## EPF_pH ~ pCO2_fac + timepoint_fac + (1 | PopOrigin) + (1 | tank:shelf) + 
-    ##     (1 | shelf) + pCO2_fac:timepoint_fac
-    ##                  npar  logLik    AIC    LRT Df Pr(>Chisq)  
-    ## <none>             22 -23.231 90.463                       
-    ## (1 | PopOrigin)    21 -23.231 88.463 0.0000  1    1.00000  
-    ## (1 | tank:shelf)   21 -25.418 92.835 4.3727  1    0.03652 *
-    ## (1 | shelf)        21 -23.270 88.540 0.0774  1    0.78088  
+    ## EPF_pH ~ pCO2_fac + timepoint_fac + (1 | PopOrigin) + (1 | tankID) + 
+    ##     pCO2_fac:timepoint_fac
+    ##                 npar  logLik    AIC    LRT Df Pr(>Chisq)  
+    ## <none>            21 -23.270 88.540                       
+    ## (1 | PopOrigin)   20 -23.270 86.540 0.0000  1    1.00000  
+    ## (1 | tankID)      20 -26.234 92.467 5.9271  1    0.01491 *
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -392,11 +536,11 @@ ranova(epfAllTP_full)
 # We should remove population and shelf as random factors and rerun analysis
 ```
 
-**Rerun Model without Population and
-Shelf**
+**Rerun Model without
+Population**
 
 ``` r
-epfAllTP_red <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|tank:shelf),data=epf_exp)
+epfAllTP_red <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|tankID),data=epf_exp)
 # Prevented singular fit issue this time
 anova(epfAllTP_red)
 ```
@@ -414,7 +558,7 @@ anova(epfAllTP_red)
 plot(epfAllTP_red)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 ``` r
 # They look fairly homoscedastic
@@ -422,7 +566,7 @@ qqnorm(resid(epfAllTP_red))
 qqline(resid(epfAllTP_red))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
 
 ``` r
 # Fairly normal
@@ -443,18 +587,18 @@ anova(epfAllTP_red)
 #I think this should be reasonably well balanced, so we don't need to run type 3 ANOVA
 
 # Compare full model to one with tank as the only random effect
-anova(epfAllTP_full,epfAllTP_red)
+anova(epfAllTP_red,epfAllTP_full)
 ```
 
     ## refitting model(s) with ML (instead of REML)
 
     ## Data: epf_exp
     ## Models:
-    ## epfAllTP_red: EPF_pH ~ pCO2_fac * timepoint_fac + (1 | tank:shelf)
-    ## epfAllTP_full: EPF_pH ~ pCO2_fac * timepoint_fac + (1 | PopOrigin) + (1 | shelf/tank)
-    ##               Df    AIC     BIC logLik deviance Chisq Chi Df Pr(>Chisq)
-    ## epfAllTP_red  20 37.679  91.136 1.1604  -2.3209                        
-    ## epfAllTP_full 22 41.679 100.481 1.1604  -2.3209     0      2          1
+    ## epfAllTP_red: EPF_pH ~ pCO2_fac * timepoint_fac + (1 | tankID)
+    ## epfAllTP_full: EPF_pH ~ pCO2_fac * timepoint_fac + (1 | PopOrigin) + (1 | tank/shelf)
+    ##               Df    AIC    BIC logLik deviance  Chisq Chi Df Pr(>Chisq)
+    ## epfAllTP_red  20 37.679 91.136 1.1604  -2.3209                         
+    ## epfAllTP_full 22 38.412 97.214 2.7941  -5.5883 3.2674      2     0.1952
 
 ``` r
 ranova(epfAllTP_red) # Significant tank effect
@@ -463,10 +607,10 @@ ranova(epfAllTP_red) # Significant tank effect
     ## ANOVA-like table for random-effects: Single term deletions
     ## 
     ## Model:
-    ## EPF_pH ~ pCO2_fac + timepoint_fac + (1 | tank:shelf) + pCO2_fac:timepoint_fac
-    ##                  npar  logLik    AIC    LRT Df Pr(>Chisq)  
-    ## <none>             20 -23.270 86.540                       
-    ## (1 | tank:shelf)   19 -26.349 90.698 6.1578  1    0.01308 *
+    ## EPF_pH ~ pCO2_fac + timepoint_fac + (1 | tankID) + pCO2_fac:timepoint_fac
+    ##              npar  logLik    AIC    LRT Df Pr(>Chisq)  
+    ## <none>         20 -23.270 86.540                       
+    ## (1 | tankID)   19 -26.349 90.698 6.1578  1    0.01308 *
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -505,7 +649,7 @@ summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
     ## 
     ##   Simultaneous Tests for General Linear Hypotheses
     ## 
-    ## Fit: lmer(formula = EPF_pH ~ pCO2_fac * timepoint_fac + (1 | tank:shelf), 
+    ## Fit: lmer(formula = EPF_pH ~ pCO2_fac * timepoint_fac + (1 | tankID), 
     ##     data = epf_exp)
     ## 
     ## Linear Hypotheses:
@@ -539,16 +683,17 @@ Test: 2-way ANOVA - Full Model (Fixed and Random Factors)
 \* Random Factors: Population, Shelf, Tank (nested in Shelf)  
 \* Tested for normality and variance assumptions \*
 
-**Full
-Model**
+**Full Model**
 
 ``` r
+#Visualize Data
 ggplot(epf_exp,aes(y=EPF_envAdj,x=timepoint_fac,group=interaction(timepoint_fac,pCO2_fac),colour=pCO2_fac)) + geom_boxplot()
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 ``` r
+# Model 
 epfAllTP_full <- lmer(EPF_envAdj~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/tank),data=epf_exp) 
 ```
 
@@ -561,7 +706,7 @@ epfAllTP_full <- lmer(EPF_envAdj~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|she
 plot(epfAllTP_full)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
 
 ``` r
 # They look fairly homoscedastic
@@ -569,7 +714,7 @@ qqnorm(resid(epfAllTP_full))
 qqline(resid(epfAllTP_full))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-10-3.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-11-3.png)<!-- -->
 
 ``` r
 anova(epfAllTP_full)
@@ -611,7 +756,7 @@ ranova(epfAllTP_full)
 Shelf**
 
 ``` r
-epfAllTP_red <- lmer(EPF_envAdj~pCO2_fac*timepoint_fac + (1|tank:shelf),data=epf_exp)
+epfAllTP_red <- lmer(EPF_envAdj~pCO2_fac*timepoint_fac + (1|tankID),data=epf_exp)
 # Prevented singular fit issue this time
 anova(epfAllTP_red)
 ```
@@ -629,7 +774,7 @@ anova(epfAllTP_red)
 plot(epfAllTP_red)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 ``` r
 # They look fairly homoscedastic
@@ -637,7 +782,7 @@ qqnorm(resid(epfAllTP_red))
 qqline(resid(epfAllTP_red))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
 
 ``` r
 # Fairly normal
@@ -665,7 +810,7 @@ anova(epfAllTP_full,epfAllTP_red)
 
     ## Data: epf_exp
     ## Models:
-    ## epfAllTP_red: EPF_envAdj ~ pCO2_fac * timepoint_fac + (1 | tank:shelf)
+    ## epfAllTP_red: EPF_envAdj ~ pCO2_fac * timepoint_fac + (1 | tankID)
     ## epfAllTP_full: EPF_envAdj ~ pCO2_fac * timepoint_fac + (1 | PopOrigin) + (1 | 
     ## epfAllTP_full:     shelf/tank)
     ##               Df    AIC     BIC logLik deviance Chisq Chi Df Pr(>Chisq)
@@ -679,10 +824,10 @@ ranova(epfAllTP_red) # Significant tank effect
     ## ANOVA-like table for random-effects: Single term deletions
     ## 
     ## Model:
-    ## EPF_envAdj ~ pCO2_fac + timepoint_fac + (1 | tank:shelf) + pCO2_fac:timepoint_fac
-    ##                  npar  logLik    AIC    LRT Df Pr(>Chisq)  
-    ## <none>             20 -23.270 86.540                       
-    ## (1 | tank:shelf)   19 -26.349 90.698 6.1578  1    0.01308 *
+    ## EPF_envAdj ~ pCO2_fac + timepoint_fac + (1 | tankID) + pCO2_fac:timepoint_fac
+    ##              npar  logLik    AIC    LRT Df Pr(>Chisq)  
+    ## <none>         20 -23.270 86.540                       
+    ## (1 | tankID)   19 -26.349 90.698 6.1578  1    0.01308 *
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -705,7 +850,7 @@ summary(glht(epfAllTP_red,linfct=lc2),adjusted(type = "fdr"))
     ## 
     ##   Simultaneous Tests for General Linear Hypotheses
     ## 
-    ## Fit: lmer(formula = EPF_envAdj ~ pCO2_fac * timepoint_fac + (1 | tank:shelf), 
+    ## Fit: lmer(formula = EPF_envAdj ~ pCO2_fac * timepoint_fac + (1 | tankID), 
     ##     data = epf_exp)
     ## 
     ## Linear Hypotheses:
@@ -754,7 +899,7 @@ summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
     ## 
     ##   Simultaneous Tests for General Linear Hypotheses
     ## 
-    ## Fit: lmer(formula = EPF_envAdj ~ pCO2_fac * timepoint_fac + (1 | tank:shelf), 
+    ## Fit: lmer(formula = EPF_envAdj ~ pCO2_fac * timepoint_fac + (1 | tankID), 
     ##     data = epf_exp)
     ## 
     ## Linear Hypotheses:
@@ -779,7 +924,7 @@ summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
 # A few significant here
 ```
 
-## Figure
+### Final Full Data Figure
 
 ![](1_AE17_epf_Total_files/figure-gfm/Map%20with%20all%20treatment%20levels-1.png)<!-- -->
 
@@ -811,7 +956,7 @@ seq_full <- lmer(EPF_pH~timepoint_fac*pCO2_fac + (1|PopOrigin) + (1|shelf/tank),
 plot(seq_full)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 ``` r
 # Some heteroscedascity but not too bad
@@ -819,7 +964,7 @@ qqnorm(resid(seq_full))
 qqline(resid(seq_full))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->
 
 ``` r
 ranova(seq_full) # None of these seem important
@@ -864,7 +1009,7 @@ seq_fixed <- lm(EPF_pH~timepoint_fac*pCO2_fac, data=pheno_seq)
 plot(seq_fixed)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-13-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-13-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-4.png)<!-- -->
 
 ``` r
 # We can see more clearly that some of the mild issues with the assumptions are being driven by 1 (61).
@@ -892,7 +1037,7 @@ seq_fixed_outlierRM <- lm(EPF_pH~timepoint_fac*pCO2_fac, data=pheno_seq2)
 plot(seq_fixed_outlierRM)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-4.png)<!-- -->
 
 ``` r
 anova(seq_fixed_outlierRM)
@@ -916,7 +1061,7 @@ seq_fixed_outlierRM <- lm(EPF_pH~timepoint_fac*pCO2_fac, data=pheno_seq3)
 plot(seq_fixed_outlierRM)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-5.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-6.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-7.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-8.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-5.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-6.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-7.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-8.png)<!-- -->
 
 ``` r
 anova(seq_fixed_outlierRM)
@@ -941,7 +1086,7 @@ seq_pairwise <- TukeyHSD(aov(EPF_pH~timepoint_fac*pCO2_fac, data=pheno_seq3))
 plot(seq_pairwise)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-3.png)<!-- -->
 
 #### **Relative EPF pH (EPF pH - Env. pH) total data - time as factor**
 
@@ -969,7 +1114,7 @@ seq_full <- lmer(EPF_envAdj~timepoint_fac*pCO2_fac + (1|PopOrigin) + (1|shelf/ta
 plot(seq_full)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 ``` r
 # Some heteroscedascity but not too bad
@@ -977,7 +1122,7 @@ qqnorm(resid(seq_full))
 qqline(resid(seq_full))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
 
 ``` r
 ranova(seq_full) # None of these seem important
@@ -1022,7 +1167,7 @@ seq_fixed <- lm(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq)
 plot(seq_fixed)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-4.png)<!-- -->
 
 ``` r
 # We can see more clearly that some of the mild issues with the assumptions are being driven by 1 (61).
@@ -1050,7 +1195,7 @@ seq_fixed_outlierRM <- lm(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq2)
 plot(seq_fixed_outlierRM)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-4.png)<!-- -->
 
 ``` r
 anova(seq_fixed_outlierRM)
@@ -1074,7 +1219,7 @@ seq_fixed_outlierRM <- lm(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq3)
 plot(seq_fixed_outlierRM)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-5.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-6.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-7.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-8.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-5.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-6.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-7.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-8.png)<!-- -->
 
 ``` r
 anova(seq_fixed_outlierRM)
@@ -1096,14 +1241,12 @@ rm)**
 
 ``` r
 seq_pairwise <- TukeyHSD(aov(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq3))
-plot(seq_pairwise)
+#plot(seq_pairwise)
 ```
-
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-3.png)<!-- -->
 
 **Final
 Figures**  
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-21-2.png)<!-- -->
 
 Final bar plot has SE bars and significance levels based on pairwise
 comparison test (tukey method) based on model selected above.
