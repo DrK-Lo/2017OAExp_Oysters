@@ -344,7 +344,7 @@ summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
 # A few significant here
 ```
   
-## Figure
+### Final Full Data Figure
 
 ```{r Map with all treatment levels, echo=FALSE, fig.height=10}
 c_mean <- mean(epf_exp$Tank_pH[epf_exp$pCO2_fac==400])
@@ -376,7 +376,7 @@ treat_SE_oa_900$timepoint <- treat_SE_oa_900$timepoint + 4
 
 # Base plot with 400
 bp <- plot(treat_means_ctrl$EPF_pH~as.numeric(as.character(treat_means_ctrl$timepoint)),ylab="EPF pH (NBS)",xlab="Time (Days)",
-           col=col_perm[2],pch=16,cex=2,
+           col=col_perm[2],pch=16,cex=2,cex.axis = 1.5,cex.lab=1.5,
            ylim = c(6.5,8.1),xlim=c(0,82),bty="n")
 
 # Mean environment lines underneath other lines    
@@ -420,11 +420,11 @@ arrows(x0 = as.numeric(as.character(treat_means_oa_2800$timepoint)),
        angle = 90, len = 0.05, code = 3, xpd = NA, lwd = 2,
        col=col_perm[4])
 
-text(x=-8,y=8.25,label="A",cex = 3, xpd = NA)
+text(x=-5,y=8.25,label="A",cex = 2.2, xpd = NA)
 
-text(x=5,y=8,label="*",cex = 3,col=col_perm[4], xpd = NA)
-text(x=51,y=8,label="*",cex = 3,col=col_perm[4], xpd = NA)
-text(x=80,y=8,label="*",cex = 3,col=col_perm[4], xpd = NA)
+text(x=5+1,y=8,label="*",cex = 2,col=col_perm[4], xpd = NA)
+text(x=51+1,y=8,label="*",cex = 2,col=col_perm[4], xpd = NA)
+text(x=80+1,y=8,label="*",cex = 2,col=col_perm[4], xpd = NA)
 
 ### Single Legend 
 par(mar = c(0,0,0,0))
@@ -433,7 +433,7 @@ legend("bottom",horiz = TRUE,
        legend = c("Ambient","OA 900","OA 2800"),
        col = c(col_perm[2],col_perm[5],col_perm[4]),
        pch=c(16,15,17),
-       cex = 2,
+       cex = 1.5,
        lwd = 2,
        bty = "n")
 
@@ -461,7 +461,7 @@ treat_SE_oa_900$timepoint <- treat_SE_oa_900$timepoint + 4
 bp <- plot(treat_means_ctrl$EPF_envAdj~as.numeric(as.character(treat_means_ctrl$timepoint)),
            ylab="EPF pH - Environment pH (NBS)",
            xlab="Time (Days)",pch=16,
-           col=col_perm[2],cex=2,
+           col=col_perm[2],cex=2,cex.axis = 1.5,cex.lab=1.5,
            ylim = c(-1,1),xlim=c(0,82),bty="n")
 
 # Mean environment lines underneath other lines    
@@ -503,7 +503,7 @@ arrows(x0 = as.numeric(as.character(treat_means_oa_2800$timepoint)),
        angle = 90, len = 0.05, code = 3, xpd = NA, lwd = 2,
        col=col_perm[4])
 
-text(x=-8,y=1.3,label="B",cex = 2, xpd = NA)
+text(x=-5,y=1.3,label="B",cex = 2.2, xpd = NA)
 
 text(x=2,
      y=0.95,label="*",
@@ -643,7 +643,7 @@ anova(seq_fixed_outlierRM)
 **Pairwise comparisons of fixed factor model (with points rm)**  
 ```{r}
 seq_pairwise <- TukeyHSD(aov(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq3))
-plot(seq_pairwise)
+#plot(seq_pairwise)
 ```
 
 **Final Figures**  
