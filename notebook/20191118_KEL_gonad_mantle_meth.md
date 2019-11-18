@@ -8,6 +8,9 @@ but that shouldn't effect these patterns.
 The gonad data come from the 2016 experiment
 The mantle data come from the 2017 experiment
 
-![](img/20191110_Mantle_vs_Gonad_10KBwindows.pdf)
+# Comparison of methylation levels
+![](img/20191110_Mantle_vs_Gonad_10KBwindows.png)
 
+
+# Mantle on top, gonad on bottom
 ![](img/20191110_Mantle2017Top_Gonad2016Bottom.png)
