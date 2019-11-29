@@ -17,6 +17,7 @@ library(rtracklayer)
 library(dplyr)
 library(edgeR)
 library(factoextra) # for the fviz_eig function
+library(cowplot)
 
 wd <- "/home/downeyam/Github/2017OAExp_Oysters"
 ```
@@ -60,7 +61,7 @@ gene_order <- gene[order(gene$gene_id),]
 identical(rownames(rsem_c),gene_order$gene_id) # TRUE confirms the order matches
 # Relabel the rows of the count matrix with LOC ID
 rownames(rsem_c) <- gene_order$GENEID
-geneC_all <- round(rsem_c)
+geneC_all <- cpm(round(rsem_c))
 rm(rsem_c)
 ```
 
@@ -75,10 +76,12 @@ cpgMean_all <-  read.table(paste0(wd,"/results/DNAm/meanBetaPerFeature.txt"),hea
 # CpGs with coverage of 5
 cpgMean <-  read.table(paste0(wd,"/results/DNAm/mean_betamean_CVTrtMeans_PerFeature_filteredBetameanGT05.txt"),header = FALSE, sep="\t",stringsAsFactors=FALSE, quote="")
 
+#Keep only the gene rows
 cpgMean_all_gene <- cpgMean_all[cpgMean_all$V3 == "gene",]
 cpgMean_gene <- cpgMean[cpgMean$V3 == "gene",]
-rm(cpgMean)
-
+# Remove the full datasets since they are large
+# rm(cpgMean)
+# rm(cpgMean_all)
 ```
 
 
@@ -109,20 +112,19 @@ exons <- exons[!exons$GENEID == "NA",]
 colnames(exons)[3:4] <- c("exon_cpg_counts","exon_cpg_means")
 ```
 
-
 **Extract gene locations**
 ```{r}
 # This is to merge DNA methylation data with gene expression data
 #Total CpG data
 gene_ID <- sub(".*GeneID:(.*?);.*","\\1",cpgMean_all_gene$V9,perl=TRUE)
 LOC_ID <- paste0("LOC",gene_ID)
-cpgMean_all_gene <- data.frame(GENEID=LOC_ID,cpgMean_all_gene)
+cpgMean_all_gene_ID <- data.frame(GENEID=LOC_ID,cpgMean_all_gene)
 # Filtered data
 gene_ID <- sub(".*GeneID:(.*?);.*","\\1",cpgMean_gene$V9,perl=TRUE)
 LOC_ID <- paste0("LOC",gene_ID)
-cpgMean_gene <- data.frame(GENEID=LOC_ID,cpgMean_gene)
+cpgMean_gene_ID <- data.frame(GENEID=LOC_ID,cpgMean_gene)
 
-plot(cpgMean_all_gene$V10~cpgMean_gene$V10,
+plot(cpgMean_all_gene_ID$V10~cpgMean_gene_ID$V10,
      xlim=c(0,1),ylim=c(0,1),
      xlab="Filter CpGs",
      ylab="Unfiltered CpGs",
@@ -130,12 +132,13 @@ plot(cpgMean_all_gene$V10~cpgMean_gene$V10,
 abline(b=1,a=0,col="red",lwd=2)
 
 # Ordered identically so we can bind them together
-identical(cpgMean_gene$GENEID,cpgMean_all_gene$GENEID)
+identical(cpgMean_gene_ID$GENEID,cpgMean_all_gene_ID$GENEID)
+sum(cpgMean_gene_ID$GENEID==cpgMean_all_gene_ID$GENEID)
 
 #Creating new data frame with counts an
-cpg_final <- data.frame(cpgMean_gene[,c(1,11:13)],
-                        cpgMean_total=cpgMean_all_gene[,11],
-                        cpgCount_total=cpgMean_all_gene[,12])
+cpg_final <- data.frame(cpgMean_gene_ID[,c(1,11:13)],
+                        cpgMean_total=cpgMean_all_gene_ID[,11],
+                        cpgCount_total=cpgMean_all_gene_ID[,12])
 colnames(cpg_final)[2:4] <- c("cpgMean_filtered","cpgCV_filtered","cpgCount_filtered")
 sum(is.na(cpg_final$cpgCount_total))
 
@@ -144,10 +147,9 @@ initial <- left_join(gene,cpg_final)
 ge_dnam <- left_join(initial,exons)
 ge_dnamV2 <- ge_dnam[!is.na(ge_dnam$cpgCount_total),]
 out <- match(ge_dnamV2$GENEID,rownames(geneC_all))
-
-
-
+# Reorder and subset gene expression matrix to match dnam
 geneC_new <- geneC_all[match(ge_dnamV2$GENEID,rownames(geneC_all)),]
+#Confirm that the dnam matrix and gene matrix match
 identical(rownames(geneC_new),ge_dnamV2$GENEID)
 ```
 
@@ -156,49 +158,46 @@ identical(rownames(geneC_new),ge_dnamV2$GENEID)
 ### Genes ### 
 # Breaking down expression coverage by treatment*time combination
 #Day 9 Trt 2800
-keep_D9.2800 <- rowSums(cpm(geneC_new[,meta$SFVrn=="D09.2800"])>=1) >= 5
+keep_D9.2800 <- rowSums(geneC_new[,meta$SFVrn=="D09.2800"]>=1) >= 5
 sum(keep_D9.2800)
 #Day 9 Trt 400
-keep_D9.400 <- rowSums(cpm(geneC_new[,meta$SFVrn=="D09.400"])>=1) >= 5
+keep_D9.400 <- rowSums(geneC_new[,meta$SFVrn=="D09.400"]>=1)>= 5
 sum(keep_D9.400)
 #Day 80 Trt 2800
-keep_D80.2800 <- rowSums(cpm(geneC_new[,meta$SFVrn=="D80.2800"])>=1) >= 5
+keep_D80.2800 <- rowSums(geneC_new[,meta$SFVrn=="D80.2800"]>=1) >= 5
 sum(keep_D80.2800)
 #Day 80 Trt 400
-keep_D80.400 <- rowSums(cpm(geneC_new[,meta$SFVrn=="D80.400"])>=1) >= 5
+keep_D80.400 <- rowSums(geneC_new[,meta$SFVrn=="D80.400"]>=1) >= 5
 sum(keep_D80.400)
 
 keep_gene_a2 <- rowSums(cbind(keep_D9.2800,keep_D9.400,
                                  keep_D80.2800,keep_D80.400)) >= 1
 
-# Filter low coverage genes
-geneC_new_t <- voom(geneC_new)
-geneC_a2 <- geneC_new_t$E[keep_gene_a2, ]
-#geneC_Elist <- cpm(geneC_a2)
-#geneC_a2 <- geneC_Elist$E
-
-ge_dnamV2 <- ge_dnamV2[keep_gene_a2,]
+# Filter low coverage genes (remember data is already in cpms)
+geneC_final <- geneC_new[keep_gene_a2, ]
+# Filter dnam data similarly
+ge_dnamV3 <- ge_dnamV2[keep_gene_a2,]
 ```
 
 **Summarize Gene Expression**
 ```{r}
 cv <- function(x)(sd(x)/mean(x))
-gene_Mean <-  rowMeans(geneC_a2)
-gene_cv <-  apply(geneC_a2,1,cv)
+gene_Mean <-  rowMeans(geneC_final)
+gene_cv <-  apply(geneC_final,1,cv)
 gene_sum_all <- data.frame(gene_Mean,gene_cv)
 
-gene_Mean_9C <- rowMeans(geneC_a2[,meta$SFVrn=="D09.400"])
-gene_cv_9C <-  apply(geneC_a2[,meta$SFVrn=="D09.400"],1,cv)
+gene_Mean_9C <- rowMeans(geneC_final[,meta$SFVrn=="D09.400"])
+gene_cv_9C <-  apply(geneC_final[,meta$SFVrn=="D09.400"],1,cv)
 gene_sum_9C <- data.frame(gene_Mean_9C,gene_cv_9C)
 
-gene_Mean_9E <- rowMeans(geneC_a2[,meta$SFVrn=="D09.2800"])
-gene_cv_9E <-  apply(geneC_a2[,meta$SFVrn=="D09.2800"],1,cv)
+gene_Mean_9E <- rowMeans(geneC_final[,meta$SFVrn=="D09.2800"])
+gene_cv_9E <-  apply(geneC_final[,meta$SFVrn=="D09.2800"],1,cv)
 
-gene_Mean_80C <- rowMeans(geneC_a2[,meta$SFVrn=="D80.400"])
-gene_cv_80C <-  apply(geneC_a2[,meta$SFVrn=="D80.400"],1,cv)
+gene_Mean_80C <- rowMeans(geneC_final[,meta$SFVrn=="D80.400"])
+gene_cv_80C <-  apply(geneC_final[,meta$SFVrn=="D80.400"],1,cv)
 
-gene_Mean_80E <- rowMeans(geneC_a2[,meta$SFVrn=="D80.2800"])
-gene_cv_80E <-  apply(geneC_a2[,meta$SFVrn=="D80.2800"],1,cv)
+gene_Mean_80E <- rowMeans(geneC_final[,meta$SFVrn=="D80.2800"])
+gene_cv_80E <-  apply(geneC_final[,meta$SFVrn=="D80.2800"],1,cv)
 
 trt_cv <- apply(cbind(gene_Mean_9C,gene_Mean_9E,gene_Mean_80C,gene_Mean_80E),1,cv)
 diff <- gene_Mean_9C-gene_Mean_9E
@@ -208,86 +207,219 @@ diff <- gene_Mean_9C-gene_Mean_9E
 #colnames(ge_sum) <- c("Expression_diff","Expression_9C","ExpressionCV_9C","Expression_9E")
 ge_sum <- data.frame(gene_Mean,trt_cv)
 colnames(ge_sum) <- c("Expression","Expression_CV")
-sum(ge_sum$Expression_CV)
 hist(ge_sum$Expression_CV)
-ge_sum[abs(ge_sum$Expression_CV)>100,]
-geneC_new[rownames(geneC_new)=="LOC111114812",]
 ```
 
 **Create dataframes for PCA**
 ```{r}
 col <- c("gene_length","cpgMean_filtered","cpgCV_filtered","cpgCount_total","Exon_Count") 
-cpg_pca <- subset(ge_dnamV2,select=col)
+cpg_pca <- subset(ge_dnamV3,select=col)
 str(cpg_pca)
-colnames(cpg_pca) <- c("gene_length","Methylation","Methylation CV","CpGs","Exons")
+colnames(cpg_pca) <- c("gene_length","Methylation","Methylation_CV","CpGs","Exons")
 cpg_pca$Methylation <- as.numeric(as.character(cpg_pca$Methylation))
 cpg_pca$`Methylation CV`<- as.numeric(as.character(cpg_pca$`Methylation CV` ))
 ## Futher reducing the dnam matrix and gene count matrix down to size.
 final_pca <- data.frame(ge_sum,cpg_pca)
-final_pca <- final_pca[!is.na(final_pca$Methylation | final_pca$Methylation.CV),]
+final_pca <- final_pca[!is.na(final_pca$Methylation | final_pca$Methylation_CV),]
 sum(is.na(final_pca[,1]))
-#[1] 19663
+nrow(final_pca)
+#[1] 19739
 ```
 Number of loci included in analysis : `{r}sum(is.na(final_pca[,1]))`
 
+**Data Check and Transformation**
+```{r}
+colnames(final_pca)
+
+## Histogram Gene Expression
+par(mfrow=c(2,1))
+#Non transformed
+hist(final_pca$Expression,breaks=10000,xlim=c(0,100)) 
+#Log2
+hist(log2(final_pca$Expression),breaks=1000)
+## Expression_CV
+hist(final_pca$Expression_CV,breaks=10000)
+hist(log2(final_pca$Expression_CV),breaks=10000)
+## gene_length
+hist(final_pca$gene_length,breaks=10000)
+hist(log2(final_pca$gene_length),breaks=10000)
+## Methylation
+hist(final_pca$Methylation,breaks=10000)
+hist(asin(final_pca$Methylation),breaks=10000)
+## Methylation.CV
+hist(final_pca$Methylation_CV,breaks=10000)
+hist(asin(final_pca$Methylation_CV),breaks=10000)
+## CpGs
+hist(final_pca$CpGs,breaks=10000)
+hist(log2(final_pca$CpGs),breaks=10000)
+## Exons
+hist(final_pca$Exons,breaks=10000)
+hist(log2(final_pca$Exons),breaks=10000)
+
+## Look like they are all due for transformations
+# Do log2 transformations
+final_pca2 <- final_pca
+for(i in 1:ncol(final_pca)){
+  if(i >= 3 & i < 6){#final_pca2[,i] <- asin(final_pca[,i])
+  }else{final_pca2[,i] <- log2(final_pca[,i])}
+}
+final_pca3 <- scale(final_pca2)
+```
+
 **PCA **
 ```{r}
+# We are using log2 transformed and scaled variables (except methylation is not log2 transformed)
+
 # Perform pca
-pca_obj <- prcomp(final_pca,scale=TRUE)
-str(final_pca)
-hist(final_pca$Expression_CV)
+pca_obj <- prcomp(final_pca3)
 # Scree plot 
 fviz_eig(pca_obj,addlabels = TRUE)
 
 # Plot top two pcs with variable vectors
+# Color weights
 fviz_pca_var(pca_obj,
              title="Variable Vectors - GE x DNAm",
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE     # Avoid text overlapping
              )
-par(mfrow=c(3,1))
-# Contributions of variables to PC1
-fviz_contrib(pca_obj, choice = "var", axes = 1, top = 10)
-# Contributions of variables to PC2
-fviz_contrib(pca_obj, choice = "var", axes = 2, top = 10)
-# Contributions of variables to PC3
-fviz_contrib(pca_obj, choice = "var", axes = 3, top = 10)
 
-fviz_pca_ind(pca_obj,
-             label = "none" # hide individual labels
+fviz_pca_var(pca_obj,axes = c(1,3),
+             title="Variable Vectors - GE x DNAm",
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping)
 )
+```
+
+## Final PCA figure
+```{r}
+# Black and white
+p1<-fviz_pca_var(pca_obj,col.circle = "white",
+             title="",
+             repel = TRUE # Avoid text overlapping
+             ) + theme_classic() +
+  theme(axis.title = element_text(size=15),
+        axis.text = element_text(size=15))
+p2 <- fviz_pca_ind(pca_obj,title="",xlab="",ylab="",
+             label = "none") + # hide individual labels 
+  theme_classic() + 
+  theme(axis.text.y   = element_blank(),
+        axis.text.x   = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+
+pF <- ggdraw(p1) +
+draw_plot(p2,0.13,.09,.37,.4) 
+pF
+#+
+  draw_plot_label(
+    c("A", "B"),
+    c(0.05, 0.12),
+    c(1, 0.45),
+    size = 20
+  )
+```
+
+**Final Quality PCA looking at 1 and 3rd dims**
+```{r}
+fviz_pca_var(pca_obj,col.circle = "white",axes = c(1,3),
+             title="",
+             repel = TRUE # Avoid text overlapping
+             ) + theme_classic() +
+  theme(axis.title = element_text(size=15),
+        axis.text = element_text(size=15))
+```
+**PCA loadings supp plot**
+```{r}
+# Contributions of variables to PC1
+p3 <- fviz_contrib(pca_obj, choice = "var", axes = 1, top = 10,color = "black",fill = "grey",
+                   sort.val = "none")
+# Contributions of variables to PC2
+p4 <- fviz_contrib(pca_obj, choice = "var", axes = 2, top = 10,color = "black",fill = "grey",
+                   sort.val = "none")
+# Contributions of variables to PC3
+p5 <- fviz_contrib(pca_obj, choice = "var", axes = 3, top = 10,color = "black",fill = "grey",
+                   sort.val="none")
+plot_grid(p3,p4,p5, labels = c('A', 'B','C'), label_size = 12,nrow = 3)
+
 ind <- get_pca_ind(pca_obj)
 head(ind$coord[order(ind$coord[,1]),])
-which(!is.na(match(rownames(final_pca),"LOC111102280")))
-final_pca[rownames(final_pca)=="LOC111102280",]
-gene[gene$GENEID=="LOC111102280",]
-head(gene)
 ```
 
 **Plotting Expression CV by Methylation**
 ```{r}
 # From PCA we see interesting relationship between DNA methylation and gene CV
-ggplot(final_pca,aes(y=Methylation,x=abs(Expression_CV)))+geom_point() + geom_smooth()
+ggplot(final_pca,aes(y=Methylation,x=Expression_CV))+geom_point() + geom_smooth()
 
 ## Looking at mean methylation acros quantiles of gene CV
-qq<-cut(final_pca$ExpressionCV_9C,
-        breaks=seq(min(final_pca$ExpressionCV_9C),max(final_pca$ExpressionCV_9C), length.out=11),
+qq<-cut(final_pca$Expression_CV,
+        breaks=seq(min(final_pca$Expression_CV),
+                   max(final_pca$Expression_CV),
+                   length.out=11),
         include.lowest=T, labels=F)
+
 dnam_quantile <- matrix(ncol=2,nrow=length(unique(qq)))
 ci <- function(x){1.96*(sd(x)/sqrt(length(x)))}
+i=1
 for(i in 1:length(unique(qq))){
-  means<-mean(final_pca[qq ==unique(qq)[order(unique(qq))][i],6])
-  ciS<-ci(final_pca[qq ==unique(qq)[order(unique(qq))][i],6])
+  means<-mean(final_pca[qq ==(unique(qq)[order(unique(qq))][i]),4]) # The 4 here because the 4 column is the prop. methylation (make sure this changes if need be)
+  ciS<-ci(final_pca[qq ==unique(qq)[order(unique(qq))][i],4])
   dnam_quantile[i,] <- cbind(means,ciS)
 }
-
+qq[1:10]
+length(qq)
+as.vector(table(qq))
 # Create data frame with quantile methylation information
 plot_df <- data.frame(CV_quantiles=c(1:length(unique(qq))),mean=dnam_quantile[,1],ci=dnam_quantile[,2])
-
-# ggplot
-ggplot(plot_df,aes(y=mean,x=CV_quantiles))+ geom_col()
 # base plot
-bp <- barplot(plot_df$mean,ylim=c(0,1))
+par(mfrow=c(1,1))
+bp <- barplot(plot_df$mean,ylim=c(0,1),
+              ylab=c("Average proportion methylation"),
+              xlab=c("Gene expression CV (deciles)"),
+              names.arg = seq(1,10,1))
 arrows(x0=bp,x1=bp,y0=plot_df$mean-plot_df$ci,y1=plot_df$mean+plot_df$ci,angle=90,code=3,length=0.1)
+text(labels=as.vector(table(qq)),y = .95,x=bp)
 ```
+
+**Combining PCA and decile plot**
+```{r}
+# decile ggplot
+decile <- ggplot(plot_df,aes(y=mean,x=CV_quantiles,fill = as.factor("A")))+ 
+  geom_col() + 
+  scale_fill_grey(start = .5,end = .4) + 
+  geom_errorbar(aes(ymin=plot_df$mean-plot_df$ci,
+                    ymax=plot_df$mean+plot_df$ci),
+                colour="black", width=.1) + ylim(0,1) + 
+  theme_classic()  + 
+  labs(x="Gene expression CV (deciles)",y=c("Average proportion methylation")) +
+  guides(fill=FALSE) + 
+  theme(axis.title = element_text(size=15),
+        axis.text = element_text(size=15))
+decile
+
+# Use cowplot to combine plots (NEEDS WORK)
+#plot_grid(p1,decile,nrow = 1) 
+```
+
+
+```{r}
+co2 <- read.table("http://faraway.neu.edu/data/lab7_co2.txt", header = TRUE)
+temp <- read.csv("http://faraway.neu.edu/data/lab7_temp.csv")
+pop <- read.csv("http://faraway.neu.edu/data/lab7_population.csv")
+temp.long <- reshape(temp, varying = list(2:13), idvar = "Year", direction = "long")
+# Change column names
+colnames(temp.long) <- c("year", "month", "temp")
+
+# ANSWER: Average intra-annual variation
+temp.agg <- aggregate(temp ~ year, mean, data = temp.long)
+co2.agg <- aggregate(ppm ~ year, mean, data = co2)
+pop.agg <- aggregate(popsize ~ year, mean, data = pop)
+
+merged <- merge(co2.agg, temp.agg, by = "year")
+merged <- merge(merged, pop.agg, by = "year")
+
+lm.out <- lm(ge_dnamV2$Exon_Count~ge_dnamV2$cpgCount_total*ge_dnamV2$gene_length)
+summary(lm.out)
+```
+
+

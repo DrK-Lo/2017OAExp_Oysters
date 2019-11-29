@@ -19,6 +19,10 @@ library(factoextra) # for the fviz_eig function
 #devtools::install_github("pmartinezarbizu/pairwiseAdonis/pairwiseAdonis")
 library(pairwiseAdonis)
 
+library(RColorBrewer)
+pal <- brewer.pal(n = 12, name = 'Paired')
+col_perm <- c(pal[1:2],pal[5:6],pal[12])
+
 wd <- "/home/downeyam/Github/2017OAExp_Oysters"
 ```
 
@@ -124,22 +128,21 @@ To describe  global  gene  expression  patterns,  we  performed a principal coor
 # Standard voom w scaling values
 #(out_gc <- adonis(scale(t(gc_voom$E))~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
 # Counts from quality weights EList object w/o scaling  
-(out_gc <- adonis(t(gc_qualityweights$E)~Treatment*Time+Pop+Lane,data=model,
-                  permutations = 999,method="manhattan"))
+(out_gc <- adonis(t(gc_qualityweights$E)~Time*Treatment+tankID,data=model,
+                  permutations = 5000,method="manhattan"))
 # Just showing that evaluating them separately seems to give similar results (i.e. not include potential random effects seems to have a relatively minor impact)
 pairwise.adonis(t(gc_qualityweights$E),factors=model$Treatment,sim.function='vegdist',
-sim.method='manhattan')
+sim.method='manhattan',perm = 5000)
 pairwise.adonis(t(gc_qualityweights$E),factors=model$Time,sim.function='vegdist',
 sim.method='manhattan')
 # Complete pairwise comparison of the different factor levels
 pairwise.adonis(t(gc_qualityweights$E),factors=model$SFV,p.adjust.m = "fdr",sim.function='vegdist',
-sim.method='manhattan')
-
+sim.method='manhattan',perm = 5000)
 # Counts from quality weights EList object scaled  
-(out_gc <- adonis(scale(t(gc_qualityweights$E))~Treatment*Time+Pop+Lane,data=model,permutations = 5000,
-                  method="manhattan"))
-pairwise.adonis(scale(t(gc_qualityweights$E)),factors=model$SFV,p.adjust.m = "fdr",sim.function='vegdist',
-sim.method='manhattan')
+# (out_gc <- adonis(scale(t(gc_qualityweights$E))~Treatment*Time,data=model,permutations = 5000,
+#                   method="manhattan"))
+# pairwise.adonis(scale(t(gc_qualityweights$E)),factors=model$SFV,p.adjust.m = "fdr",sim.function='vegdist',
+# sim.method='manhattan')
 ```
 
 **Thoughts on PERMANOVA**  
@@ -200,14 +203,14 @@ We see from the scree plots that the first two principle components aren't doing
 pca <- prcomp(t(gc_qualityweights$E))
 eigs <- pca$sdev^2
 
-color_comb <- c("lightblue4","royalblue3","tomato","darkred") # colors for population 
+color_comb <- c(col_perm[1:4]) # colors for population 
 model$colors <- "" 
 model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
 model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
 model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
 model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
 model$pch <- 16
-model$pch[model$colors == color_comb[2] | model$colors == "darkred"] <- 10
+model$pch[model$colors == color_comb[2] | model$colors == color_comb[4]] <- 10
 
 ordiplot(pca,type="n",
          xlab=paste0("PC1 (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
@@ -280,7 +283,7 @@ ggplot(early_time_meta,aes(coord,fill=as.factor(treatment),colour=as.factor(trea
        fill="Treatment") +
   theme_bw() +
   scale_color_manual(values=c("deepskyblue2","firebrick1")) +
-  scale_fill_manual(values=c("deepskyblue2","firebrick1"))
+  scale_fill_manual(values=c(col_perm[2],col_perm[4]))
 ```
 
 Looking at which genes are driving the patterns between the two treatments
@@ -316,8 +319,8 @@ ggplot(whole_meta,aes(coord,fill=as.factor(interaction(Day,treatment)),colour=as
        colour="Day.Treatment",
        fill="Day.Treatment") +
   theme_bw() +
-  scale_color_manual(values=c("lightblue4","blue4","tomato","darkred")) +
-  scale_fill_manual(values=c("lightblue4","blue4","tomato1","darkred"))
+  scale_color_manual(values=col_perm[1:4]) +
+  scale_fill_manual(values=col_perm[1:4])
 
 D9_400 <- whole_meta[whole_meta$SFV == "09.400",]
 D9_400_Density <- density(D9_400$coord)
@@ -330,18 +333,22 @@ D80_2800_Density <- density(D80_2800$coord)
 
 plot(D9_400_Density, main="",xlim=c(-12,12),ylim=c(0,2),
      xlab="Discriminant Function 1")
-polygon(D9_400_Density, col=alpha("lightblue",0.8), border="lightblue")
-polygon(D9_2800_Density, col=alpha("tomato",0.8), border="red3")
-polygon(D80_400_Density, col=alpha("blue",0.9), 
+
+polygon(D9_400_Density, col=alpha(col_perm[1],1),
+        border="lightblue")
+polygon(D9_2800_Density, col=alpha(col_perm[3],1),
+        border="red3")
+polygon(D80_400_Density, col=alpha(col_perm[2],1), 
         border="blue",density = 20,cex=100)
-polygon(D80_2800_Density, col=alpha("red3",0.9),
+polygon(D80_2800_Density, col=alpha(col_perm[4],1),
         border="red3",density = 20,angle=0,cex=5)
+
 legend(x=c(4,6),y=c(1.9,1.7),bty = "n",
        legend=c("Day 09 : Ambient","Day 09 : 2800 ","Day 80 : Ambient","Day 80 : 2800"),
-       fill = c(alpha("lightblue",0.8),
-                alpha("tomato",0.8),
-                alpha("blue",0.7),
-                alpha("red3",0.7)),
+       fill = c(alpha(col_perm[1],1),
+                alpha(col_perm[3],1),
+                alpha(col_perm[2],1),
+                alpha(col_perm[4],1)),
        density = c(1000,1000,50,50),angle = c(0,0,45,0))
 ```
 
@@ -354,16 +361,26 @@ dapc_SFV_10<-dapc(t(gc_qualityweights$E),model$SFV,n.pca=8,n.da=3)
 # clusters = 3
 output <- data.frame(Trt=model$Treatment,Time=model$Time,dapc_SFV_10$ind.coord)
 
-ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.factor(interaction(Trt,Time)))) + 
-  geom_point(aes(size=5)) + #geom_density(alpha=0.1) + #xlim(-28,28) + 
-  labs(title="DAPC for Treatment*Time Combination",
+(nogrouping_ge <- ggplot(output,
+       aes(x=LD1,
+           y=LD2,fill=as.factor(interaction(Trt,Time)),
+           colour=as.factor(interaction(Trt,Time)),
+           shape=as.factor(interaction(Trt,Time)),
+           size=as.factor(interaction(Trt,Time)))) + 
+  geom_point(aes()) + #geom_density(alpha=0.1) + #xlim(-28,28) + 
+  labs(title="",
        x="Discriminant function 1",
        y="Discriminant function 2",
        colour="Treatment",
        fill="Treatment") +
-    theme_bw() +
-  scale_color_manual(values=c("deepskyblue2","firebrick1","blue4","darkred")) +
-  scale_fill_manual(values=c("deepskyblue2","firebrick1","blue4","darkred"))
+    theme_classic() +
+  scale_color_manual(values=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4])) +
+  scale_fill_manual(values=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4])) +
+  scale_shape_manual(values=c(16,16,10,10)) +
+  scale_size_manual(values=c(5,5,5,5)) +
+  labs(colour="Treatment",size="Treatment",shape="Treatment")) +
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=18))
 ```
 
 Looking at contribution of individual genes
@@ -409,8 +426,6 @@ legend(x=c(4,6),y=c(1.9,1.7),bty = "n",
                 alpha("red3",0.7)),
        density = c(1000,1000,50,50),angle = c(0,0,45,0))
 ```
-
-
 
 
 ## Analysis - Transcript level Expression
@@ -645,34 +660,53 @@ dapc_all_dnam<-dapc(t(beta),model_dnam$SFV,n.pca=8,n.da=3)
 # clusters = 3
 output <- data.frame(Trt=model_dnam$Treatment,Time=model_dnam$Time,dapc_all_dnam$ind.coord)
 
-ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.factor(interaction(Trt,Time)))) + 
-  geom_point(aes(size=5)) + #geom_density(alpha=0.1) + #xlim(-28,28) + 
-  labs(title="DAPC for Treatment*Time Combination - DNAm",
+(nogrouping_dnam <- ggplot(output,
+       aes(x=LD1,
+           y=LD2,fill=as.factor(interaction(Trt,Time)),
+           colour=as.factor(interaction(Trt,Time)),
+           shape=as.factor(interaction(Trt,Time)),
+           size=as.factor(interaction(Trt,Time)))) + 
+  geom_point(aes()) +  
+  labs(title="",
        x="Discriminant function 1",
        y="Discriminant function 2",
        colour="Treatment",
        fill="Treatment") +
-    theme_bw() +
-  scale_color_manual(values=c("deepskyblue2","firebrick1","blue4","darkred")) +
-  scale_fill_manual(values=c("deepskyblue2","firebrick1","blue4","darkred"))
+    theme_classic() +
+  scale_color_manual(values=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4])) +
+  scale_fill_manual(values=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4])) +
+  scale_shape_manual(values=c(16,16,10,10)) +
+  scale_size_manual(values=c(5,5,5,5)) +
+  labs(colour="Treatment",size="Treatment",shape="Treatment")) +
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=18)) 
 ```
   
+## DAPC PLot
+```{r}
+plot_grid(nogrouping_ge,nogrouping_dnam,labels = c("A","B"),label_size = 20)
+```
   
 ## FINAL FIGURE
 
 ```{r eval=FALSE}
-png("/home/downeyam/Desktop/temp/test.png",
+png("/home/downeyam/Github/2017OAExp_Oysters/results/FiguresAndTables/FinalFig3_genomewideEval.png",
     width = 20,height = 20,units = "cm",res = 200)
 
 # Creating multi panel plotting environment
-m <- matrix(c(1,2,3,3,4,5),nrow = 3,ncol = 2,byrow = TRUE)
-layout(mat = m,heights = c(0.4,0.04,0.4))
+m <- matrix(c(1,2,3,3,4,5,6,6),nrow = 4,ncol = 2,byrow = TRUE)
+layout(mat = m,heights = c(0.4,0.04,0.4,0.05))
 par(mar = c(5,5,3,2))
 par(xpd=TRUE)
 
+# m <- matrix(c(1,2,3,3,4,5),nrow = 3,ncol = 2,byrow = TRUE)
+# layout(mat = m,heights = c(0.4,0.04,0.4))
+# par(mar = c(5,5,3,2))
+# par(xpd=TRUE)
+
 # Presets for panel letter position
 let_ge_pca <- c(-125,108)
-let_ge_dapc <- c(-11.8,3.5)
+let_ge_dapc <- c(-11.8,3.7)
 let_dnam_pca <- c(-57,50)
 let_dnam_dapc <-c(-5,12.3)
 
@@ -680,65 +714,41 @@ let_dnam_dapc <-c(-5,12.3)
 pca <- prcomp(t(gc_qualityweights$E))
 eigs <- pca$sdev^2
 
-color_comb <- c("lightblue4","royalblue3","tomato","darkred") # colors for population 
+color_comb <- c(col_perm[1:4]) # colors for population 
 model$colors <- "" 
 model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
 model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
 model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
 model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
 model$pch <- 16
-model$pch[model$colors == color_comb[2] | model$colors == "darkred"] <- 10
+model$pch[model$colors == color_comb[2] | model$colors == color_comb[4]] <- 10
 
 ordiplot(pca,type="n",
          xlab=paste0("PC1 (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
          ylab=paste0("PC2 (",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
 
 orditorp(pca,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = model$pch)
+
 ordispider(pca,model$SFV,col = color_comb,lwd=2.5)
-text(x = -5 ,y = 85, 
-     paste0("P_Treatment = ",round(out_gc$aov.tab$`Pr(>F)`[1],3),"*"),pos = 4)
+text(x = -5 ,y = 85,paste0("P_Treatment = ",round(out_gc$aov.tab$`Pr(>F)`[1],3),"*"),pos = 4) 
 text(x = -5 ,y = 77, 
-     paste0("P_Time = ",round(out_gc$aov.tab$`Pr(>F)`[2],5),"*"),pos=4)
+     paste0("P_Time = ",round(out_gc$aov.tab$`Pr(>F)`[2],5),"*"),pos=4) + 
 text(x = -5 ,y = 69, 
-     paste0("P_Interaction = ",round(out_gc$aov.tab$`Pr(>F)`[5],3)),pos=4)
+     paste0("P_Interaction = ",round(out_gc$aov.tab$`Pr(>F)`[5],3)),pos=4) + 
 text(x=let_ge_pca[1],y=let_ge_pca[2],labels = "A",cex=2)
 
-## GENE EXPRESSION DAPC 
-plot(D9_400_Density, main="",xlim=c(-9,9),ylim=c(0,3.2),
-     xlab="Discriminant Function 1")
-polygon(D9_400_Density, col=alpha("lightblue4",0.8), border="lightblue")
-polygon(D9_2800_Density, col=alpha("tomato",0.8), border="red3")
-polygon(D80_400_Density, col=alpha("royalblue3",0.9), 
-        border="blue",density = 20,cex=100)
-polygon(D80_2800_Density, col=alpha("darkred",0.9),
-        border="red3",density = 20,angle=0,cex=5)
-text(x=let_ge_dapc[1],y=let_ge_dapc[2],labels = "B",cex=2)
-
-## Single legend
-par(mar = c(0,0,0,0))
-plot(1, type = "n", axes=FALSE, xlab="", ylab="")
-legend(x="center",inset=0,horiz = TRUE,
-       legend=c("Day 09 : Ambient","Day 09 : 2800 ","Day 80 : Ambient","Day 80 : 2800"),
-       fill = c(alpha("lightblue",0.8),
-                alpha("tomato",0.8),
-                alpha("royalblue4",0.7),
-                alpha("darkred",0.7)),
-       density = c(1000,1000,50,50),angle = c(0,0,45,0),
-       cex = 1.3)
-
 ## DNAm PCA 
-par(mar = c(5,5,3,2))
 pca <- prcomp(t(beta))
 eigs <- pca$sdev^2
 
-color_comb <- c("lightblue4","royalblue3","tomato","darkred") # colors for population 
+color_comb <- c(col_perm[1],col_perm[2],col_perm[3],col_perm[4]) # colors for population 
 model_dnam$colors <- "" 
 model_dnam$colors[model_dnam$SFV == unique(model_dnam$SFV)[1]] <-  color_comb[2]
 model_dnam$colors[model_dnam$SFV == unique(model_dnam$SFV)[2]] <-  color_comb[1]
 model_dnam$colors[model_dnam$SFV == unique(model_dnam$SFV)[3]] <-  color_comb[4]
 model_dnam$colors[model_dnam$SFV == unique(model_dnam$SFV)[4]] <-  color_comb[3]
 model_dnam$pch <- 16
-model_dnam$pch[model_dnam$colors == color_comb[2] | model_dnam$colors == "darkred"] <- 10
+model_dnam$pch[model_dnam$colors == color_comb[2] | model_dnam$colors == color_comb[4]] <- 10
 
 ordiplot(pca,type="n",
          xlab=paste0("PC1 (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
@@ -752,19 +762,55 @@ text(x = -5 ,y = -35,
      paste0("P_Time = ",round(out_dnam$aov.tab$`Pr(>F)`[2],5),""),pos=4)
 text(x = -5 ,y = -40, 
      paste0("P_Interaction = ",round(out_dnam$aov.tab$`Pr(>F)`[5],3)),pos=4)
-text(x=let_dnam_pca[1],y=let_dnam_pca[2],labels = "C",cex=2)
+text(x=let_dnam_pca[1],y=let_dnam_pca[2],labels = "B",cex=2)
+
+## Single legend PCA
+par(mar = c(0,0,0,0))
+plot(1, type = "n", axes=FALSE, xlab="", ylab="")
+legend(x="center",inset=0,horiz = TRUE,
+       legend=c("Day 09 : Ambient","Day 09 : 2800 ","Day 80 : Ambient","Day 80 : 2800"),
+       col=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4]),
+       pch=c(16,16,10,10),
+       cex = 1.3)
+
+## GENE EXPRESSION DAPC
+par(mar = c(5,5,3,2))
+plot(D9_400_Density, main="",xlim=c(-9,9),ylim=c(0,3.2),
+     xlab="Discriminant Function 1")
+polygon(D9_400_Density, col=alpha(col_perm[1],1), border=col_perm[1])
+polygon(D9_2800_Density, col=alpha(col_perm[3],1), border=col_perm[4])
+polygon(D80_400_Density, col=alpha(col_perm[2],1), 
+        border=col_perm[2],density = 20,cex=100)
+polygon(D80_2800_Density, col=alpha(col_perm[4],1),
+        border=col_perm[4],density = 20,angle=0,cex=5)
+text(x=let_ge_dapc[1],y=let_ge_dapc[2],labels = "C",cex=2)
 
 ## DNAm DAPC 
 plot(D9_400_Density_dnam, main="",xlim=c(-4,3),ylim=c(0,11),
      xlab="Discriminant Function 1")
-polygon(D9_400_Density_dnam, col=alpha("lightblue4",0.8), border="lightblue")
-polygon(D9_2800_Density_dnam, col=alpha("tomato",0.8), border="red3")
-polygon(D80_400_Density_dnam, col=alpha("royalblue4",0.9), 
-        border="blue",density = 20,cex=100)
-polygon(D80_2800_Density_dnam, col=alpha("darkred",0.9),
-        border="red3",density = 20,angle=0,cex=5)
+polygon(D9_400_Density_dnam, col=alpha(col_perm[1],1), border=col_perm[1])
+polygon(D9_2800_Density_dnam, col=alpha(col_perm[3],1), border=col_perm[3])
+polygon(D80_400_Density_dnam, col=alpha(col_perm[2],1), 
+        border=col_perm[2],density = 20,cex=100)
+polygon(D80_2800_Density_dnam, col=alpha(col_perm[4],1),
+        border=col_perm[4],density = 20,angle=0,cex=5)
 text(x=let_dnam_dapc[1],y=let_dnam_dapc[2],labels = "D",cex=2)
+
+## Single legend DAPC
+par(mar = c(0,0,0,0))
+plot(1, type = "n", axes=FALSE, xlab="", ylab="")
+legend(x="top",inset=0,horiz = TRUE,
+       legend=c("Day 09 : Ambient","Day 09 : 2800 ","Day 80 : Ambient","Day 80 : 2800"),
+       fill = c(alpha(col_perm[1],1),
+                alpha(col_perm[3],1),
+                alpha(col_perm[2],1),
+                alpha(col_perm[4],1)),
+       density = c(1000,1000,50,50),angle = c(0,0,45,0),
+       cex = 1.3)
+
 dev.off()
+
 ```
+
 
 
