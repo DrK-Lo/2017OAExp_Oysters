@@ -297,7 +297,7 @@ ranova(epfAllTP_full)
 ```{r}
 epfAllTP_red <- lmer(EPF_envAdj~pCO2_fac*timepoint_fac + (1|tankID),data=epf_exp)
 # Prevented singular fit issue this time
-anova(epfAllTP_red)
+(epfAllTP_red_aov <- anova(epfAllTP_red))
 # Check distribution of residuals
 plot(epfAllTP_red)
 # They look fairly homoscedastic
@@ -324,8 +324,11 @@ rownames(agg_mod_matrix) <- agg_mod_matrix$group
 agg_mod_matrix <- agg_mod_matrix[,-1]
 
 lc2 <- as.matrix(agg_mod_matrix)
-summary(glht(epfAllTP_red,linfct=lc2),adjusted(type = "fdr"))
+(epfAllTP_posthoc_noCorrection <- summary(glht(epfAllTP_red,linfct=lc2)))
+(epfAllTP_posthoc_Correction <- summary(glht(epfAllTP_red,linfct=lc2),adjusted(type = "fdr")))
+
 # Version two of planned comparisons matrix (OA trtments vs ambient at all tps)
+
 
 k <- rbind("400v900_1"=lc2["900:1",]-lc2["400:1",],
            "400v2800_1"=lc2["2800:1",]-lc2["400:1",],
@@ -342,6 +345,56 @@ k <- rbind("400v900_1"=lc2["900:1",]-lc2["400:1",],
            )
 summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
 # A few significant here
+```
+
+### Post Hoc Testing / Model Comparisons follow
+```{r}
+## Paired t-test equivalent looking specifically at day 9 trt 2800.
+epf_single <- epf_exp[epf_exp$timepoint_fac == "9" & epf_exp$pCO2_fac == "2800",]
+t.save <- t.test(epf_single$EPF_envAdj,mu = 0,alternative = "two.sided")
+p.adjust(c(rep(0.05,times=17),t.save$p.value),method = "fdr")
+#Comparing this to the 2800:9 ==  0 result from the ghlt and summary function we get similar but not identical answers.
+## Manual Calculation of t.test
+mean.x2 <- mean(epf_single$EPF_envAdj)
+sd.x2   <- sd(epf_single$EPF_envAdj) 
+SE.x2 <- sd(epf_single$EPF_envAdj) / sqrt(length(epf_single$EPF_envAdj))
+t.val <- (mean.x2 - 0) / SE.x2
+p.val_fromT <- pt(t.val, df = length(epf_single$EPF_envAdj) - 1,lower.tail = FALSE)*2
+## Note using z score (from ghlt from above)
+z.val <- epfAllTP_posthoc_noCorrection$test$tstat
+p.val_fromZ <- pnorm(z.val, lower.tail=FALSE)
+epfAllTP_posthoc_noCorrection$test$pvalues[6]
+
+## Manual calculation of Tukey Test
+N <- length(epf_exp$ID) # Total number of samples
+table(epf_exp$comb)
+k <- length(unique(epf_exp$comb))
+n <- 6 # Number of samples per group (should be 6 for nearly all cases)
+epf_response <- subset(epf_exp,select=c("comb","EPF_envAdj"))
+# Mean sums
+ms_epf <- split(epf_response, epf_response$comb) # MSE
+# Sum Square error
+sse <- sum(Reduce('+', lapply(ms_epf, function(x) {
+  (length(x[,2]) - 1) * sd(x[,2])^2
+})))
+# Mean sum of square errro
+mse <- sse / (N - k)
+# Q value using qtukey function
+q.value <- qtukey(p = 0.95, nmeans = k, df = N - k)
+q.value
+# Tukey honestly significant difference
+tukey.hsd <- q.value * sqrt(mse / n)
+tukey.hsd
+# Applying Tukey statistic
+means <- tapply(epf_exp$EPF_envAdj, epf_exp$comb, mean)
+abs(means) >= tukey.hsd
+
+# Using Tukey contrasts in glht (not the same as a tradional tukey test)
+summary(glht(epfAllTP_red,linfct=mcp(pCO2_fac="Tukey")))
+epfAllTP_red_aov
+
+TukeyHSD(epfAllTP_red_aov)
+
 ```
   
 ### Final Full Data Figure

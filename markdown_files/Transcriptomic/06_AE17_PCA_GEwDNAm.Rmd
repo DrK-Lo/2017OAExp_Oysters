@@ -78,6 +78,7 @@ cpgMean <-  read.table(paste0(wd,"/results/DNAm/mean_betamean_CVTrtMeans_PerFeat
 cpgMean_all_gene <- cpgMean_all[cpgMean_all$V3 == "gene",]
 cpgMean_gene <- cpgMean[cpgMean$V3 == "gene",]
 rm(cpgMean)
+
 ```
 
 

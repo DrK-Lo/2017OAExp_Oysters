@@ -1,0 +1,78 @@
+---
+title: "AE17 Experimental Temperature and pH"
+author: "adowneywall"
+date: "11/14/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library("RColorBrewer")
+pal <- brewer.pal(n = 12, name = 'Paired')
+col_perm <- c(pal[1:2],pal[5:6],pal[12])
+```
+
+### Data Read in and processing
+```{r}
+wc <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/WC/AE17_pHSalinity_20190811.csv")
+wc$Date <- as.Date(as.character(wc$Date_Alt),"%m/%d/%Y")
+wc <- wc[wc$Date >= "2017-06-05",]
+wc$Day <- wc$Date-min(wc$Date)
+
+wc$PCO2 <- as.factor(wc$PCO2)
+levels(wc$PCO2) <- c("Ambient","OA 1000","OA 2800")
+
+CI <- function(x){(sd(x)/sqrt(length(x)))*1.96}
+wc_summary <- wc %>% group_by(PCO2,Day) %>% 
+  summarise(mean_temp=mean(Temp),CI_temp=sd(Temp),
+            mean_pH=mean(pH_scaleFree),CI_pH=CI(pH_scaleFree))
+```
+
+### Plot
+```{r}
+# Color palatte
+cols <- c(col_perm[2],col_perm[5],col_perm[4])
+#Temp plot
+p1<-ggplot(wc_summary,aes(x=Day,y=mean_temp,colour=PCO2,group=PCO2)) + 
+  geom_rect(aes(xmin=35,xmax=39,ymin=-Inf,ymax=Inf), fill="grey",colour="grey") +
+  geom_line() + geom_point(aes(shape=PCO2)) +
+  geom_errorbar(aes(ymin = mean_temp-CI_temp, ymax = mean_temp+CI_temp), width = 0.2) +
+  theme_bw() + labs(y="Temp (C)",x="Exposure Day") +
+  scale_colour_manual(values = cols) + 
+  scale_shape_manual(values=c(16,15,17)) +
+  ylim(0,25) +
+  theme(legend.title = element_blank(),
+        legend.direction="horizontal")
+p1
+# pH Plot
+p2<-ggplot(wc_summary,aes(x=Day,y=mean_pH,colour=as.factor(PCO2),group=as.factor(PCO2))) + 
+  geom_rect(aes(xmin=35,xmax=39,ymin=-Inf,ymax=Inf), fill="grey",colour="grey") +
+  geom_line() + geom_point(aes(shape=PCO2)) +
+  geom_errorbar(aes(ymin = mean_pH-CI_pH, ymax = mean_pH+CI_pH), width = 0.2) +
+  theme_bw() + labs(y="pH (NBS)",x="Exposure Day") +
+  scale_colour_manual(values = cols) + 
+  scale_shape_manual(values=c(16,15,17)) +
+  ylim(6.5,8.2)
+
+# Extract legene from p1 to use in multipanel plot
+legend_b <- get_legend(p1)
+
+#Creating multi panel plot with cowplot
+prow <- plot_grid(
+  p1 + theme(legend.position="none"),
+  p2 + theme(legend.position="none"),
+  align = 'v',
+  labels = c("A","B"),
+  nrow = 2,
+  rel_widths = c(1,1,.1)
+)
+# now add in the legend
+(final_plot <- plot_grid(prow, legend_b, ncol = 1, rel_heights = c(1, .1)))
+ggsave(filename = "/home/downeyam/Github/2017OAExp_Oysters/results/FiguresAndTables/SuppFigTempAndpH.png",width = 20,height = 14,units = "cm")
+```
+
