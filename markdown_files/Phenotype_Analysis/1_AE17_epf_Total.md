@@ -9,8 +9,9 @@ Aug 11, 2019
 data**
 
 ``` r
-pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryPhenotypeData_without81.RData")
-pheno2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/finalFullPhenotypeData.RData")
+pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_summaryPhenotype_exposure.RData") # just exposure timepoints
+pheno2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_summaryPhenotype_alltimepoints.RData") # acclimation and exposure timepoints
+# Remove 81 which we know has wonky EPF values (for consistency these are also ultimately removed from the calcification estimates as well)
 pheno_red <- pheno[pheno$timepoint != 81,]
 ```
 
@@ -315,21 +316,16 @@ summary(whole_cont_tank)
     ## Number of obs: 107, groups:  tank:shelf, 18
     ## 
     ## Fixed effects:
-    ##                                                   Estimate Std. Error
-    ## (Intercept)                                        7.40452    0.03652
-    ## scale(epf_exp$pCO2_calc)                          -0.11187    0.03671
-    ## scale(epf_exp$timepoint)                          -0.01957    0.02486
-    ## scale(epf_exp$pCO2_calc):scale(epf_exp$timepoint) -0.05795    0.02489
-    ##                                                         df t value
-    ## (Intercept)                                       15.92882 202.738
-    ## scale(epf_exp$pCO2_calc)                          15.91290  -3.047
-    ## scale(epf_exp$timepoint)                          87.43391  -0.787
-    ## scale(epf_exp$pCO2_calc):scale(epf_exp$timepoint) 87.34260  -2.328
-    ##                                                   Pr(>|t|)    
-    ## (Intercept)                                        < 2e-16 ***
-    ## scale(epf_exp$pCO2_calc)                           0.00772 ** 
-    ## scale(epf_exp$timepoint)                           0.43315    
-    ## scale(epf_exp$pCO2_calc):scale(epf_exp$timepoint)  0.02222 *  
+    ##                                                   Estimate Std. Error       df
+    ## (Intercept)                                        7.40452    0.03652 15.92882
+    ## scale(epf_exp$pCO2_calc)                          -0.11187    0.03671 15.91290
+    ## scale(epf_exp$timepoint)                          -0.01957    0.02486 87.43391
+    ## scale(epf_exp$pCO2_calc):scale(epf_exp$timepoint) -0.05795    0.02489 87.34260
+    ##                                                   t value Pr(>|t|)    
+    ## (Intercept)                                       202.738  < 2e-16 ***
+    ## scale(epf_exp$pCO2_calc)                           -3.047  0.00772 ** 
+    ## scale(epf_exp$timepoint)                           -0.787  0.43315    
+    ## scale(epf_exp$pCO2_calc):scale(epf_exp$timepoint)  -2.328  0.02222 *  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
@@ -388,8 +384,7 @@ summary(epfAllTP_full)
 
     ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
     ## lmerModLmerTest]
-    ## Formula: 
-    ## EPF_pH ~ pCO2_fac * timepoint_fac + (1 | PopOrigin) + (1 | tank/shelf)
+    ## Formula: EPF_pH ~ pCO2_fac * timepoint_fac + (1 | PopOrigin) + (1 | tank/shelf)
     ##    Data: epf_exp
     ## 
     ## REML criterion at convergence: 43.1
@@ -407,44 +402,44 @@ summary(epfAllTP_full)
     ## Number of obs: 107, groups:  shelf:tank, 18; tank, 3; PopOrigin, 3
     ## 
     ## Fixed effects:
-    ##                               Estimate Std. Error        df t value
-    ## (Intercept)                   7.398272   0.120615 17.978000  61.338
-    ## pCO2_fac900                   0.143954   0.146941 81.507684   0.980
-    ## pCO2_fac2800                 -0.202495   0.146941 81.507684  -1.378
-    ## timepoint_fac2                0.155132   0.140458 73.593137   1.104
-    ## timepoint_fac9                0.009597   0.140458 73.593137   0.068
-    ## timepoint_fac22               0.026058   0.140458 73.593137   0.186
-    ## timepoint_fac50               0.125721   0.140458 73.593137   0.895
-    ## timepoint_fac79               0.169559   0.147831 75.092938   1.147
-    ## pCO2_fac900:timepoint_fac2   -0.231597   0.198637 73.593137  -1.166
-    ## pCO2_fac2800:timepoint_fac2  -0.214702   0.198637 73.593137  -1.081
-    ## pCO2_fac900:timepoint_fac9   -0.054702   0.198637 73.593137  -0.275
-    ## pCO2_fac2800:timepoint_fac9   0.435700   0.198637 73.593137   2.193
-    ## pCO2_fac900:timepoint_fac22  -0.138207   0.198637 73.593137  -0.696
-    ## pCO2_fac2800:timepoint_fac22  0.102878   0.198637 73.593137   0.518
-    ## pCO2_fac900:timepoint_fac50  -0.090211   0.198637 73.593137  -0.454
-    ## pCO2_fac2800:timepoint_fac50 -0.223609   0.198637 73.593137  -1.126
-    ## pCO2_fac900:timepoint_fac79  -0.255543   0.203918 74.386239  -1.253
-    ## pCO2_fac2800:timepoint_fac79 -0.314942   0.203918 74.386239  -1.544
-    ##                              Pr(>|t|)    
-    ## (Intercept)                    <2e-16 ***
-    ## pCO2_fac900                    0.3301    
-    ## pCO2_fac2800                   0.1720    
-    ## timepoint_fac2                 0.2730    
-    ## timepoint_fac9                 0.9457    
-    ## timepoint_fac22                0.8533    
-    ## timepoint_fac50                0.3737    
-    ## timepoint_fac79                0.2550    
-    ## pCO2_fac900:timepoint_fac2     0.2474    
-    ## pCO2_fac2800:timepoint_fac2    0.2833    
-    ## pCO2_fac900:timepoint_fac9     0.7838    
-    ## pCO2_fac2800:timepoint_fac9    0.0314 *  
-    ## pCO2_fac900:timepoint_fac22    0.4888    
-    ## pCO2_fac2800:timepoint_fac22   0.6061    
-    ## pCO2_fac900:timepoint_fac50    0.6511    
-    ## pCO2_fac2800:timepoint_fac50   0.2639    
-    ## pCO2_fac900:timepoint_fac79    0.2141    
-    ## pCO2_fac2800:timepoint_fac79   0.1267    
+    ##                               Estimate Std. Error        df t value Pr(>|t|)
+    ## (Intercept)                   7.398272   0.120615 17.978000  61.338   <2e-16
+    ## pCO2_fac900                   0.143954   0.146941 81.507684   0.980   0.3301
+    ## pCO2_fac2800                 -0.202495   0.146941 81.507684  -1.378   0.1720
+    ## timepoint_fac2                0.155132   0.140458 73.593137   1.104   0.2730
+    ## timepoint_fac9                0.009597   0.140458 73.593137   0.068   0.9457
+    ## timepoint_fac22               0.026058   0.140458 73.593137   0.186   0.8533
+    ## timepoint_fac50               0.125721   0.140458 73.593137   0.895   0.3737
+    ## timepoint_fac79               0.169559   0.147831 75.092938   1.147   0.2550
+    ## pCO2_fac900:timepoint_fac2   -0.231597   0.198637 73.593137  -1.166   0.2474
+    ## pCO2_fac2800:timepoint_fac2  -0.214702   0.198637 73.593137  -1.081   0.2833
+    ## pCO2_fac900:timepoint_fac9   -0.054702   0.198637 73.593137  -0.275   0.7838
+    ## pCO2_fac2800:timepoint_fac9   0.435700   0.198637 73.593137   2.193   0.0314
+    ## pCO2_fac900:timepoint_fac22  -0.138207   0.198637 73.593137  -0.696   0.4888
+    ## pCO2_fac2800:timepoint_fac22  0.102878   0.198637 73.593137   0.518   0.6061
+    ## pCO2_fac900:timepoint_fac50  -0.090211   0.198637 73.593137  -0.454   0.6511
+    ## pCO2_fac2800:timepoint_fac50 -0.223609   0.198637 73.593137  -1.126   0.2639
+    ## pCO2_fac900:timepoint_fac79  -0.255543   0.203918 74.386239  -1.253   0.2141
+    ## pCO2_fac2800:timepoint_fac79 -0.314942   0.203918 74.386239  -1.544   0.1267
+    ##                                 
+    ## (Intercept)                  ***
+    ## pCO2_fac900                     
+    ## pCO2_fac2800                    
+    ## timepoint_fac2                  
+    ## timepoint_fac9                  
+    ## timepoint_fac22                 
+    ## timepoint_fac50                 
+    ## timepoint_fac79                 
+    ## pCO2_fac900:timepoint_fac2      
+    ## pCO2_fac2800:timepoint_fac2     
+    ## pCO2_fac900:timepoint_fac9      
+    ## pCO2_fac2800:timepoint_fac9  *  
+    ## pCO2_fac900:timepoint_fac22     
+    ## pCO2_fac2800:timepoint_fac22    
+    ## pCO2_fac900:timepoint_fac50     
+    ## pCO2_fac2800:timepoint_fac50    
+    ## pCO2_fac900:timepoint_fac79     
+    ## pCO2_fac2800:timepoint_fac79    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -475,10 +470,8 @@ step(epfAllTP_full)
     ## Backward reduced fixed-effect table:
     ## Degrees of freedom method: Satterthwaite 
     ## 
-    ##                        Eliminated Sum Sq Mean Sq NumDF  DenDF F value
-    ## pCO2_fac:timepoint_fac          0 1.3752 0.13752    10 87.011  2.1454
-    ##                         Pr(>F)  
-    ## pCO2_fac:timepoint_fac 0.02895 *
+    ##                        Eliminated Sum Sq Mean Sq NumDF  DenDF F value  Pr(>F)  
+    ## pCO2_fac:timepoint_fac          0 1.3752 0.13752    10 87.011  2.1454 0.02895 *
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
@@ -671,8 +664,73 @@ summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
     ## (Adjusted p values reported -- fdr method)
 
 ``` r
-# A few significant here
+# A few significant her()
+summary(epfAllTP_red)
 ```
+
+    ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
+    ## lmerModLmerTest]
+    ## Formula: EPF_pH ~ pCO2_fac * timepoint_fac + (1 | tankID)
+    ##    Data: epf_exp
+    ## 
+    ## REML criterion at convergence: 46.5
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -2.4154 -0.5377  0.1012  0.5211  2.6770 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  tankID   (Intercept) 0.01485  0.1219  
+    ##  Residual             0.05907  0.2430  
+    ## Number of obs: 107, groups:  tankID, 18
+    ## 
+    ## Fixed effects:
+    ##                               Estimate Std. Error        df t value Pr(>|t|)
+    ## (Intercept)                   7.398272   0.110992 74.067992  66.656   <2e-16
+    ## pCO2_fac900                   0.143954   0.156966 74.067992   0.917   0.3621
+    ## pCO2_fac2800                 -0.202495   0.156966 74.067992  -1.290   0.2010
+    ## timepoint_fac2                0.155132   0.140317 73.865978   1.106   0.2725
+    ## timepoint_fac9                0.009597   0.140317 73.865978   0.068   0.9457
+    ## timepoint_fac22               0.026058   0.140317 73.865978   0.186   0.8532
+    ## timepoint_fac50               0.125721   0.140317 73.865978   0.896   0.3732
+    ## timepoint_fac79               0.178576   0.147909 74.964102   1.207   0.2311
+    ## pCO2_fac900:timepoint_fac2   -0.231597   0.198439 73.865978  -1.167   0.2469
+    ## pCO2_fac2800:timepoint_fac2  -0.214702   0.198439 73.865978  -1.082   0.2828
+    ## pCO2_fac900:timepoint_fac9   -0.054702   0.198439 73.865978  -0.276   0.7836
+    ## pCO2_fac2800:timepoint_fac9   0.435700   0.198439 73.865978   2.196   0.0313
+    ## pCO2_fac900:timepoint_fac22  -0.138207   0.198439 73.865978  -0.696   0.4883
+    ## pCO2_fac2800:timepoint_fac22  0.102878   0.198439 73.865978   0.518   0.6057
+    ## pCO2_fac900:timepoint_fac50  -0.090211   0.198439 73.865978  -0.455   0.6507
+    ## pCO2_fac2800:timepoint_fac50 -0.223609   0.198439 73.865978  -1.127   0.2635
+    ## pCO2_fac900:timepoint_fac79  -0.264560   0.203878 74.446073  -1.298   0.1984
+    ## pCO2_fac2800:timepoint_fac79 -0.323959   0.203878 74.446073  -1.589   0.1163
+    ##                                 
+    ## (Intercept)                  ***
+    ## pCO2_fac900                     
+    ## pCO2_fac2800                    
+    ## timepoint_fac2                  
+    ## timepoint_fac9                  
+    ## timepoint_fac22                 
+    ## timepoint_fac50                 
+    ## timepoint_fac79                 
+    ## pCO2_fac900:timepoint_fac2      
+    ## pCO2_fac2800:timepoint_fac2     
+    ## pCO2_fac900:timepoint_fac9      
+    ## pCO2_fac2800:timepoint_fac9  *  
+    ## pCO2_fac900:timepoint_fac22     
+    ## pCO2_fac2800:timepoint_fac22    
+    ## pCO2_fac900:timepoint_fac50     
+    ## pCO2_fac2800:timepoint_fac50    
+    ## pCO2_fac900:timepoint_fac79     
+    ## pCO2_fac2800:timepoint_fac79    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    ## 
+    ## Correlation matrix not shown by default, as p = 18 > 12.
+    ## Use print(x, correlation=TRUE)  or
+    ##     vcov(x)        if you need it
 
 #### **Relative EPF pH total data - treatment (factor) time (factor)**
 
@@ -758,7 +816,7 @@ Shelf**
 ``` r
 epfAllTP_red <- lmer(EPF_envAdj~pCO2_fac*timepoint_fac + (1|tankID),data=epf_exp)
 # Prevented singular fit issue this time
-anova(epfAllTP_red)
+(epfAllTP_red_aov <- anova(epfAllTP_red))
 ```
 
     ## Type III Analysis of Variance Table with Satterthwaite's method
@@ -844,7 +902,41 @@ rownames(agg_mod_matrix) <- agg_mod_matrix$group
 agg_mod_matrix <- agg_mod_matrix[,-1]
 
 lc2 <- as.matrix(agg_mod_matrix)
-summary(glht(epfAllTP_red,linfct=lc2),adjusted(type = "fdr"))
+(epfAllTP_posthoc_noCorrection <- summary(glht(epfAllTP_red,linfct=lc2)))
+```
+
+    ## 
+    ##   Simultaneous Tests for General Linear Hypotheses
+    ## 
+    ## Fit: lmer(formula = EPF_envAdj ~ pCO2_fac * timepoint_fac + (1 | tankID), 
+    ##     data = epf_exp)
+    ## 
+    ## Linear Hypotheses:
+    ##               Estimate Std. Error z value Pr(>|z|)    
+    ## 2800:1 == 0   0.104612   0.110992   0.943  0.99931    
+    ## 2800:2 == 0   0.044831   0.110992   0.404  1.00000    
+    ## 2800:22 == 0  0.011519   0.110992   0.104  1.00000    
+    ## 2800:50 == 0  0.074039   0.110992   0.667  0.99999    
+    ## 2800:79 == 0  0.007618   0.110992   0.069  1.00000    
+    ## 2800:9 == 0   0.477843   0.110992   4.305  0.00030 ***
+    ## 400:1 == 0   -0.404360   0.110992  -3.643  0.00482 ** 
+    ## 400:2 == 0   -0.254454   0.110992  -2.293  0.31825    
+    ## 400:22 == 0  -0.519903   0.110992  -4.684  < 1e-04 ***
+    ## 400:50 == 0  -0.274596   0.110992  -2.474  0.20910    
+    ## 400:79 == 0  -0.201993   0.120447  -1.677  0.81186    
+    ## 400:9 == 0   -0.433765   0.110992  -3.908  0.00167 ** 
+    ## 900:1 == 0    0.016850   0.110992   0.152  1.00000    
+    ## 900:2 == 0   -0.059544   0.110992  -0.536  1.00000    
+    ## 900:22 == 0  -0.248972   0.110992  -2.243  0.35317    
+    ## 900:50 == 0   0.054801   0.110992   0.494  1.00000    
+    ## 900:79 == 0  -0.076869   0.110992  -0.693  0.99999    
+    ## 900:9 == 0   -0.070257   0.110992  -0.633  1.00000    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## (Adjusted p values reported -- single-step method)
+
+``` r
+(epfAllTP_posthoc_Correction <- summary(glht(epfAllTP_red,linfct=lc2),adjusted(type = "fdr")))
 ```
 
     ## 
@@ -879,6 +971,7 @@ summary(glht(epfAllTP_red,linfct=lc2),adjusted(type = "fdr"))
 
 ``` r
 # Version two of planned comparisons matrix (OA trtments vs ambient at all tps)
+
 
 k <- rbind("400v900_1"=lc2["900:1",]-lc2["400:1",],
            "400v2800_1"=lc2["2800:1",]-lc2["400:1",],
@@ -924,6 +1017,127 @@ summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
 # A few significant here
 ```
 
+### Post Hoc Testing / Model Comparisons follow
+
+``` r
+## Paired t-test equivalent looking specifically at day 9 trt 2800.
+epf_single <- epf_exp[epf_exp$timepoint_fac == "9" & epf_exp$pCO2_fac == "2800",]
+t.save <- t.test(epf_single$EPF_envAdj,mu = 0,alternative = "two.sided")
+p.adjust(c(rep(0.05,times=17),t.save$p.value),method = "fdr")
+```
+
+    ##  [1] 0.0500000 0.0500000 0.0500000 0.0500000 0.0500000 0.0500000 0.0500000
+    ##  [8] 0.0500000 0.0500000 0.0500000 0.0500000 0.0500000 0.0500000 0.0500000
+    ## [15] 0.0500000 0.0500000 0.0500000 0.0175733
+
+``` r
+#Comparing this to the 2800:9 ==  0 result from the ghlt and summary function we get similar but not identical answers.
+## Manual Calculation of t.test
+mean.x2 <- mean(epf_single$EPF_envAdj)
+sd.x2   <- sd(epf_single$EPF_envAdj) 
+SE.x2 <- sd(epf_single$EPF_envAdj) / sqrt(length(epf_single$EPF_envAdj))
+t.val <- (mean.x2 - 0) / SE.x2
+p.val_fromT <- pt(t.val, df = length(epf_single$EPF_envAdj) - 1,lower.tail = FALSE)*2
+## Note using z score (from ghlt from above)
+z.val <- epfAllTP_posthoc_noCorrection$test$tstat
+p.val_fromZ <- pnorm(z.val, lower.tail=FALSE)
+epfAllTP_posthoc_noCorrection$test$pvalues[6]
+```
+
+    ## [1] 0.0003003394
+
+``` r
+## Manual calculation of Tukey Test
+N <- length(epf_exp$ID) # Total number of samples
+table(epf_exp$comb)
+```
+
+    ## 
+    ##  1_2800   1_400   1_900  2_2800   2_400   2_900 22_2800  22_400  22_900 50_2800 
+    ##       6       6       6       6       6       6       6       6       6       6 
+    ##  50_400  50_900 79_2800  79_400  79_900  9_2800   9_400   9_900 
+    ##       6       6       6       5       6       6       6       6
+
+``` r
+k <- length(unique(epf_exp$comb))
+n <- 6 # Number of samples per group (should be 6 for nearly all cases)
+epf_response <- subset(epf_exp,select=c("comb","EPF_envAdj"))
+# Mean sums
+ms_epf <- split(epf_response, epf_response$comb) # MSE
+# Sum Square error
+sse <- sum(Reduce('+', lapply(ms_epf, function(x) {
+  (length(x[,2]) - 1) * sd(x[,2])^2
+})))
+# Mean sum of square errro
+mse <- sse / (N - k)
+# Q value using qtukey function
+q.value <- qtukey(p = 0.95, nmeans = k, df = N - k)
+q.value
+```
+
+    ## [1] 5.081915
+
+``` r
+# Tukey honestly significant difference
+tukey.hsd <- q.value * sqrt(mse / n)
+tukey.hsd
+```
+
+    ## [1] 0.5636963
+
+``` r
+# Applying Tukey statistic
+means <- tapply(epf_exp$EPF_envAdj, epf_exp$comb, mean)
+abs(means) >= tukey.hsd
+```
+
+    ##  1_2800   1_400   1_900  2_2800   2_400   2_900 22_2800  22_400  22_900 50_2800 
+    ##   FALSE   FALSE   FALSE   FALSE   FALSE   FALSE   FALSE   FALSE   FALSE   FALSE 
+    ##  50_400  50_900 79_2800  79_400  79_900  9_2800   9_400   9_900 
+    ##   FALSE   FALSE   FALSE   FALSE   FALSE   FALSE   FALSE   FALSE
+
+``` r
+# Using Tukey contrasts in glht (not the same as a tradional tukey test)
+summary(glht(epfAllTP_red,linfct=mcp(pCO2_fac="Tukey")))
+```
+
+    ## Warning in mcp2matrix(model, linfct = linfct): covariate interactions found --
+    ## default contrast might be inappropriate
+
+    ## 
+    ##   Simultaneous Tests for General Linear Hypotheses
+    ## 
+    ## Multiple Comparisons of Means: Tukey Contrasts
+    ## 
+    ## 
+    ## Fit: lmer(formula = EPF_envAdj ~ pCO2_fac * timepoint_fac + (1 | tankID), 
+    ##     data = epf_exp)
+    ## 
+    ## Linear Hypotheses:
+    ##                 Estimate Std. Error z value Pr(>|z|)   
+    ## 900 - 400 == 0   0.42121    0.15697   2.683  0.01989 * 
+    ## 2800 - 400 == 0  0.50897    0.15697   3.243  0.00339 **
+    ## 2800 - 900 == 0  0.08776    0.15697   0.559  0.84177   
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## (Adjusted p values reported -- single-step method)
+
+``` r
+epfAllTP_red_aov
+```
+
+    ## Type III Analysis of Variance Table with Satterthwaite's method
+    ##                         Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
+    ## pCO2_fac               1.58425 0.79212     2 14.854 13.4107 0.0004704 ***
+    ## timepoint_fac          0.61922 0.12384     5 73.993  2.0967 0.0752576 .  
+    ## pCO2_fac:timepoint_fac 1.10418 0.11042    10 73.985  1.8694 0.0632417 .  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+#TukeyHSD(epfAllTP_red_aov)
+```
+
 ### Final Full Data Figure
 
 ![](1_AE17_epf_Total_files/figure-gfm/Map%20with%20all%20treatment%20levels-1.png)<!-- -->
@@ -956,7 +1170,7 @@ seq_full <- lmer(EPF_pH~timepoint_fac*pCO2_fac + (1|PopOrigin) + (1|shelf/tank),
 plot(seq_full)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 ``` r
 # Some heteroscedascity but not too bad
@@ -964,7 +1178,7 @@ qqnorm(resid(seq_full))
 qqline(resid(seq_full))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->
 
 ``` r
 ranova(seq_full) # None of these seem important
@@ -1009,7 +1223,7 @@ seq_fixed <- lm(EPF_pH~timepoint_fac*pCO2_fac, data=pheno_seq)
 plot(seq_fixed)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-14-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-4.png)<!-- -->
 
 ``` r
 # We can see more clearly that some of the mild issues with the assumptions are being driven by 1 (61).
@@ -1037,7 +1251,7 @@ seq_fixed_outlierRM <- lm(EPF_pH~timepoint_fac*pCO2_fac, data=pheno_seq2)
 plot(seq_fixed_outlierRM)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-4.png)<!-- -->
 
 ``` r
 anova(seq_fixed_outlierRM)
@@ -1061,7 +1275,7 @@ seq_fixed_outlierRM <- lm(EPF_pH~timepoint_fac*pCO2_fac, data=pheno_seq3)
 plot(seq_fixed_outlierRM)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-5.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-6.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-7.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-15-8.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-5.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-6.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-7.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-8.png)<!-- -->
 
 ``` r
 anova(seq_fixed_outlierRM)
@@ -1086,7 +1300,7 @@ seq_pairwise <- TukeyHSD(aov(EPF_pH~timepoint_fac*pCO2_fac, data=pheno_seq3))
 plot(seq_pairwise)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-16-3.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-3.png)<!-- -->
 
 #### **Relative EPF pH (EPF pH - Env. pH) total data - time as factor**
 
@@ -1114,7 +1328,7 @@ seq_full <- lmer(EPF_envAdj~timepoint_fac*pCO2_fac + (1|PopOrigin) + (1|shelf/ta
 plot(seq_full)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
 ``` r
 # Some heteroscedascity but not too bad
@@ -1122,7 +1336,7 @@ qqnorm(resid(seq_full))
 qqline(resid(seq_full))
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->
 
 ``` r
 ranova(seq_full) # None of these seem important
@@ -1167,7 +1381,7 @@ seq_fixed <- lm(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq)
 plot(seq_fixed)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-18-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-4.png)<!-- -->
 
 ``` r
 # We can see more clearly that some of the mild issues with the assumptions are being driven by 1 (61).
@@ -1195,7 +1409,7 @@ seq_fixed_outlierRM <- lm(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq2)
 plot(seq_fixed_outlierRM)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-4.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-2.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-3.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-4.png)<!-- -->
 
 ``` r
 anova(seq_fixed_outlierRM)
@@ -1219,7 +1433,7 @@ seq_fixed_outlierRM <- lm(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq3)
 plot(seq_fixed_outlierRM)
 ```
 
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-5.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-6.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-7.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-19-8.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-5.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-6.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-7.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-20-8.png)<!-- -->
 
 ``` r
 anova(seq_fixed_outlierRM)
@@ -1246,7 +1460,7 @@ seq_pairwise <- TukeyHSD(aov(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq3)
 
 **Final
 Figures**  
-![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-21-2.png)<!-- -->
+![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->![](1_AE17_epf_Total_files/figure-gfm/unnamed-chunk-22-2.png)<!-- -->
 
 Final bar plot has SE bars and significance levels based on pairwise
 comparison test (tukey method) based on model selected above.

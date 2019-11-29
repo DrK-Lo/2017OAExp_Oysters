@@ -21,12 +21,13 @@ col_perm <- c(pal[1:2],pal[5:6],pal[12])
 ### Data
 ```{r}
 # Final version of bouyant weights
-cal<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_BouyantWeight_Final_20191115 .csv")
+cal<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_BouyantWeight_Final.csv")
 # Final version of sample data
-samp<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_Exp_2017_CollectionInfo_20190227.csv")
+samp<-read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_CollectionInfo.csv")
 # Final EPF fluid data 
-pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/finalFullPhenotypeData.RData")
-pheno_red <- subset(pheno,select=c(1,30,37))
+pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_summaryPhenotype_exposure.RData")
+pheno_red <- pheno[pheno$timepoint != 81,]
+pheno_red <- subset(pheno_red,select=c(1,30,37))
 
 # Merge with sample sheet to include site info
 samp_red <- subset(samp,select=c(1,9,38,39,40,41,42))
@@ -36,9 +37,8 @@ cal <- merge(samp_red,cal)
 # Filter complete dataset
 # Remove individuals that don't have values for the third bouyant weight
 cal_red <- cal[!is.na(cal$bw2_bw3_daily_sizeCorr),]
-# Remove the extra oysters used for the calcein experiment
-cal_red2 <- cal_red[cal_red$sample_date < 20170825,]
-cal_red3 <-  cal_red2[cal_red2$sample_date < 20170824,]
+# Remove the extra oysters used for the calcein experiment and from tp 81
+cal_red2 <-  cal_red2[cal_red$sample_date < 20170824,]
 ```
 
 **Preliminary plot and model of points**
@@ -62,27 +62,27 @@ out.aov <- aov(cal_red2$bw2_bw3_daily~as.factor(cal_red2$pCO2))
 TukeyHSD(out.aov)
 ## Removing additional samples
 #Boxplot (pco2 as factor)
-ggplot(cal_red3,aes(x=as.factor(pCO2),y=bw2_bw3_daily,group=as.factor(pCO2))) + geom_boxplot()
+ggplot(cal_red2,aes(x=as.factor(pCO2),y=bw2_bw3_daily,group=as.factor(pCO2))) + geom_boxplot()
 # Table of points
-table(cal_red3$pCO2)
+table(cal_red2$pCO2)
 # ANOVA and post hoc
-out.aov <- aov(cal_red3$bw2_bw3_daily~as.factor(cal_red3$pCO2))
+out.aov <- aov(cal_red2$bw2_bw3_daily~as.factor(cal_red2$pCO2))
 summary(out.aov)
 TukeyHSD(out.aov)
 # box plot (pco2 as as continuous variable)
-ggplot(cal_red3,aes(x=pCO2,y=bw2_bw3_daily,group=as.factor(pCO2))) + geom_boxplot()
+ggplot(cal_red2,aes(x=pCO2,y=bw2_bw3_daily,group=as.factor(pCO2))) + geom_boxplot()
 
 ## Scaling by oyster size
 # box plot (pco2 as as continuous variable)
-ggplot(cal_red3,aes(x=pCO2,y=bw2_bw3_daily/dry2_final,group=as.factor(pCO2))) + geom_boxplot()
+ggplot(cal_red2,aes(x=pCO2,y=bw2_bw3_daily/dry2_final,group=as.factor(pCO2))) + geom_boxplot()
 # ANOVA and post hoc
-out.aov <- aov(bw2_bw3_daily/dry2_final~as.factor(pCO2),data=cal_red3)
+out.aov <- aov(bw2_bw3_daily/dry2_final~as.factor(pCO2),data=cal_red2)
 summary(out.aov)
 TukeyHSD(out.aov)
 # Linear model
-out.lm <- lm(bw2_bw3_daily/dry2_final~pCO2_calc,data=cal_red3)
+out.lm <- lm(bw2_bw3_daily/dry2_final~pCO2_calc,data=cal_red2)
 summary(out.lm)
-ggplot(cal_red3,aes(x=pCO2_calc,y=bw2_bw3_daily/dry2_final,colour=as.factor(pCO2))) + geom_point()
+ggplot(cal_red2,aes(x=pCO2_calc,y=bw2_bw3_daily/dry2_final,colour=as.factor(pCO2))) + geom_point()
 ```
 
 ### Primary Variables 
@@ -126,9 +126,9 @@ nrow(cal_red2)
 Rationale explained in notes at end
 ```{r}
 # Table
-table(cal_red3$sample_date,cal_red3$pCO2)
+table(cal_red2$sample_date,cal_red2$pCO2)
 # Total number of samples
-nrow(cal_red3)
+nrow(cal_red2)
 ```
 
 ## Preliminary Plots with Calcification Data
@@ -148,23 +148,23 @@ ggplot(cal_red,aes(x=interaction(tank,shelf),y=bw2_bw3_daily/dry2_final,colour=a
 
 **ANOVA**
 ```{r}
-cal_red3$calcification <- cal_red3$bw2_bw3_daily/cal_red3$dry2_final
+cal_red2$calcification <- cal_red2$bw2_bw3_daily/cal_red2$dry2_final
 
 # Full model- All points
-cal_full <- lmer(calcification~as.factor(pCO2) + (1|PopOrigin) + (1|shelf/tank),data=cal_red3)
+cal_full <- lmer(calcification~as.factor(pCO2) + (1|PopOrigin) + (1|shelf/tank),data=cal_red2)
 # Singular fit so we need to simplfy
 anova(cal_full) # No significance
 ranova(cal_full)
 #None are significant / Remove pop and shelf and rerun
 
 # Reducing model - keeping fixed factors and one random effect
-cal_full_2 <- lmer(calcification~as.factor(pCO2) + (1|tank:shelf),data=cal_red3)
+cal_full_2 <- lmer(calcification~as.factor(pCO2) + (1|tank:shelf),data=cal_red2)
 ranova(cal_full_2)
 # Random effect still not significant but i will keep since it's close 
 summary(cal_full_2)
 
 # Fixed effects only
-cal_analysis_fixed <- lm(calcification~as.factor(pCO2),data=cal_red3)
+cal_analysis_fixed <- lm(calcification~as.factor(pCO2),data=cal_red2)
 anova(cal_analysis_fixed)
 
 # Doesn't seem to matter, considering pCO2 as a factor and running an anova leads to a significant treatment result
@@ -174,16 +174,16 @@ anova(cal_analysis_fixed)
 **Regression**
 ```{r}
 ## performing a regression with tank mean pCO2
-cal_lm_full <- lmer(calcification~pCO2_calc + (1|PopOrigin) + (1|shelf/tank),data=cal_red3)
+cal_lm_full <- lmer(calcification~pCO2_calc + (1|PopOrigin) + (1|shelf/tank),data=cal_red2)
 ranova(cal_lm_full)
 #Can remove are not significant
-cal_lm_Rtank <- lmer(calcification~pCO2_calc + (1|tank:shelf),data=cal_red3)
+cal_lm_Rtank <- lmer(calcification~pCO2_calc + (1|tank:shelf),data=cal_red2)
 # 
 summary(cal_lm_Rtank )
 ranova(cal_lm_Rtank) # close but not significant effect of tank
 
 # Final simple model (also turn calcification rate into a percentage)
-cal_simple <- lm(calcification*100~pCO2_calc,data=cal_red3)
+cal_simple <- lm(calcification~pCO2_calc,data=cal_red2)
 (cal_sum <- summary(cal_simple))
 # Treatment significant
 plot(cal_simple)
@@ -194,7 +194,7 @@ plot(cal_simple)
 
 ### Preliminary calcification plot vs. EPF carb chemistry
 ```{r}
-cal_epf <- inner_join(cal_red3,pheno_red)
+cal_epf <- inner_join(cal_red2,pheno_red)
 
 #Calcification vs EPF pH
 # All points
@@ -242,7 +242,7 @@ calVspH_fixed <- lm(calcification ~ EPF_pH+sample_date,data=cal_epf)
 summary(calVspH_fixed)
 # Model significant but no individual explanatory variables (decided to remove interaction)
 # Removing interaction
-calVspH_simple <- lm(calcification*100 ~ EPF_pH,data=cal_epf)
+calVspH_simple <- lm(calcification ~ EPF_pH,data=cal_epf)
 (final.model <- summary(calVspH_simple))
 plot(calVspH_simple) # No major assumption violations
 
@@ -254,9 +254,9 @@ plot(calVspH_simple) # No major assumption violations
 ```{r}
 ##### Plot 1 #####
 #Mean calcification rate 
-mean_cal <- aggregate(calcification*100~pCO2,cal_red3,FUN=mean)
-se_cal <- aggregate(calcification*100~pCO2,cal_red3,FUN=se)
-se_pco2 <- aggregate(pCO2_calc~pCO2,cal_red3,FUN=sd)
+mean_cal <- aggregate(calcification*100~pCO2,cal_red2,FUN=mean)
+se_cal <- aggregate(calcification*100~pCO2,cal_red2,FUN=se)
+se_pco2 <- aggregate(pCO2_calc~pCO2,cal_red2,FUN=sd)
 mean_cal <- data.frame(pCO2=mean_cal$pCO2,Rel_Change=mean_cal$calcification,
                        ymin=mean_cal$calcification-c(se_cal$calcification*1.96),
                        ymax=mean_cal$calcification+c(se_cal$calcification*1.96),
@@ -264,9 +264,9 @@ mean_cal <- data.frame(pCO2=mean_cal$pCO2,Rel_Change=mean_cal$calcification,
                          xmax=mean_cal$pCO2+c(se_pco2$pCO2_calc*1.96))
 
 # ggplot version
-out <- summary(lm(calcification*100~pCO2,data=cal_red3))
+out <- summary(lm(calcification*100~pCO2,data=cal_red2))
 
-# p <- ggplot(cal_red3) +
+# p <- ggplot(cal_red2) +
 #   geom_point(aes(x=pCO2_calc,y=calcification))  +
 #   geom_point(data=mean_cal,aes(x=pCO2,y=Rel_Change))
 # p

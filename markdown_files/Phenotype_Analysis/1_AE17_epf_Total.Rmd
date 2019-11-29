@@ -30,8 +30,9 @@ source("/home/downeyam/R/basicR_functions.R")
 
 **RData version of data**
 ```{r}
-pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryPhenotypeData_without81.RData")
-pheno2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/finalFullPhenotypeData.RData")
+pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_summaryPhenotype_exposure.RData") # just exposure timepoints
+pheno2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_summaryPhenotype_alltimepoints.RData") # acclimation and exposure timepoints
+# Remove 81 which we know has wonky EPF values (for consistency these are also ultimately removed from the calcification estimates as well)
 pheno_red <- pheno[pheno$timepoint != 81,]
 ```
 
@@ -263,7 +264,8 @@ k <- rbind("400v900_1"=lc2["900:1",]-lc2["400:1",],
            )
 summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
 
-# A few significant here
+# A few significant her()
+summary(epfAllTP_red)
 ```
   
 #### **Relative EPF pH total data - treatment (factor) time (factor)**  
@@ -393,7 +395,7 @@ abs(means) >= tukey.hsd
 summary(glht(epfAllTP_red,linfct=mcp(pCO2_fac="Tukey")))
 epfAllTP_red_aov
 
-TukeyHSD(epfAllTP_red_aov)
+#TukeyHSD(epfAllTP_red_aov)
 
 ```
   

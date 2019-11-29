@@ -2,7 +2,6 @@ library(dplyr)
 
 # Script was used to generate feature specific subsets of the DNA methylation data.
 
-
 #### Data #### 
 # Set working directory
 setwd("/shared_lab/20180226_RNAseq_2017OAExp/DNAm/processed_samples")
@@ -15,7 +14,10 @@ umC <- readRDS("05_countSummary/CG_unstranded_umC_5.RData")
 # Annotation file with all cpgs and all correponding features it belongs too.
 annot <- read.table("08_geneLevelSummary/DNAm_Data/CpGsAnnotated.bed",
                        header = FALSE, sep="\t",stringsAsFactors=FALSE, quote="")
-
+#color palatte
+library("RColorBrewer")
+pal <- brewer.pal(n = 12, name = 'Paired')
+col_perm <- c(pal[1:2],pal[5:6],pal[12])
 
 #### Processing Data #####  
 
@@ -24,15 +26,21 @@ annot <- read.table("08_geneLevelSummary/DNAm_Data/CpGsAnnotated.bed",
 annot$ID <- paste0(annot$V1,"_",annot$V2)
 cpg_sum$ID <- paste0(cpg_sum$chr,"_",cpg_sum$start)
 
+# Labelling annotation file prior to merge
+colnames(annot) <- c("chrom", "chromStart", "chromEnd", "betamean","mean_400_day9",
+                     "mean_400_day80", "mean_2800_day9","mean_2800_day80","chrom_gene",
+                     "seq","feature","start_gene","stop_gene","score","strand","phase","attribute","ID")
+
+
 ## Left join to combine summary table for each unique cpg and total annotation file.
 # Combine annotations 
 comb <- left_join(cpg_sum,annot)
 
 ## Subsetting 
 # Keep only cpgs in genes
-comb_gene <- comb[comb$V11 == "gene",]
+comb_gene <- comb[comb$feature == "gene",]
 # Keep only cpgs in exons
-comb_exon <- comb[comb$V11 == "exon",]
+comb_exon <- comb[comb$feature == "exon",]
 
 ### NOTE: these will multiple copies (rows) of the same CpG IF
 # that cpg was found in multiple genes or (in the case of exons) the exons 
@@ -40,7 +48,6 @@ comb_exon <- comb[comb$V11 == "exon",]
 # to be how we have more rows in the complete exon file than in the gene file.
 comb_gene_unique <- comb_gene[!duplicated(comb_gene$ID),]
 comb_exon_unique <- comb_exon[!duplicated(comb_exon$ID),]
-
 
 ## Filter count matrices using the non duplicate ID from the combined data 
 ## For genes
@@ -116,10 +123,6 @@ abline(v=median(rowMeans(E80)),col = col_perm[4])
 dev.off()
 
 #Stacked barplot 
-#color palatte
-library("RColorBrewer")
-pal <- brewer.pal(n = 12, name = 'Paired')
-col_perm <- c(pal[1:2],pal[5:6],pal[12])
 #quantile groups
 qq_C9<-cut(C9_mean,
         breaks=seq(min(C9_mean),max(C9_mean), length.out=21),
@@ -154,15 +157,15 @@ barplot(t(means_quantile),beside = TRUE,
         xlab="Methylation (percentiles")
 dev.off()
 
-## Saving files
+#### Saving files ####
 #genes
-saveRDS(comb_gene,"05_countSummary/CG_unstranded_summaryTable_geneOnly_5.RData")
+saveRDS(comb_gene_unique,"05_countSummary/CG_unstranded_summaryTable_geneOnly_5.RData")
 saveRDS(beta_gene,"05_countSummary/CG_unstranded_beta_geneOnly_5.RData")
 saveRDS(total_gene,"05_countSummary/CG_unstranded_tC_geneOnly_5.RData")
 saveRDS(mC_gene,"05_countSummary/CG_unstranded_mC_geneOnly_5.RData")
 saveRDS(umC_gene,"05_countSummary/CG_unstranded_umC_geneOnly_5.RData")
 #exons
-saveRDS(comb_exon,"05_countSummary/CG_unstranded_summaryTable_exonOnly_5.RData")
+saveRDS(comb_exon_unique,"05_countSummary/CG_unstranded_summaryTable_exonOnly_5.RData")
 saveRDS(beta_exon,"05_countSummary/CG_unstranded_beta_exonOnly_5.RData")
 saveRDS(total_exon,"05_countSummary/CG_unstranded_tC_exonOnly_5.RData")
 saveRDS(mC_exon,"05_countSummary/CG_unstranded_mC_exonOnly_5.RData")

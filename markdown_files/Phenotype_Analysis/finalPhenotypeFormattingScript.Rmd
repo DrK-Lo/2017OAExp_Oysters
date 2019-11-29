@@ -18,6 +18,7 @@ library(dplyr)
 seq_meta <- readRDS(file="/home/downeyam/Github/2017OAExp_Oysters/input_files/meta/metadata_20190811.RData")
 
 ### Bouyant Weight Data for All samples
+library(dplyr)
 bw <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/EPF/AE17_Exp_2017_CalcificationInfo_20190820_JBR_ADWCopy.csv")
 # Select for useful columns
 bw_col <- c("ID","pCO2","sample_date","Pcnt_Change_Day_Dry_TP1toTP2_Corrected","Pcnt_Change_Day_Dry_TP2toTP3_Corrected","Pcnt_Exp_Dry_Corrected","Pcnt_Exp_Day_Dry_Corrected")

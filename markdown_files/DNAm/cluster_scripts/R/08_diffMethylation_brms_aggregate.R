@@ -30,7 +30,6 @@ if(sum(duplicated(val_list))>0){
   print(val_list[duplicated(val_list)])
   print("This will cause data to be overwritten while combining data outputs")
 }
-# 50000 overlaps, which just means the initial 50000 will get overwritten
 
 # Create full possible range of values
 pos_range <- c(pos[1,1]:pos[nrow(pos),2])
@@ -83,7 +82,7 @@ for(i in 2:nrow(pos)){
 
 ### Saving Files
 saveRDS(mme,"Final_DNAm_gene_BRMS_modelMarginalEffects.RData")
-saveRDS(mpar,"Final_DNAm_gene_BRMS_modelSummary.RData")
+saveRDS(ms,"Final_DNAm_gene_BRMS_modelSummary.RData")
 saveRDS(mpc,"Final_DNAm_gene_BRMS_plannedComparisons.RData")
 
 
