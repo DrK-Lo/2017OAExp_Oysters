@@ -1,6 +1,6 @@
 README
 
-Alan Downey-Wall 09:47
+For visualizing DNA methylation interactions, significant CpGs were clustered into groups based on their scaled treatment means. Treatment means were scaled relative to the overall mean across 4 treatments for that CpG, so that whether the treatment tended to increase or decrease methylation could be visualized.
 
 # DATA
 
@@ -14,13 +14,15 @@ to subset the "MeanMethylation..." file.
 CpGMeanByTreatment_withSignificantInteraction - only ones with significant interactions
 
 # FIGS
-Sig Codes:
-1 = Main effect of time, no interaction
-2 = Main effect of treatment, no interaction
-3 = Main effect of time and treatment, no interaction (no loci)
-4 = Interaction between treatment and time
 
-Chrom plots:
+#### Sig Codes:
+
+* 1 = Main effect of time, no interaction
+* 2 = Main effect of treatment, no interaction
+* 3 = Main effect of time and treatment, no interaction (no loci)
+* 4 = Interaction between treatment and time
+
+#### Chrom plots:
 Chromosome location was scaled between 0 and 1 for each chromosome
 
 
