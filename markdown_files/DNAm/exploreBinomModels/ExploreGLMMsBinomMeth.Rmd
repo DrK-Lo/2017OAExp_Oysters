@@ -312,9 +312,10 @@ plot(m3)
 plot(marginal_effects(m3))
 
 # Add the random effect of tank
-m3.1 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=b,family = binomial(), iter=5000, control = list(max_treedepth = 15))
+m3.1 <- brm(mc | trials(size)~ Treatment*Time + (1|tankID), data=b,family = binomial(), chain=1, iter=5000, control = list(max_treedepth = 15))
 summary(m3.1)
 plot(m3.1)
+plot(marginal_effects(m3.1), ask = FALSE)
 
 m3.1$data$level["contrasts"]
 
