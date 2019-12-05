@@ -20,6 +20,9 @@ library(kableExtra)
 library(multcomp)
 library(multcompView)
 library(factoextra)
+library("RColorBrewer")
+pal <- brewer.pal(n = 12, name = 'Paired')
+col_perm <- c(pal[1:2],pal[5:6],pal[12])
 source("/home/downeyam/R/basicR_functions.R")
 ```
 
@@ -27,13 +30,14 @@ source("/home/downeyam/R/basicR_functions.R")
 
 **RData version of data**
 ```{r}
-pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/Exposure_SummaryPhenotypeData_without81.RData")
-pheno2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/finalFullPhenotypeData.RData")
+pheno <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_summaryPhenotype_exposure.RData") # just exposure timepoints
+pheno2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/Phenotype/AE17_summaryPhenotype_alltimepoints.RData") # acclimation and exposure timepoints
+# Remove 81 which we know has wonky EPF values (for consistency these are also ultimately removed from the calcification estimates as well)
 pheno_red <- pheno[pheno$timepoint != 81,]
 ```
 
-**Creating subtable for sample info for BCO-DMO Database**
-```{r}
+**Creating sub table for sample info for BCO-DMO Database**
+```{r eval=FALSE}
 colnames(pheno)
 pheno$pCO2_cat <- as.character(pheno$pCO2.x)
 pheno$pCO2_cat[pheno$pCO2_cat == "2800"] <- "High_OA"
@@ -67,25 +71,26 @@ n_sample <- epf_exp %>% group_by(pCO2_fac,timepoint_fac) %>% summarise(n=length(
 give.n <- function(x){
    return(c(y = 7.8, label = length(x)))
 }
-trt_color <- c("deepskyblue3", "darkorange", "firebrick")
+
 ggplot(epf_exp,aes(y=EPF_pH,x=timepoint_fac,group=interaction(timepoint_fac,pCO2_fac),colour=pCO2_fac)) + 
-  geom_boxplot() +
-  scale_color_manual(values=trt_color) + 
+  geom_boxplot() + 
+  scale_color_manual(values=col_perm[c(2,5,4)]) + 
   theme_bw() +
   stat_summary(fun.data = give.n,
                geom = "text",
-               position = position_dodge(width = 0.9), vjust = -0.25) + 
+               position = position_dodge(width = 0.9), vjust = -17) + 
   labs(title="EPF pH",x="Time",y="EPF pH",colour="pCO2")
 
 #Plotting some potential random effects
 # Site
-ggplot(epf_exp,aes(y=EPF_pH,x=PopOrigin)) + geom_boxplot()
+ggplot(epf_exp,aes(y=EPF_pH,x=PopOrigin)) + geom_boxplot() + labs(title="Site Effect",x="Sites")
 # Some site by site variability, but nother looks significant
 # Shelf
-ggplot(epf_exp,aes(y=EPF_pH,x=as.factor(shelf))) + geom_boxplot()
+ggplot(epf_exp,aes(y=EPF_pH,x=as.factor(shelf))) + geom_boxplot() + labs(title="Shelf Effect",x="Shelves")
 # Maybe a shelf effect, but this is expected since it's nested in treatment
 #Tank*Shelf
-ggplot(epf_exp,aes(y=EPF_pH,x=interaction(as.factor(shelf),as.factor(tank)))) + geom_boxplot()
+ggplot(epf_exp,aes(y=EPF_pH,x=interaction(as.factor(shelf),as.factor(tank)))) + geom_boxplot() + 
+  labs(title="Tank x Shelf Effect",x="TankxShelf")
 #Very noisy by tank, and it is a a little difficult to pull out which tanks are which treatments. However, looking at shelf 4 v. 6  (both 2800 treatment), there seems to be a definite shelf and maybe tank effect.
 ```
   
@@ -102,13 +107,12 @@ Test: ANCOVA - Full Model (Fixed and Random Factors)
 ```{r}
 epfAllTP_full <- lmer(EPF_pH~pCO2_fac*timepoint + (1|PopOrigin) + (1|shelf/tank),data=epf_exp) 
 # Warning singular fit - Indicates model is overfit and some of the the random effects will need to be removed. I use a ranova below to determine which effects are uninformative and are candidates for removal.
-
 # Check distribution of residuals
 plot(epfAllTP_full)
 # They look fairly homoscedastic
 qqnorm(resid(epfAllTP_full))
 qqline(resid(epfAllTP_full))
-
+# Passes basic diagnostic test so we proceed with anova
 anova(epfAllTP_full)
 # Nothing significant here (although the interaction is close)
 ranova(epfAllTP_full)
@@ -119,7 +123,6 @@ ranova(epfAllTP_full)
 ```{r}
 epfAllTP_red <- lmer(EPF_pH~pCO2_fac*timepoint + (1|tank:shelf),data=epf_exp)
 # Prevented singular fit issue this time
-
 # Check distribution of residuals
 plot(epfAllTP_red)
 # They look fairly homoscedastic
@@ -130,6 +133,7 @@ qqline(resid(epfAllTP_red))
 ggplot(epf_exp,aes(y=resid(epfAllTP_red),x=timepoint_fac,group=interaction(pCO2_fac,timepoint_fac),colour=pCO2_fac)) + geom_boxplot()
 ggplot(epf_exp,aes(y=resid(epfAllTP_red),x=timepoint,colour=pCO2_fac)) + geom_point()
 # Nothing obvious
+## Second model passes diagnostics so we proceed to anova and also do some model testing.
 
 # Compare full model to one with tank as the only random effect
 anova(epfAllTP_full,epfAllTP_red)
@@ -137,7 +141,8 @@ ranova(epfAllTP_red) # Significant tank effect
 # Comparing the two models  (full and w/ tank only there is no difference)
 # We keep the simpler model
 
-summary(epfAllTP_red) # Significant tp:2800 interaction, although not very satisfying if we want to look within tps
+summary(epfAllTP_red) 
+# Significant tp:2800 interaction, although not very satisfying if we want to look within tps
 ```
   
 #### **EPF pH total data - treatment (continuous) and time (continuous)**  
@@ -159,7 +164,6 @@ ranova(whole_cont_full)
 **Rerun model with just tank as random factor**
 ```{r}
 whole_cont_tank <- lmer(EPF_pH~scale(epf_exp$pCO2_calc)*scale(epf_exp$timepoint) + (1|tank:shelf) ,data=epf_exp)
-whole_cont_tank <- lmer(EPF_pH~scale(epf_exp$pCO2_calc)*scale(epf_exp$timepoint) + (1|shelf) ,data=epf_exp)
 # Better no warning this time 
 
 # Check distribution of residuals
@@ -182,19 +186,20 @@ Test: 2-way ANOVA - Full Model (Fixed and Random Factors)
 
 **Full Model**  
 ```{r}
+epf_exp$tankID <- interaction(epf_exp$tank,epf_exp$shelf)
 epfAllTP_full_1 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/tank),data=epf_exp) 
-epfAllTP_full_2 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/tankID),data=epf_exp)
+epfAllTP_full_2 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tank/shelf),data=epf_exp)
 epfAllTP_full_3 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf),data=epf_exp)
 epfAllTP_full_4 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tank:shelf),data=epf_exp)
 epfAllTP_full_5 <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tankID),data=epf_exp)
 
 # Model 1 (Ideal Model) : too complex leads to singularity of random effects
-# Model 1 and Model are equivalent and lead to singularity issues
+# Model 1 and Model 2 are equivalent and lead to singularity issues
 # Model 4 and 5 equivalent
 # Start with model 5
 
-summary(epfAllTP_full)
 epfAllTP_full <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|tank/shelf),data=epf_exp) 
+summary(epfAllTP_full)
 step(epfAllTP_full)
 # Warning singular fit - Indicates model is overfit and some of the the random effects will need to be removed. I use a ranova below to determine which effects are uninformative and are candidates for removal.
 
@@ -203,27 +208,19 @@ plot(epfAllTP_full)
 # They look fairly homoscedastic
 qqnorm(resid(epfAllTP_full))
 qqline(resid(epfAllTP_full))
-
+# Meets assumptions but still has singular fit issues
 anova(epfAllTP_full)
 # Interaction is significant here 
 ranova(epfAllTP_full_5)
 # We should remove population and shelf as random factors and rerun analysis
 ```
   
-**Rerun Model without Population and Shelf**
+**Rerun Model without Population**
 ```{r}
-epfAllTP_red_simple <- lm(EPF_pH~pCO2_fac*timepoint_fac,data=epf_exp)
-plot(epfAllTP_red_simple)
-epf_exp$tankID <- as.factor(interaction(epf_exp$tank,epf_exp$shelf))
-
-boxplot(resid(epfAllTP_red_simple)~epf_exp$tankID)
-boxplot(resid(epfAllTP_red_simple)~epf_exp$PopOrigin)
-boxplot(resid(epfAllTP_red_simple)~epf_exp$shelf)
-
-epfAllTP_red <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|tank:shelf),data=epf_exp)
+epfAllTP_red <- lmer(EPF_pH~pCO2_fac*timepoint_fac + (1|tankID),data=epf_exp)
 # Prevented singular fit issue this time
 anova(epfAllTP_red)
-  # Check distribution of residuals
+# Check distribution of residuals
 plot(epfAllTP_red)
 # They look fairly homoscedastic
 qqnorm(resid(epfAllTP_red))
@@ -235,7 +232,7 @@ anova(epfAllTP_red)
 #I think this should be reasonably well balanced, so we don't need to run type 3 ANOVA
 
 # Compare full model to one with tank as the only random effect
-anova(epfAllTP_full,epfAllTP_red)
+anova(epfAllTP_red,epfAllTP_full)
 ranova(epfAllTP_red) # Significant tank effect
 # Comparing the two models  (full and w/ tank only there is no difference)
 # We keep the simpler model
@@ -267,7 +264,8 @@ k <- rbind("400v900_1"=lc2["900:1",]-lc2["400:1",],
            )
 summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
 
-# A few significant here
+# A few significant her()
+summary(epfAllTP_red)
 ```
   
 #### **Relative EPF pH total data - treatment (factor) time (factor)**  
@@ -279,7 +277,9 @@ Test: 2-way ANOVA - Full Model (Fixed and Random Factors)
 
 **Full Model**  
 ```{r}
+#Visualize Data
 ggplot(epf_exp,aes(y=EPF_envAdj,x=timepoint_fac,group=interaction(timepoint_fac,pCO2_fac),colour=pCO2_fac)) + geom_boxplot()
+# Model 
 epfAllTP_full <- lmer(EPF_envAdj~pCO2_fac*timepoint_fac + (1|PopOrigin) + (1|shelf/tank),data=epf_exp) 
 # Warning singular fit - Indicates model is overfit and some of the the random effects will need to be removed. I use a ranova below to determine which effects are uninformative and are candidates for removal.
 
@@ -297,9 +297,9 @@ ranova(epfAllTP_full)
   
 **Rerun Model without Population and Shelf**
 ```{r}
-epfAllTP_red <- lmer(EPF_envAdj~pCO2_fac*timepoint_fac + (1|tank:shelf),data=epf_exp)
+epfAllTP_red <- lmer(EPF_envAdj~pCO2_fac*timepoint_fac + (1|tankID),data=epf_exp)
 # Prevented singular fit issue this time
-anova(epfAllTP_red)
+(epfAllTP_red_aov <- anova(epfAllTP_red))
 # Check distribution of residuals
 plot(epfAllTP_red)
 # They look fairly homoscedastic
@@ -326,8 +326,11 @@ rownames(agg_mod_matrix) <- agg_mod_matrix$group
 agg_mod_matrix <- agg_mod_matrix[,-1]
 
 lc2 <- as.matrix(agg_mod_matrix)
-summary(glht(epfAllTP_red,linfct=lc2),adjusted(type = "fdr"))
+(epfAllTP_posthoc_noCorrection <- summary(glht(epfAllTP_red,linfct=lc2)))
+(epfAllTP_posthoc_Correction <- summary(glht(epfAllTP_red,linfct=lc2),adjusted(type = "fdr")))
+
 # Version two of planned comparisons matrix (OA trtments vs ambient at all tps)
+
 
 k <- rbind("400v900_1"=lc2["900:1",]-lc2["400:1",],
            "400v2800_1"=lc2["2800:1",]-lc2["400:1",],
@@ -343,17 +346,70 @@ k <- rbind("400v900_1"=lc2["900:1",]-lc2["400:1",],
            "400v2800_79"=lc2["2800:79",]-lc2["400:79",]
            )
 summary(glht(epfAllTP_red,linfct=k),adjusted(type = "fdr"))
-
 # A few significant here
 ```
+
+### Post Hoc Testing / Model Comparisons follow
+```{r}
+## Paired t-test equivalent looking specifically at day 9 trt 2800.
+epf_single <- epf_exp[epf_exp$timepoint_fac == "9" & epf_exp$pCO2_fac == "2800",]
+t.save <- t.test(epf_single$EPF_envAdj,mu = 0,alternative = "two.sided")
+p.adjust(c(rep(0.05,times=17),t.save$p.value),method = "fdr")
+#Comparing this to the 2800:9 ==  0 result from the ghlt and summary function we get similar but not identical answers.
+## Manual Calculation of t.test
+mean.x2 <- mean(epf_single$EPF_envAdj)
+sd.x2   <- sd(epf_single$EPF_envAdj) 
+SE.x2 <- sd(epf_single$EPF_envAdj) / sqrt(length(epf_single$EPF_envAdj))
+t.val <- (mean.x2 - 0) / SE.x2
+p.val_fromT <- pt(t.val, df = length(epf_single$EPF_envAdj) - 1,lower.tail = FALSE)*2
+## Note using z score (from ghlt from above)
+z.val <- epfAllTP_posthoc_noCorrection$test$tstat
+p.val_fromZ <- pnorm(z.val, lower.tail=FALSE)
+epfAllTP_posthoc_noCorrection$test$pvalues[6]
+
+## Manual calculation of Tukey Test
+N <- length(epf_exp$ID) # Total number of samples
+table(epf_exp$comb)
+k <- length(unique(epf_exp$comb))
+n <- 6 # Number of samples per group (should be 6 for nearly all cases)
+epf_response <- subset(epf_exp,select=c("comb","EPF_envAdj"))
+# Mean sums
+ms_epf <- split(epf_response, epf_response$comb) # MSE
+# Sum Square error
+sse <- sum(Reduce('+', lapply(ms_epf, function(x) {
+  (length(x[,2]) - 1) * sd(x[,2])^2
+})))
+# Mean sum of square errro
+mse <- sse / (N - k)
+# Q value using qtukey function
+q.value <- qtukey(p = 0.95, nmeans = k, df = N - k)
+q.value
+# Tukey honestly significant difference
+tukey.hsd <- q.value * sqrt(mse / n)
+tukey.hsd
+# Applying Tukey statistic
+means <- tapply(epf_exp$EPF_envAdj, epf_exp$comb, mean)
+abs(means) >= tukey.hsd
+
+# Using Tukey contrasts in glht (not the same as a tradional tukey test)
+summary(glht(epfAllTP_red,linfct=mcp(pCO2_fac="Tukey")))
+epfAllTP_red_aov
+
+#TukeyHSD(epfAllTP_red_aov)
+
+```
   
-## Figure
+### Final Full Data Figure
 
 ```{r Map with all treatment levels, echo=FALSE, fig.height=10}
 c_mean <- mean(epf_exp$Tank_pH[epf_exp$pCO2_fac==400])
 oa_900_mean <- mean(epf_exp$Tank_pH[epf_exp$pCO2_fac==900])
 oa_2800_mean <- mean(epf_exp$Tank_pH[epf_exp$pCO2_fac==2800])
-par(mfrow=c(2,1))
+
+m <- matrix(c(1,2,3),nrow = 3,ncol = 1,byrow = TRUE)
+layout(mat = m,heights = c(0.5,0.05,0.5),widths = c(.1))
+par(mar = c(5,5,3,2))
+#par(xpd=FALSE)
 #### Measured EPF ph plot ####
 treatSeq_means <- aggregate(EPF_pH~timepoint+pCO2_fac,epf_exp,FUN=mean)
 treat_means_ctrl <- treatSeq_means[treatSeq_means$pCO2_fac == "400",]
@@ -375,13 +431,13 @@ treat_SE_oa_900$timepoint <- treat_SE_oa_900$timepoint + 4
 
 # Base plot with 400
 bp <- plot(treat_means_ctrl$EPF_pH~as.numeric(as.character(treat_means_ctrl$timepoint)),ylab="EPF pH (NBS)",xlab="Time (Days)",
-           col="lightblue4",pch=16,cex=1.5,
+           col=col_perm[2],pch=16,cex=2,cex.axis = 1.5,cex.lab=1.5,
            ylim = c(6.5,8.1),xlim=c(0,82),bty="n")
 
 # Mean environment lines underneath other lines    
-abline(h=c_mean,col="lightblue4",lty=2) # control
-abline(h=oa_900_mean,col="goldenrod",lty=2) # 900
-abline(h=oa_2800_mean,col="tomato",lty=2) # 2800
+abline(h=c_mean,col=col_perm[2],lty=2) # control
+abline(h=oa_900_mean,col=col_perm[5],lty=2) # 900
+abline(h=oa_2800_mean,col=col_perm[4],lty=2) # 2800
 
 # 400 EPF lines
 lines(treat_means_ctrl$EPF_pH~as.numeric(as.character(treat_means_ctrl$timepoint)),
@@ -392,48 +448,52 @@ arrows(x0 = as.numeric(as.character(treat_means_ctrl$timepoint)),
        y1 = treat_means_ctrl$EPF_pH + treat_SE_ctrl$EPF_pH,
        angle = 90, len = 0.05,
        code = 3, xpd = NA, lwd = 2,
-       col="lightblue4")
+       col=col_perm[2])
 
 # 900 EPF lines
 points(treat_means_oa_900$EPF_pH~as.numeric(as.character(treat_means_oa_900$timepoint)),
-       col="goldenrod",pch=15,cex=1.2)
+       col=col_perm[5],pch=15,cex=2)
 lines(treat_means_oa_900$EPF_pH~as.numeric(as.character(treat_means_oa_900$timepoint)),
-      col="goldenrod")
+      col=col_perm[5])
 arrows(x0 = as.numeric(as.character(treat_means_oa_900$timepoint)),
        x1 = as.numeric(as.character(treat_means_oa_900$timepoint)),
        y0 = c(treat_means_oa_900$EPF_pH - treat_SE_ctrl$EPF_pH),
        y1 = treat_means_oa_900$EPF_pH + treat_SE_ctrl$EPF_pH,
        angle = 90, len = 0.05,
        code = 3, xpd = NA, lwd = 2,
-       col="goldenrod")
+       col=col_perm[5])
 
 # 2800 treatment 
 points(treat_means_oa_2800$EPF_pH~as.numeric(as.character(treat_means_oa_2800$timepoint)),
-       col="tomato",pch=17,cex=1.2)
+       col=col_perm[4],pch=17,cex=2)
 lines(treat_means_oa_2800$EPF_pH~as.numeric(as.character(treat_means_oa_2800$timepoint)),
-      col="tomato")
+      col=col_perm[4])
 arrows(x0 = as.numeric(as.character(treat_means_oa_2800$timepoint)),
        x1 = as.numeric(as.character(treat_means_oa_2800$timepoint)),
        y0 = c(treat_means_oa_2800$EPF_pH - treat_SE_oa_2800$EPF_pH),
        y1 = treat_means_oa_2800$EPF_pH + treat_SE_oa_2800$EPF_pH,
        angle = 90, len = 0.05, code = 3, xpd = NA, lwd = 2,
-       col="tomato")
+       col=col_perm[4])
 
-# Legend
-legend(x=2,y=6.9,
+text(x=-5,y=8.25,label="A",cex = 2.2, xpd = NA)
+
+text(x=5+1,y=8,label="*",cex = 2,col=col_perm[4], xpd = NA)
+text(x=51+1,y=8,label="*",cex = 2,col=col_perm[4], xpd = NA)
+text(x=80+1,y=8,label="*",cex = 2,col=col_perm[4], xpd = NA)
+
+### Single Legend 
+par(mar = c(0,0,0,0))
+plot(1, type = "n", axes=FALSE, xlab="", ylab="")
+legend("bottom",horiz = TRUE,
        legend = c("Ambient","OA 900","OA 2800"),
-       col = c("lightblue4","goldenrod","tomato"),
+       col = c(col_perm[2],col_perm[5],col_perm[4]),
        pch=c(16,15,17),
-       cex = 1.2,
+       cex = 1.5,
        lwd = 2,
        bty = "n")
-text(x=-8,y=8.37,label="A",cex = 2, xpd = NA)
-
-text(x=5,y=8,label="*",cex = 2,col="tomato", xpd = NA)
-text(x=51,y=8,label="*",cex = 2,col="tomato", xpd = NA)
-text(x=80,y=8,label="*",cex = 2,col="tomato", xpd = NA)
 
 #### EPF - Environment plot ####
+par(mar = c(5,5,3,2))
 treatSeq_means <- aggregate(EPF_envAdj~timepoint+pCO2_fac,epf_exp,FUN=mean)
 treat_means_ctrl <- treatSeq_means[treatSeq_means$pCO2_fac == "400",]
 treat_means_ctrl$timepoint[2] <- 4
@@ -456,7 +516,7 @@ treat_SE_oa_900$timepoint <- treat_SE_oa_900$timepoint + 4
 bp <- plot(treat_means_ctrl$EPF_envAdj~as.numeric(as.character(treat_means_ctrl$timepoint)),
            ylab="EPF pH - Environment pH (NBS)",
            xlab="Time (Days)",pch=16,
-           col="lightblue4",cex=1.2,
+           col=col_perm[2],cex=2,cex.axis = 1.5,cex.lab=1.5,
            ylim = c(-1,1),xlim=c(0,82),bty="n")
 
 # Mean environment lines underneath other lines    
@@ -464,71 +524,63 @@ abline(h=0,col="black",lty=2) # control
 
 # 400 EPF lines
 lines(treat_means_ctrl$EPF_envAdj~as.numeric(as.character(treat_means_ctrl$timepoint)),
-      col="lightblue4")
+      col=col_perm[2])
 arrows(x0 = as.numeric(as.character(treat_means_ctrl$timepoint)),
        x1 = as.numeric(as.character(treat_means_ctrl$timepoint)),
        y0 = c(treat_means_ctrl$EPF_envAdj - treat_SE_ctrl$EPF_envAdj),
        y1 = treat_means_ctrl$EPF_envAdj + treat_SE_ctrl$EPF_envAdj,
        angle = 90, len = 0.05,
        code = 3, xpd = NA, lwd = 2,
-       col="lightblue4")
+       col=col_perm[2])
 
 # 900 EPF lines
 points(treat_means_oa_900$EPF_envAdj~as.numeric(as.character(treat_means_oa_900$timepoint)),
-       col="goldenrod",pch=15,cex=1.2)
+       col=col_perm[5],pch=15,cex=2)
 lines(treat_means_oa_900$EPF_envAdj~as.numeric(as.character(treat_means_oa_900$timepoint)),
-      col="goldenrod")
+      col=col_perm[5])
 arrows(x0 = as.numeric(as.character(treat_means_oa_900$timepoint)),
        x1 = as.numeric(as.character(treat_means_oa_900$timepoint)),
        y0 = c(treat_means_oa_900$EPF_envAdj - treat_SE_ctrl$EPF_envAdj),
        y1 = treat_means_oa_900$EPF_envAdj + treat_SE_ctrl$EPF_envAdj,
        angle = 90, len = 0.05,
        code = 3, xpd = NA, lwd = 2,
-       col="goldenrod")
+       col=col_perm[5])
 
 # 2800 treatment 
 points(treat_means_oa_2800$EPF_envAdj~as.numeric(as.character(treat_means_oa_2800$timepoint)),
-       col="tomato",pch=17,cex=1.2)
+       col=col_perm[4],pch=17,cex=2)
 lines(treat_means_oa_2800$EPF_envAdj~as.numeric(as.character(treat_means_oa_2800$timepoint)),
-      col="tomato")
+      col=col_perm[4])
 arrows(x0 = as.numeric(as.character(treat_means_oa_2800$timepoint)),
        x1 = as.numeric(as.character(treat_means_oa_2800$timepoint)),
        y0 = c(treat_means_oa_2800$EPF_envAdj - treat_SE_oa_2800$EPF_envAdj),
        y1 = treat_means_oa_2800$EPF_envAdj + treat_SE_oa_2800$EPF_envAdj,
        angle = 90, len = 0.05, code = 3, xpd = NA, lwd = 2,
-       col="tomato")
+       col=col_perm[4])
 
-# Legend
-legend(x=65,y=0.8,
-       legend = c("Ambient","OA 900","OA 2800"),
-       col = c("lightblue4","goldenrod1","tomato"),
-       pch=c(16,15,17),
-       cex = 1.2,
-       lwd = 2,
-       bty = "n")
-text(x=-8,y=1.3,label="B",cex = 2, xpd = NA)
+text(x=-5,y=1.3,label="B",cex = 2.2, xpd = NA)
 
 text(x=2,
      y=0.95,label="*",
-     cex = 2,col="lightblue4", xpd = NA)
+     cex = 2,col=col_perm[2], xpd = NA)
 text(x=5,
      y=0.95,label="+",
-     cex = 2,col="lightblue4", xpd = NA)
+     cex = 2,col=col_perm[2], xpd = NA)
 text(x=10,
      y=0.95,label="***",
-     cex = 2,col="lightblue4", xpd = NA)
+     cex = 2,col=col_perm[2], xpd = NA)
 text(x=23,
      y=0.95,label="***",
-     cex = 2,col="lightblue4", xpd = NA)
+     cex = 2,col=col_perm[2], xpd = NA)
 text(x=50,
      y=0.95,label="*",
-     cex = 2,col="lightblue4", xpd = NA)
+     cex = 2,col=col_perm[2], xpd = NA)
 text(x=23,
      y=0.85,label="+",
-     cex = 2,col="goldenrod1", xpd = NA)
+     cex = 2,col=col_perm[5], xpd = NA)
 text(x=10,
      y=0.75,label="***",
-     cex = 2,col="tomato", xpd = NA)
+     cex = 2,col=col_perm[4], xpd = NA)
 ```
   
 ## Analysis of EPF pH -  Only samples we sequenced  
@@ -646,7 +698,7 @@ anova(seq_fixed_outlierRM)
 **Pairwise comparisons of fixed factor model (with points rm)**  
 ```{r}
 seq_pairwise <- TukeyHSD(aov(EPF_envAdj~timepoint_fac*pCO2_fac, data=pheno_seq3))
-plot(seq_pairwise)
+#plot(seq_pairwise)
 ```
 
 **Final Figures**  

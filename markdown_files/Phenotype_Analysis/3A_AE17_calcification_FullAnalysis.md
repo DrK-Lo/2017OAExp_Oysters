@@ -138,6 +138,17 @@ ggplot(calcification_red,aes(x=pCO2_calc,y=Pcnt_DailyChange_Exposure,
 
 ![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-4-7.png)<!-- -->
 
+``` r
+# Briefly check out potential site specific effects
+boxplot(calcification_red$Pcnt_DailyChange_Exposure~calcification_red$PopOrigin*calcification_red$pCO2_fac)
+```
+
+![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-4-8.png)<!-- -->
+
+``` r
+# No obvious site specific effevt
+```
+
 ## Calcification vs Environment and Time - Statistical Analysis
 
 **ANOVA**
@@ -339,11 +350,17 @@ Anova(cal_wo81_final,type=2)
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
+# Same general interpretation as all timepoints. Treatment is significant and time doesn't matter.
+
 # Plot post hoc testing
 plot(TukeyHSD(aov(Pcnt_DailyChange_ExposureAdj~pCO2_fac+timepoint_fac, data=calcification_red)))
 ```
 
 ![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
+
+``` r
+#Post hoc reveals that its the 2800 being significantly differen't thatn either 900 or 400 that is driving the pattern
+```
 
 **Regression**
 
@@ -427,7 +444,7 @@ cal_simple <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc+timepoint_fac,data=calci
 ``` r
 # Treatment but not time significant. I guess I will only plot a fitted line based on the simplest model with only treatment.
 cal_pCO2 <- lm(Pcnt_DailyChange_ExposureAdj~pCO2_calc,data=calcification_red)
-summary(cal_pCO2)
+(sum_store <- summary(cal_pCO2))
 ```
 
     ## 
@@ -450,12 +467,6 @@ summary(cal_pCO2)
     ## F-statistic: 12.69 on 1 and 27 DF,  p-value: 0.001389
 
 ``` r
-plot(cal_simple)
-```
-
-![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-6-3.png)<!-- -->![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-6-4.png)<!-- -->
-
-``` r
 # A few slightly wonky points, but no major violations
 ```
 
@@ -464,7 +475,8 @@ plot(cal_simple)
 ### Preliminary calcification plot vs. EPF carb chemistry
 
 ``` r
-# Calcification vs pH
+#Calcification vs pH
+# All points
 ggplot(calcification,aes(x=EPF_pH,
                          y=Pcnt_DailyChange_ExposureAdj,
                          colour=pCO2_calc)) +
@@ -474,6 +486,7 @@ ggplot(calcification,aes(x=EPF_pH,
 ![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
+# Removing tp 81 because points were wonky
 ggplot(calcification_red,aes(x=EPF_pH,
                          y=Pcnt_DailyChange_ExposureAdj,
                          colour=pCO2_calc)) +
@@ -495,6 +508,8 @@ ggplot(calcification_red[calcification_red$carb_chem == "Y",],aes(x=EPF_DIC,
 ![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-7-3.png)<!-- -->
 
 ``` r
+# Trend but hard to say anything given the lack of points
+
 # EPF Calcite Sat. vs calcification
 ggplot(calcification_red[calcification_red$carb_chem == "Y",],aes(x=EPF_Calcite_Calc,
                          y=Pcnt_DailyChange_Exposure,
@@ -503,6 +518,10 @@ ggplot(calcification_red[calcification_red$carb_chem == "Y",],aes(x=EPF_Calcite_
 ```
 
 ![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-7-4.png)<!-- -->
+
+``` r
+# Hard to say whats going on, but it looks like DIC is negatively correlated with calcification rate, while there seems to be a very moderate negative relationship between calcite saturation and calcification.
+```
 
 ### Statistical Analysis
 
@@ -575,30 +594,29 @@ summary(calVspH_full)
 ``` r
 # None of the random effects were significant to I will remove
 # Simple lm with interaction
-calVspH_fixed_inter <- lm(Pcnt_DailyChange_ExposureAdj ~ EPF_pH + timepoint ,data=calcification_red)
+calVspH_fixed_inter <- lm(Pcnt_DailyChange_ExposureAdj ~ EPF_pH * timepoint ,data=calcification_red)
 summary(calVspH_fixed_inter)
 ```
 
     ## 
     ## Call:
-    ## lm(formula = Pcnt_DailyChange_ExposureAdj ~ EPF_pH + timepoint, 
+    ## lm(formula = Pcnt_DailyChange_ExposureAdj ~ EPF_pH * timepoint, 
     ##     data = calcification_red)
     ## 
     ## Residuals:
     ##       Min        1Q    Median        3Q       Max 
-    ## -0.055406 -0.019073 -0.005448  0.011358  0.067037 
+    ## -0.055855 -0.019429 -0.005342  0.011150  0.067232 
     ## 
     ## Coefficients:
-    ##               Estimate Std. Error t value Pr(>|t|)  
-    ## (Intercept) -0.4420610  0.1719275  -2.571   0.0162 *
-    ## EPF_pH       0.0610118  0.0224196   2.721   0.0114 *
-    ## timepoint   -0.0004142  0.0003642  -1.137   0.2658  
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ##                    Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)      -4.087e-01  7.370e-01  -0.555    0.584
+    ## EPF_pH            5.651e-02  9.946e-02   0.568    0.575
+    ## timepoint        -9.434e-04  1.138e-02  -0.083    0.935
+    ## EPF_pH:timepoint  7.168e-05  1.540e-03   0.047    0.963
     ## 
-    ## Residual standard error: 0.02884 on 26 degrees of freedom
-    ## Multiple R-squared:  0.2834, Adjusted R-squared:  0.2283 
-    ## F-statistic: 5.142 on 2 and 26 DF,  p-value: 0.01313
+    ## Residual standard error: 0.02941 on 25 degrees of freedom
+    ## Multiple R-squared:  0.2835, Adjusted R-squared:  0.1975 
+    ## F-statistic: 3.297 on 3 and 25 DF,  p-value: 0.03684
 
 ``` r
 # Model significant but no individual explanatory variables (decided to remove interaction)
@@ -636,38 +654,42 @@ calVspH_fixed <- lmer(Pcnt_DailyChange_ExposureAdj ~ EPF_pH + (1|tank:shelf) ,da
     ## EPF_pH -0.999
 
 ``` r
-# Treatment significant but not time
-calVspH_final <- lm(Pcnt_DailyChange_ExposureAdj ~ EPF_pH ,data=calcification_red)
-(calVpH_fized_out <- summary(calVspH_fixed))
+ranova(calVspH_fixed)
 ```
 
-    ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
-    ## lmerModLmerTest]
-    ## Formula: Pcnt_DailyChange_ExposureAdj ~ EPF_pH + (1 | tank:shelf)
-    ##    Data: calcification_red
+    ## ANOVA-like table for random-effects: Single term deletions
     ## 
-    ## REML criterion at convergence: -110.7
+    ## Model:
+    ## Pcnt_DailyChange_ExposureAdj ~ EPF_pH + (1 | tank:shelf)
+    ##                  npar logLik     AIC        LRT Df Pr(>Chisq)
+    ## <none>              4 55.327 -102.66                         
+    ## (1 | tank:shelf)    3 55.327 -104.66 7.1509e-05  1     0.9933
+
+``` r
+# Treatment significant but not time
+# Little evidence of a tank effect so it's removed
+calVspH_final <- lm(Pcnt_DailyChange_ExposureAdj ~ EPF_pH ,data=calcification_red)
+(calVpH_fized_out <- summary(calVspH_final))
+```
+
     ## 
-    ## Scaled residuals: 
+    ## Call:
+    ## lm(formula = Pcnt_DailyChange_ExposureAdj ~ EPF_pH, data = calcification_red)
+    ## 
+    ## Residuals:
     ##      Min       1Q   Median       3Q      Max 
-    ## -2.18343 -0.59510 -0.06363  0.61645  2.47458 
+    ## -0.06340 -0.01724 -0.00176  0.01786  0.07176 
     ## 
-    ## Random effects:
-    ##  Groups     Name        Variance  Std.Dev.
-    ##  tank:shelf (Intercept) 1.676e-06 0.001295
-    ##  Residual               8.393e-04 0.028971
-    ## Number of obs: 29, groups:  tank:shelf, 17
-    ## 
-    ## Fixed effects:
-    ##             Estimate Std. Error       df t value Pr(>|t|)   
-    ## (Intercept) -0.50527    0.16363 24.61509  -3.088  0.00494 **
-    ## EPF_pH       0.06595    0.02212 24.51414   2.981  0.00640 **
+    ## Coefficients:
+    ##             Estimate Std. Error t value Pr(>|t|)   
+    ## (Intercept) -0.50528    0.16357  -3.089  0.00461 **
+    ## EPF_pH       0.06595    0.02211   2.982  0.00600 **
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Correlation of Fixed Effects:
-    ##        (Intr)
-    ## EPF_pH -0.999
+    ## Residual standard error: 0.029 on 27 degrees of freedom
+    ## Multiple R-squared:  0.2478, Adjusted R-squared:  0.2199 
+    ## F-statistic: 8.894 on 1 and 27 DF,  p-value: 0.006
 
 ``` r
 # With out without random effect of tank the relationship between EPF pH and calcification is significant
@@ -691,7 +713,8 @@ mean_cal <- data.frame(pCO2=mean_cal$pCO2.x,Rel_Change=mean_cal$Pcnt_DailyChange
 out <- summary(lm(Pcnt_DailyChange_ExposureAdj~pCO2.x,data=calcification_red))
 
 p <- ggplot(mean_cal,aes(x=pCO2,y=Rel_Change)) + geom_hline(aes(yintercept=0),linetype="dotted") +
-  geom_point(aes(size=6)) + ylim(-0.085,0.08) + xlim(300,3200) + 
+  geom_point(aes(size=6,shape=as.factor(pCO2))) + ylim(-0.085,0.08) + xlim(300,3200) + 
+  scale_shape_manual(values=c(16,15,17))+
   geom_errorbarh(aes(xmin=xmin, xmax=xmax)) + 
   geom_errorbar(aes(ymin=ymin,ymax=ymax),width=75) +
   geom_abline(slope = out$coefficients[2,1],intercept = out$coefficients[1,1]) 
@@ -715,22 +738,28 @@ p1
 ![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ``` r
+## Plot 2
+calcification_red$pCO2_name <- "NA"
 calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[1]] <-  "Ambient"
-calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[2]] <-  "OA 1000" 
+calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[2]] <-  "OA 900" 
 calcification_red$pCO2_name[calcification_red$pCO2_fac == unique(calcification_red$pCO2_fac)[3]] <-  "OA 2800"
 calcification_red$pCO2_name <- as.factor(calcification_red$pCO2_name)
+levels(calcification_red$pCO2_name) <- levels(calcification_red$pCO2_name)[c(1,3,2)]
 
-p <- ggplot(calcification_red,aes(x=EPF_pH,y=Pcnt_DailyChange_ExposureAdj,colour=pCO2_name)) + 
-  geom_point(size=4) + ylim(-0.085,0.08) +
-  scale_color_manual(values=c("lightblue4","goldenrod","tomato")) +
+p <- ggplot(calcification_red,aes(x=EPF_pH,y=Pcnt_DailyChange_ExposureAdj,colour=pCO2_name)) +
+  geom_point(size=4,aes(shape=pCO2_name)) + ylim(-0.085,0.08) +
+  scale_color_manual(values=c(col_perm[2],col_perm[5],col_perm[4])) +
+  scale_shape_manual(values=c(16,15,17))+
   geom_abline(slope = calVpH_fized_out$coefficients[2,1],intercept = calVpH_fized_out$coefficients[1,1]) 
+
 t <- p + theme_bw(base_size = 16) + 
   theme(panel.border = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = c(0.15,.85),
         axis.line = element_line(colour = "black")) 
-p2<-t + ylab("Calcification (% change per day)") + xlab("EPF pH (NBS)") + labs(colour="pCO2 (ppm)") +
+
+p2<-t + ylab("Calcification (% change per day)") + xlab("EPF pH (NBS)") + labs(colour="pCO2 (ppm)",shape="pCO2 (ppm)") +
 guides(shape = guide_legend(override.aes = list(size = 4))) +
    coord_cartesian(clip = 'off') +
    geom_text(
@@ -754,7 +783,7 @@ multiplot(p1, p2,cols=2)
 
 ![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-9-3.png)<!-- -->
 
-### Base Plot versions (outdated)
+Base Plot versions (outdated)
 
 Pub plot (outdated)
 
@@ -779,85 +808,55 @@ Anova(cal_wo81_final,type=3)
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Regression
+Regression (preferred over an ANOVA)
 
 ``` r
-summary(cal_analysis2)
+sum_store
 ```
 
-    ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
-    ## lmerModLmerTest]
-    ## Formula: Pcnt_DailyChange_ExposureAdj ~ pCO2_calc * timepoint_fac + (1 |  
-    ##     PopOrigin) + (1 | shelf)
-    ##    Data: calcification_red
     ## 
-    ## REML criterion at convergence: -72.5
+    ## Call:
+    ## lm(formula = Pcnt_DailyChange_ExposureAdj ~ pCO2_calc, data = calcification_red)
     ## 
-    ## Scaled residuals: 
-    ##     Min      1Q  Median      3Q     Max 
-    ## -2.0985 -0.3023 -0.1462  0.6182  2.8085 
+    ## Residuals:
+    ##       Min        1Q    Median        3Q       Max 
+    ## -0.058528 -0.013234  0.001002  0.012189  0.079542 
     ## 
-    ## Random effects:
-    ##  Groups    Name        Variance  Std.Dev.
-    ##  shelf     (Intercept) 0.0000000 0.00000 
-    ##  PopOrigin (Intercept) 0.0000000 0.00000 
-    ##  Residual              0.0007214 0.02686 
-    ## Number of obs: 29, groups:  shelf, 6; PopOrigin, 3
-    ## 
-    ## Fixed effects:
-    ##                             Estimate Std. Error         df t value
-    ## (Intercept)                8.216e-03  1.272e-02  2.500e+01   0.646
-    ## pCO2_calc                 -1.414e-05  8.793e-06  2.500e+01  -1.609
-    ## timepoint_fac80            5.024e-03  1.904e-02  2.500e+01   0.264
-    ## pCO2_calc:timepoint_fac80 -1.485e-05  1.242e-05  2.500e+01  -1.196
-    ##                           Pr(>|t|)
-    ## (Intercept)                  0.524
-    ## pCO2_calc                    0.120
-    ## timepoint_fac80              0.794
-    ## pCO2_calc:timepoint_fac80    0.243
-    ## 
-    ## Correlation of Fixed Effects:
-    ##             (Intr) pCO2_c tmp_80
-    ## pCO2_calc   -0.838              
-    ## timpnt_fc80 -0.668  0.560       
-    ## pCO2_cl:_80  0.594 -0.708 -0.849
-    ## convergence code: 0
-    ## boundary (singular) fit: see ?isSingular
-
-Calcification vs EPF pH \[Calcification_{Adj} = EPF_{pH}\]
-    Regression
-
-``` r
-summary(calVspH_fixed)
-```
-
-    ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
-    ## lmerModLmerTest]
-    ## Formula: Pcnt_DailyChange_ExposureAdj ~ EPF_pH + (1 | tank:shelf)
-    ##    Data: calcification_red
-    ## 
-    ## REML criterion at convergence: -110.7
-    ## 
-    ## Scaled residuals: 
-    ##      Min       1Q   Median       3Q      Max 
-    ## -2.18343 -0.59510 -0.06363  0.61645  2.47458 
-    ## 
-    ## Random effects:
-    ##  Groups     Name        Variance  Std.Dev.
-    ##  tank:shelf (Intercept) 1.676e-06 0.001295
-    ##  Residual               8.393e-04 0.028971
-    ## Number of obs: 29, groups:  tank:shelf, 17
-    ## 
-    ## Fixed effects:
-    ##             Estimate Std. Error       df t value Pr(>|t|)   
-    ## (Intercept) -0.50527    0.16363 24.61509  -3.088  0.00494 **
-    ## EPF_pH       0.06595    0.02212 24.51414   2.981  0.00640 **
+    ## Coefficients:
+    ##               Estimate Std. Error t value Pr(>|t|)   
+    ## (Intercept)  1.161e-02  9.694e-03   1.198  0.24143   
+    ## pCO2_calc   -2.257e-05  6.335e-06  -3.563  0.00139 **
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Correlation of Fixed Effects:
-    ##        (Intr)
-    ## EPF_pH -0.999
+    ## Residual standard error: 0.02758 on 27 degrees of freedom
+    ## Multiple R-squared:  0.3198, Adjusted R-squared:  0.2946 
+    ## F-statistic: 12.69 on 1 and 27 DF,  p-value: 0.001389
+
+Calcification vs EPF pH \[Calcification_{Adj} = EPF_{pH}\] Regression
+
+``` r
+summary(calVspH_final)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = Pcnt_DailyChange_ExposureAdj ~ EPF_pH, data = calcification_red)
+    ## 
+    ## Residuals:
+    ##      Min       1Q   Median       3Q      Max 
+    ## -0.06340 -0.01724 -0.00176  0.01786  0.07176 
+    ## 
+    ## Coefficients:
+    ##             Estimate Std. Error t value Pr(>|t|)   
+    ## (Intercept) -0.50528    0.16357  -3.089  0.00461 **
+    ## EPF_pH       0.06595    0.02211   2.982  0.00600 **
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.029 on 27 degrees of freedom
+    ## Multiple R-squared:  0.2478, Adjusted R-squared:  0.2199 
+    ## F-statistic: 8.894 on 1 and 27 DF,  p-value: 0.006
 
 ### Interpretation
 
@@ -869,7 +868,7 @@ it would appear that there is a subtle different in the moderate OA
 vs. ambient conditions too, but we don’t have the power to detect it.
 
 **Calcification vs. EPF pH**  
-\* Model show there is a significant positive relationship between
+\* Model shows there is a significant positive relationship between
 EPF\_ph and calcification. \* Note this was not run on the other EPF
 carb chem parameters due to very low sample size, but from the plots it
 looked like DIC did not have the same relationship.
@@ -882,46 +881,12 @@ looked like DIC did not have the same relationship.
     some measures from that timepoint or using that timepoint only for
     calcification I decided to remove it given that that particular
     sampling was extra anyways and that we we used consistent
-    individuals for all
-    analysis.
+    individuals for all analysis.
 
-# Second Version of the analysis redoing calcificiation estimates
+**Second Version of the analysis redoing calcificiation estimates**
 
 ``` r
 cal_v2$sample_date
-```
-
-    ##   [1] 20170509 20170509 20170509 20170509 20170509 20170509 20170509
-    ##   [8] 20170509 20170509 20170509 20170509 20170509 20170509 20170509
-    ##  [15] 20170509 20170509 20170509 20170509 20170517 20170517 20170517
-    ##  [22] 20170517 20170517 20170517 20170517 20170517 20170517 20170517
-    ##  [29] 20170517 20170517 20170517 20170517 20170517 20170517 20170517
-    ##  [36] 20170517 20170602 20170602 20170602 20170602 20170602 20170602
-    ##  [43] 20170602 20170602 20170602 20170602 20170602 20170602 20170602
-    ##  [50] 20170602 20170602 20170602 20170602 20170602 20170605 20170605
-    ##  [57] 20170605 20170605 20170605 20170605 20170605 20170605 20170605
-    ##  [64] 20170605 20170605 20170605 20170605 20170605 20170605 20170605
-    ##  [71] 20170605 20170605 20170606 20170606 20170606 20170606 20170606
-    ##  [78] 20170606 20170606 20170606 20170606 20170606 20170606 20170606
-    ##  [85] 20170606 20170606 20170606 20170606 20170606 20170606 20170613
-    ##  [92] 20170613 20170613 20170613 20170613 20170613 20170613 20170613
-    ##  [99] 20170613 20170613 20170613 20170613 20170613 20170613 20170613
-    ## [106] 20170613 20170613 20170613 20170626 20170626 20170626 20170626
-    ## [113] 20170626 20170626 20170626 20170626 20170626 20170626 20170626
-    ## [120] 20170626 20170626 20170626 20170626 20170626 20170626 20170626
-    ## [127] 20170724 20170724 20170724 20170724 20170724 20170724 20170724
-    ## [134] 20170724 20170724 20170724 20170724 20170724 20170724 20170724
-    ## [141] 20170724 20170724 20170724 20170724 20170822 20170822 20170822
-    ## [148] 20170822 20170822 20170822 20170822 20170822 20170822 20170822
-    ## [155] 20170822 20170822 20170822 20170822 20170822 20170822 20170822
-    ## [162] 20170824 20170824 20170824 20170824 20170824 20170824 20170824
-    ## [169] 20170824 20170824 20170824 20170824 20170824 20170915 20170915
-    ## [176] 20170915 20170915 20170915 20170915 20170915 20170915 20170915
-    ## [183] 20170915 20170915 20170915 20170915 20170915 20170915 20170915
-    ## [190] 20170915 20170915 20170915 20170915 20170915 20170915 20170915
-    ## [197] 20170915 20170915 20170915 20170915 20170915 20170915
-
-``` r
 cal_v2$DryWgtDate <- as.Date(paste0(substr(cal_v2$sample_date,1,4),"/",substr(cal_v2$sample_date,5,6),"/",substr(cal_v2$sample_date,7,8)))
 cal_v2$date_bw2_asDate <- as.character(cal_v2$date_bw2_asDate)
 cal_v2$date_bw2_asDate[cal_v2$date_bw2_asDate == "#VALUE!"] <- NA
@@ -946,104 +911,24 @@ cal_s$exp_calrate <- (cal_s$dry_end_meas-cal_s$DryWt2Calc)/as.numeric(cal_s$Diff
 
 ## Plotting baseline growth rates
 ggplot(cal_s,aes(x=as.factor(DryWgtDate),y=cal_s$exp_calrate_basline,group=as.factor(interaction(DryWgtDate,pCO2)),col=as.factor(pCO2))) + geom_boxplot()
-```
-
-![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
-
-``` r
 ## Plotting individuals 400 treatment ind. using final timepoint(BW3)-BW1
 cal_400 <- cal_s[cal_s$pCO2 == 400,]
 cal_400$exp_calrate <- (cal_400$dry_end_meas-cal_400$DryWt1Calc)/as.numeric(cal_400$Day_BW1_BW2 + cal_400$DiffDryVBW2Date)
 is.na(cal_400$exp_calrate)
-```
-
-    ##  [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-    ## [12] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-    ## [23] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-    ## [34] FALSE FALSE FALSE FALSE FALSE FALSE
-
-``` r
 ggplot(cal_400,aes(x=as.factor(DryWgtDate),y=exp_calrate)) + geom_boxplot()
-```
 
-![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
-
-``` r
 ## Using the actual dry weight as the final weight ( Dry weight - Dry wgt. calculated from BW2)
 ggplot(cal_s,aes(x=as.factor(DryWgtDate),y=cal_s$exp_calrate,group=as.factor(interaction(DryWgtDate,pCO2)),col=as.factor(pCO2))) + geom_boxplot()
-```
-
-    ## Warning: Removed 1 rows containing non-finite values (stat_boxplot).
-
-![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->
-
-``` r
 # creating a model with 
 lm.out <- lm(exp_calrate~DiffDryVBW2Date*as.factor(pCO2),data=cal_s)
 summary(lm.out)
-```
-
-    ## 
-    ## Call:
-    ## lm(formula = exp_calrate ~ DiffDryVBW2Date * as.factor(pCO2), 
-    ##     data = cal_s)
-    ## 
-    ## Residuals:
-    ##      Min       1Q   Median       3Q      Max 
-    ## -2.33641 -0.18490  0.00329  0.16064  2.34547 
-    ## 
-    ## Coefficients:
-    ##                                       Estimate Std. Error t value Pr(>|t|)
-    ## (Intercept)                         -0.1034221  0.1098020  -0.942    0.348
-    ## DiffDryVBW2Date                      0.0004492  0.0033017   0.136    0.892
-    ## as.factor(pCO2)900                   0.3865858  0.1579715   2.447    0.016
-    ## as.factor(pCO2)2800                  0.2061533  0.1563620   1.318    0.190
-    ## DiffDryVBW2Date:as.factor(pCO2)900  -0.0066243  0.0048907  -1.354    0.178
-    ## DiffDryVBW2Date:as.factor(pCO2)2800 -0.0046174  0.0049547  -0.932    0.353
-    ##                                      
-    ## (Intercept)                          
-    ## DiffDryVBW2Date                      
-    ## as.factor(pCO2)900                  *
-    ## as.factor(pCO2)2800                  
-    ## DiffDryVBW2Date:as.factor(pCO2)900   
-    ## DiffDryVBW2Date:as.factor(pCO2)2800  
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## Residual standard error: 0.4937 on 106 degrees of freedom
-    ##   (1 observation deleted due to missingness)
-    ## Multiple R-squared:  0.0761, Adjusted R-squared:  0.03252 
-    ## F-statistic: 1.746 on 5 and 106 DF,  p-value: 0.1304
-
-``` r
 anova(lm.out)
-```
-
-    ## Analysis of Variance Table
-    ## 
-    ## Response: exp_calrate
-    ##                                  Df  Sum Sq Mean Sq F value Pr(>F)
-    ## DiffDryVBW2Date                   1  0.5859 0.58594  2.4035 0.1240
-    ## as.factor(pCO2)                   2  1.0636 0.53182  2.1815 0.1179
-    ## DiffDryVBW2Date:as.factor(pCO2)   2  0.4791 0.23953  0.9825 0.3777
-    ## Residuals                       106 25.8414 0.24379
-
-``` r
 # Adjusting the cal rate for oyster size (calcification rate as a % growth)
 cal_s$exp_calrate_scaled <- cal_s$exp_calrate/cal_s$dry_end_meas
 ggplot(cal_s,aes(x=as.factor(DryWgtDate),y=cal_s$exp_calrate_scaled,group=as.factor(interaction(DryWgtDate,pCO2)),col=as.factor(pCO2))) + geom_boxplot()
-```
 
-    ## Warning: Removed 1 rows containing non-finite values (stat_boxplot).
 
-![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-15-4.png)<!-- -->
-
-``` r
 ## Using the dry weights converted from bouyant wgt
 cal_s$exp_calrate_fromBouyant <- (cal_s$DryWt3Calc-cal_s$DryWt2Calc)/as.numeric(cal_s$Day_BW_BW3)
 ggplot(cal_s,aes(x=as.factor(pCO2),y=cal_s$exp_calrate_fromBouyant,group=as.factor(interaction(pCO2)),col=as.factor(pCO2))) + geom_boxplot()
 ```
-
-    ## Warning: Removed 90 rows containing non-finite values (stat_boxplot).
-
-![](3A_AE17_calcification_FullAnalysis_files/figure-gfm/unnamed-chunk-15-5.png)<!-- -->

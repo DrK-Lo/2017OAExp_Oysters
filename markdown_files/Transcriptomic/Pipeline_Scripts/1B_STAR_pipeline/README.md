@@ -27,6 +27,10 @@ This pipeline takes advantage of a genome mapper STAR, which performs transcript
 * [Github](https://deweylab.github.io/RSEM/)
 * [Publication](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-323)
 
+**Script Directories**
+* Bash Scripts : `/shared_lab/20180226_RNAseq_2017OAExp/RNA/scripts/STAR_scripts`
+* R Scripts : `/shared_lab/20180226_RNAseq_2017OAExp/RNA/scripts/STAR_scripts/R`
+
 ## Step 1 - Creating STAR index <a name="two"></a>
 
 ### Overview 
@@ -41,7 +45,7 @@ STAR performing the mapping in two primary stages. First, you need to create an 
 * Gene annotations: created by Kevin Johnson during the frogger workshop [LINK](https://drive.google.com/drive/u/0/folders/1KBAm4L5K2ZQ5dUOUfryk0BaB7fcA1RuL), which I converted from a `.gff` file formate to `.gtf` using [`gffread`](https://github.com/gpertea/gffread).
 
 **Outputs**
-* Reference Star Folder: `/shared_lab/20180226_RNAseq_2017OAExp/RNA/references/star_ref2`
+* Reference Star Folder: `/shared_lab/20180226_RNAseq_2017OAExp/RNA/references/mapping_indexes/STAR_gnomon`
 
 ### Coding and Scripts
 
@@ -141,9 +145,12 @@ STAR maps trimmed reads to the index created in the previous steps.
     * This are fastq files that contains reads that have been trimmed and undergone basic quality control following the dDocent pipeline and trimmomatic.
 
 * Index Folder (from previous step)
-    * Folder path: `/shared_lab/20180226_RNAseq_2017OAExp/RNA/references/star_ref2`
+    * Folder path: `/shared_lab/20180226_RNAseq_2017OAExp/RNA/references/mapping_indexes/STAR_gnomon`
 
 **Output**:
+* Base Directory for STAR output files: `/shared_lab/20180226_RNAseq_2017OAExp/RNA/STAR_files/final_data`
+        * First pass results : `/m2`
+        * Second pass results : `/m3`
 
 ### Coding and Scripts
 
@@ -228,8 +235,8 @@ for i in $( ls $raw/*.R1.* ); do
                     	echo $i and $j
                         echo RNA"$file1"_m2
                         echo yes these files match
-                        /shared_lab/scripts/STAR --runThreadN 19 \
-                        --genomeDir /shared_lab/20180226_RNAseq_2017OAExp/RNA/references/star_ref2 \
+                        /shared_lab/scripts/STAR --runThreadN 10 \
+                        --genomeDir /shared_lab/20180226_RNAseq_2017OAExp/RNA/references/RSEM_gnomon \
                         --outFilterMatchNminOverLread 0.17 --outFilterScoreMinOverLread 0.17 \
                         --readFilesIn $i $j \
                         --outSAMmapqUnique 40 \
@@ -272,5 +279,6 @@ for i in $( ls $raw/*.R1.* ); do
         done
 done
 ```
-**Note**: This script is currently not flexible and paths for the index folder, outputs, and splice junctions are all hard coded.
-### Step 3 - Running RSEM <a name="four"></a>
+**Note**: This script is currently not flexible and paths for the index folder, outputs, and splice junctions are all hard coded. Also as a warning relative locations of some of these files may have changed since running this script.
+
+## Step 3 - Running RSEM <a name="four"></a>

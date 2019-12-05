@@ -15,4 +15,3 @@
 [**`WC/`**](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/WC): Folder contains the scripts for analyzing the water chemistry data.
 - `WC_table.Rmd`: R markdown for creating a table summarizing the water chemistry data.
 
-[**`tutorials/`**](https://github.com/epigeneticstoocean/2017OAExp_Oysters/tree/master/markdown_files/tutorials): Folder contains scripts ancillary to the gene expression pipeline. Example, a tutorial for set your your `$PATH` variable.

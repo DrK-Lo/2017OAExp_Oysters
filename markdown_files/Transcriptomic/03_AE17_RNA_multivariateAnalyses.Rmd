@@ -19,6 +19,11 @@ library(factoextra) # for the fviz_eig function
 #devtools::install_github("pmartinezarbizu/pairwiseAdonis/pairwiseAdonis")
 library(pairwiseAdonis)
 
+library(RColorBrewer)
+pal <- brewer.pal(n = 12, name = 'Paired')
+col_perm <- c(pal[1:2],pal[5:6],pal[12])
+
+wd <- "/home/downeyam/Github/2017OAExp_Oysters"
 ```
 
 ## **Script Description**  
@@ -28,7 +33,7 @@ library(pairwiseAdonis)
 * A PCA  
 * A DAPC with a focus on treatment(implemented in adegenet)  
   
-## **Data**  
+## Data  
 
 Data Description:
 * Using count matrices post filtration. Genes that were express in at least 5 individuals within a single treatment were retained. I explored using several variations of count matrices that have been normalized or transformed to better account for either (a) differences among library sizes among samples, (b) large variation in expression within a sample between genes. Specifically, I look at the effect of transformation, normalization and scaling the expression matrices. Evaluating:
@@ -60,8 +65,15 @@ gc_qualityweights <-  readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/T
 tran <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/Transcriptomic/transcript_postVoomAndNormalization_DGEListObj.RData")
 ```
 
+**DNAm Data**
+```{r eval=FALSE}
+beta <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/input_files/DNAm/CG_unstranded_beta_geneOnly_5.RData")
+model_dnam <- model[model$ID != "17099",]
+beta<-beta[,colnames(beta) != "17099"]
+```
 
-**Quick comparison of different transformations of the gene count matrices**
+### Gene Expression Normalization and Transformation Effect  
+
 ```{r}
 ## Examining the impact of transformation among approaches
 # Expression for the first 5 genes and samples
@@ -91,9 +103,15 @@ plot(gc_qualityweights$targets$norm.factors*colSums(gc_voom$E)~colSums(gc_qualit
      xlim=c(65000,85000),ylim=c(65000,85000))
 abline(b=1,a=0)
 #Looking at the lib. sizes for each sample after transformation from different methods shows pretty poor correlation when compared to post normalized counts.
+
+rm(manual_transformation)
+rm(gc_voom)
 ```
 
-### PERMANOVA (implements using adonis from vegan package)
+
+## Analysis - Gene level Expression
+
+#### PERMANOVA (implements using adonis from vegan package)
 
 * Testing for statistic differential between treatment, time, and treatment:time  
 
@@ -110,22 +128,21 @@ To describe  global  gene  expression  patterns,  we  performed a principal coor
 # Standard voom w scaling values
 #(out_gc <- adonis(scale(t(gc_voom$E))~Treatment*Time+Pop+Lane,data=model,permutations = 5000))
 # Counts from quality weights EList object w/o scaling  
-(out_gc <- adonis(t(gc_qualityweights$E)~Treatment*Time+Pop+Lane,data=model,
-                  permutations = 999,method="manhattan"))
+(out_gc <- adonis(t(gc_qualityweights$E)~Time*Treatment+tankID,data=model,
+                  permutations = 5000,method="manhattan"))
 # Just showing that evaluating them separately seems to give similar results (i.e. not include potential random effects seems to have a relatively minor impact)
 pairwise.adonis(t(gc_qualityweights$E),factors=model$Treatment,sim.function='vegdist',
-sim.method='manhattan')
+sim.method='manhattan',perm = 5000)
 pairwise.adonis(t(gc_qualityweights$E),factors=model$Time,sim.function='vegdist',
 sim.method='manhattan')
 # Complete pairwise comparison of the different factor levels
 pairwise.adonis(t(gc_qualityweights$E),factors=model$SFV,p.adjust.m = "fdr",sim.function='vegdist',
-sim.method='manhattan')
-
+sim.method='manhattan',perm = 5000)
 # Counts from quality weights EList object scaled  
-(out_gc <- adonis(scale(t(gc_qualityweights$E))~Treatment*Time+Pop+Lane,data=model,permutations = 5000,
-                  method="manhattan"))
-pairwise.adonis(scale(t(gc_qualityweights$E)),factors=model$SFV,p.adjust.m = "fdr",sim.function='vegdist',
-sim.method='manhattan')
+# (out_gc <- adonis(scale(t(gc_qualityweights$E))~Treatment*Time,data=model,permutations = 5000,
+#                   method="manhattan"))
+# pairwise.adonis(scale(t(gc_qualityweights$E)),factors=model$SFV,p.adjust.m = "fdr",sim.function='vegdist',
+# sim.method='manhattan')
 ```
 
 **Thoughts on PERMANOVA**  
@@ -148,9 +165,9 @@ There is a bit of a discussion about using scaled vs. unscaled count matrixes wh
 
 Interestingly, this seems to have a major impact on the significance from the PERMANOVA, indicating that the genes with large expression are more sensitive to treatment and time than genes with lower expression.
 
-## Plotting data with PCA  
+### PCA  
 
-### Plot in multivariate space with PCA (treatment and time)
+**Plot in multivariate space with PCA (treatment and time)**
 ```{r}
 ### Just using the count matrix generated after filtering and standard normalization pipeline ###
 
@@ -177,20 +194,23 @@ fviz_pca_ind(ge_pca,
 )
 ```
 
+We see from the scree plots that the first two principle components aren't doing a greate job of representing the variation in our expression data. These likely means that any patterns we see when we plot them should be taken with a grain of salt. 
+
+**Custom PCA**
 ```{r}
 #### Custom PCA ####
 # Non scaled matrix
 pca <- prcomp(t(gc_qualityweights$E))
 eigs <- pca$sdev^2
 
-color_comb <- c("lightblue4","royalblue3","tomato","darkred") # colors for population 
+color_comb <- c(col_perm[1:4]) # colors for population 
 model$colors <- "" 
 model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
 model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
 model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
 model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
 model$pch <- 16
-model$pch[model$colors == color_comb[2] | model$colors == "darkred"] <- 10
+model$pch[model$colors == color_comb[2] | model$colors == color_comb[4]] <- 10
 
 ordiplot(pca,type="n",
          xlab=paste0("PC1 (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
@@ -248,22 +268,22 @@ text(x = 55 ,y = 86,
 gc_comb <- gc_qualityweights$E
 early_time_counts_V1 <- gc_comb[,model$Day == 9]
 early_time_meta <- model[model$Day == 9,]
-
-dapc_treatment <- dapc(t(early_time_counts_V1),early_time_meta$treatment,n.pca=2,n.da=1)
+#dapc(t(early_time_counts_V1),early_time_meta$treatment)
+dapc_treatment <- dapc(t(early_time_counts_V1),early_time_meta$treatment,n.pca=7,n.da=1)
 # PCs = 2
 # clusters = 1
 
 early_time_meta$coord<- unlist(dapc_treatment$ind.coord[,1])
 
 ggplot(early_time_meta,aes(coord,fill=as.factor(treatment),colour=as.factor(treatment))) + 
-  geom_density(alpha=0.1) + xlim(-8,8) + 
-  labs(title="Discriminant Function for Treatment on Day 9 (based on 8 PCs)",
+  geom_density(alpha=0.1) + xlim(-10,10) + 
+  labs(title="Discriminant Function for Treatment on Day 9 (based on 7 PCs)",
        x="Discriminant function 1",
        colour="Treatment",
        fill="Treatment") +
   theme_bw() +
   scale_color_manual(values=c("deepskyblue2","firebrick1")) +
-  scale_fill_manual(values=c("deepskyblue2","firebrick1"))
+  scale_fill_manual(values=c(col_perm[2],col_perm[4]))
 ```
 
 Looking at which genes are driving the patterns between the two treatments
@@ -287,20 +307,20 @@ Day 80 samples**
 late_time_counts <- gc_comb[,model$Day == 80]
 late_time_meta <- model[model$Day == 80,]
 
-predict_values <- predict.dapc(dapc_treatment,t(late_time_counts_V1))
+predict_values <- predict.dapc(dapc_treatment,t(late_time_counts))
 
 late_time_meta$coord <-unlist(predict_values$ind.scores[,1])
 
 whole_meta<- rbind(early_time_meta,late_time_meta)
 
 ggplot(whole_meta,aes(coord,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
-  geom_density(alpha=0.1) + xlim(-12,12) + 
+  geom_density(alpha=0.1,adjust=2) + xlim(-10,10) + 
   labs(x="Discriminant function 1",
        colour="Day.Treatment",
        fill="Day.Treatment") +
   theme_bw() +
-  scale_color_manual(values=c("lightblue4","blue4","tomato","darkred")) +
-  scale_fill_manual(values=c("lightblue4","blue4","tomato1","darkred"))
+  scale_color_manual(values=col_perm[1:4]) +
+  scale_fill_manual(values=col_perm[1:4])
 
 D9_400 <- whole_meta[whole_meta$SFV == "09.400",]
 D9_400_Density <- density(D9_400$coord)
@@ -311,6 +331,85 @@ D80_400_Density <- density(D80_400$coord)
 D80_2800 <- whole_meta[whole_meta$SFV == "80.2800",]
 D80_2800_Density <- density(D80_2800$coord)
 
+plot(D9_400_Density, main="",xlim=c(-12,12),ylim=c(0,2),
+     xlab="Discriminant Function 1")
+
+polygon(D9_400_Density, col=alpha(col_perm[1],1),
+        border="lightblue")
+polygon(D9_2800_Density, col=alpha(col_perm[3],1),
+        border="red3")
+polygon(D80_400_Density, col=alpha(col_perm[2],1), 
+        border="blue",density = 20,cex=100)
+polygon(D80_2800_Density, col=alpha(col_perm[4],1),
+        border="red3",density = 20,angle=0,cex=5)
+
+legend(x=c(4,6),y=c(1.9,1.7),bty = "n",
+       legend=c("Day 09 : Ambient","Day 09 : 2800 ","Day 80 : Ambient","Day 80 : 2800"),
+       fill = c(alpha(col_perm[1],1),
+                alpha(col_perm[3],1),
+                alpha(col_perm[2],1),
+                alpha(col_perm[4],1)),
+       density = c(1000,1000,50,50),angle = c(0,0,45,0))
+```
+
+### ONE STEP DAPC: DAPC based on combined time*treatment factor  
+  
+**Creating DF by treatment with first timepoint**  
+```{r}
+dapc_SFV_10<-dapc(t(gc_qualityweights$E),model$SFV,n.pca=8,n.da=3)
+# PCs = 10
+# clusters = 3
+output <- data.frame(Trt=model$Treatment,Time=model$Time,dapc_SFV_10$ind.coord)
+
+(nogrouping_ge <- ggplot(output,
+       aes(x=LD1,
+           y=LD2,fill=as.factor(interaction(Trt,Time)),
+           colour=as.factor(interaction(Trt,Time)),
+           shape=as.factor(interaction(Trt,Time)),
+           size=as.factor(interaction(Trt,Time)))) + 
+  geom_point(aes()) + #geom_density(alpha=0.1) + #xlim(-28,28) + 
+  labs(title="",
+       x="Discriminant function 1",
+       y="Discriminant function 2",
+       colour="Treatment",
+       fill="Treatment") +
+    theme_classic() +
+  scale_color_manual(values=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4])) +
+  scale_fill_manual(values=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4])) +
+  scale_shape_manual(values=c(16,16,10,10)) +
+  scale_size_manual(values=c(5,5,5,5)) +
+  labs(colour="Treatment",size="Treatment",shape="Treatment")) +
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=18))
+```
+
+Looking at contribution of individual genes
+```{r}
+contrib_SFV <- loadingplot(dapc_SFV_10$var.contr, axis=2,thres=.07, lab.jitter=1)
+```
+
+#### Final gene-level figure
+
+```{r}
+par(mfrow=c(1,2))
+ordiplot(pca,type="n",
+         xlab=paste0("PC1 (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2 (",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
+
+orditorp(pca,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = model$pch)
+ordispider(pca,model$SFV,col = color_comb,lwd=2.5)
+legend(x=c(5,30),y=c(80,110),bty = "n",
+       legend = c("Day 09 : Ambient",
+                  "Day 80 : Ambient",
+                  "Day 09 : 2800",
+                  "Day 80 : 2800"),
+       pch = c(16,10,16,10),col=color_comb,xpd = .25)
+text(x = 55 ,y = 100, 
+     paste0("P_Treatment = ",round(out_gc$aov.tab$`Pr(>F)`[1],3),"*"),pos = 4)
+text(x = 55 ,y = 93, 
+     paste0("P_Time = ",round(out_gc$aov.tab$`Pr(>F)`[2],5),"*"),pos=4)
+text(x = 55 ,y = 86, 
+     paste0("P_Interaction = ",round(out_gc$aov.tab$`Pr(>F)`[5],3)),pos=4)
 plot(D9_400_Density, main="",xlim=c(-5,7),ylim=c(0,2),
      xlab="Discriminant Function 1")
 polygon(D9_400_Density, col=alpha("lightblue",0.8), border="lightblue")
@@ -328,34 +427,8 @@ legend(x=c(4,6),y=c(1.9,1.7),bty = "n",
        density = c(1000,1000,50,50),angle = c(0,0,45,0))
 ```
 
-### DAPC based on combined time*treatment factor  
-  
-**Creating DF by treatment with first timepoint**  
-```{r}
-dapc_SFV_10<-dapc(t(gc_qualityweights$E),model$SFV,n.pca=8,n.da=3)
-# PCs = 10
-# clusters = 3
-output <- data.frame(Trt=model$Treatment,Time=model$Time,dapc_SFV_10$ind.coord)
 
-ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.factor(interaction(Trt,Time)))) + 
-  geom_point(aes(size=5)) + #geom_density(alpha=0.1) + #xlim(-28,28) + 
-  labs(title="DAPC for Treatment*Time Combination",
-       x="Discriminant function 1",
-       y="Discriminant function 2",
-       colour="Treatment",
-       fill="Treatment") +
-    theme_bw() +
-  scale_color_manual(values=c("deepskyblue2","firebrick1","blue4","darkred")) +
-  scale_fill_manual(values=c("deepskyblue2","firebrick1","blue4","darkred"))
-```
-
-Looking at contribution of individual genes
-```{r}
-contrib_SFV <- loadingplot(dapc_SFV_10$var.contr, axis=2,thres=.07, lab.jitter=1)
-```
-
-# Based on Transcript level data
-
+## Analysis - Transcript level Expression
 ### PERMANOVA (implements using adonis from vegan package)
 
 * Testing for statistic differential between treatment, time, and treatment:time  
@@ -369,9 +442,9 @@ contrib_SFV <- loadingplot(dapc_SFV_10$var.contr, axis=2,thres=.07, lab.jitter=1
 sim.method='manhattan'))
 ```
 
-### Plotting data with PCA with isoform data
+### PCA
 
-### Plot in multivariate space with RDA (treatment and time)
+**Plot in multivariate space with PCA (treatment and time)**
 ```{r}
 prin_comp<-prcomp(t(tran$E))
 sum_pri <- summary(prin_comp)
@@ -395,9 +468,9 @@ orditorp(prin_comp,display="sites",labels = FALSE,col=model$colors,cex = 2,pch =
 
 ordispider(prin_comp,model$SFV,col = color_comb,lwd=2.5)
 legend(x=100,y=100,legend = c("Day09_Control","Day80_Control","Day09_OA","Day80_OA"),pch = 16,col=color_comb,xpd = .25,bty="n")
-text(x = -538 ,y = -300, paste0("Adonis P_Treatment = ",out$aov.tab$`Pr(>F)`[1],"*"))
-text(x = -550 ,y = -360, paste0("Adonis P_Duration = ",out$aov.tab$`Pr(>F)`[2],"*"))
-text(x = -540 ,y = -420, paste0("Adonis P_Interaction = ",out$aov.tab$`Pr(>F)`[5]))
+text(x = -538 ,y = -300, paste0("Adonis P_Treatment = ",out_tc$aov.tab$`Pr(>F)`[1],"*"))
+text(x = -550 ,y = -360, paste0("Adonis P_Duration = ",out_tc$aov.tab$`Pr(>F)`[2],"*"))
+text(x = -540 ,y = -420, paste0("Adonis P_Interaction = ",out_tc$aov.tab$`Pr(>F)`[5]))
 ```
 
 ### TWO STEP DAPC: first create discriminant function from TP 9 samples and predict coordinates on df for day 80 samples.  
@@ -407,15 +480,15 @@ text(x = -540 ,y = -420, paste0("Adonis P_Interaction = ",out$aov.tab$`Pr(>F)`[5
 tc_comb <- tran$E
 early_time_counts <- tc_comb[,model$Day == 9]
 early_time_meta <- model[model$Day == 9,]
-
-dapc_treatment <- dapc(t(early_time_counts),early_time_meta$treatment,n.pca=2,n.da=1)
-# PCs = 2
+#dapc(t(early_time_counts),early_time_meta$treatment)
+dapc_treatment <- dapc(t(early_time_counts),early_time_meta$treatment,n.pca=7,n.da=1)
+# PCs = 7
 # clusters = 1
 
 early_time_meta$coord<- unlist(dapc_treatment$ind.coord[,1])
 
 ggplot(early_time_meta,aes(coord,fill=as.factor(treatment),colour=as.factor(treatment))) + 
-  geom_density(alpha=0.1) + xlim(-8,8) + 
+  geom_density(alpha=0.1) + xlim(-20,20) + 
   labs(title="Discriminant Function for Treatment on Day 9 (based on 8 PCs)",
        x="Discriminant function 1",
        colour="Treatment",
@@ -438,7 +511,7 @@ late_time_meta$coord <-unlist(predict_values$ind.scores[,1])
 whole_meta<- rbind(early_time_meta,late_time_meta)
 
 ggplot(whole_meta,aes(coord,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
-  geom_density(alpha=0.1) + xlim(-12,12) + 
+  geom_density(alpha=0.1) + xlim(-16,16) + 
   labs(x="Discriminant function 1",
        colour="Day.Treatment",
        fill="Day.Treatment") +
@@ -455,7 +528,7 @@ D80_400_Density <- density(D80_400$coord)
 D80_2800 <- whole_meta[whole_meta$SFV == "80.2800",]
 D80_2800_Density <- density(D80_2800$coord)
 
-plot(D9_400_Density, main="",xlim=c(-5,7),ylim=c(0,3),
+plot(D9_400_Density, main="",xlim=c(-12,12),ylim=c(0,3),
      xlab="Discriminant Function 1")
 polygon(D9_400_Density, col=alpha("lightblue",0.8), border="lightblue")
 polygon(D9_2800_Density, col=alpha("tomato",0.8), border="red3")
@@ -476,11 +549,10 @@ legend(x=c(4,6),y=c(1.9,1.7),bty = "n",
   
 **Creating DF by treatment with first timepoint**  
 ```{r}
-dapc_SFV_10<-dapc(t(tran$E),model$SFV,n.pca=8,n.da=3)
-dapc_SFV_10<-dapc(t(tran$E),model$SFV)
+dapc_tc<-dapc(t(tran$E),model$SFV,n.pca=8,n.da=3)
 # PCs = 10
 # clusters = 3
-output <- data.frame(Trt=model$Treatment,Time=model$Time,dapc_SFV_10$ind.coord)
+output <- data.frame(Trt=model$Treatment,Time=model$Time,dapc_tc$ind.coord)
 
 ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.factor(interaction(Trt,Time)))) + 
   geom_point(aes(size=5)) + #geom_density(alpha=0.1) + #xlim(-28,28) + 
@@ -492,4 +564,253 @@ ggplot(output,aes(x=LD1,y=LD2,fill=as.factor(interaction(Trt,Time)),colour=as.fa
     theme_bw() +
   scale_color_manual(values=c("deepskyblue2","firebrick1","blue4","darkred")) +
   scale_fill_manual(values=c("deepskyblue2","firebrick1","blue4","darkred"))
-  ```
+```
+
+
+## Analysis - DNAm 
+### PERMANOVA
+```{r eval=FALSE}
+(out_dnam <- adonis(t(beta)~Treatment*Time+Pop+Lane,data=model_dnam,
+                  permutations = 999,method="manhattan"))
+# Just showing that evaluating them separately seems to give similar results (i.e. not include potential random effects seems to have a relatively minor impact)
+pairwise.adonis(t(beta),factors=model_dnam$SFV,sim.function='vegdist',
+sim.method='manhattan')
+```
+
+### PCA
+```{r eval=FALSE}
+# None scaled
+dnam_pca <- prcomp((t(beta)))
+fviz_eig(dnam_pca)
+# Quick pca plot
+fviz_pca_ind(dnam_pca, 
+             #label = "none", # hide individual labels
+             habillage = model_dnam$SFV, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07","green"),
+             addEllipses = TRUE, axes = c(1,2),ellipse.level=0.90 # Concentration ellipses  
+)
+# Slightly more interesting site level effects
+fviz_pca_ind(dnam_pca, 
+             #label = "none", # hide individual labels
+             habillage = model_dnam$Pop, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07","green"),
+             addEllipses = TRUE, axes = c(1,2),ellipse.level=0.90 # Concentration ellipses  
+)
+```
+
+### TWO STEP DAPC: first create discriminant function from TP 9 samples and predict coordinates on df for day 80 samples.  
+  
+**Creating DF by treatment with first timepoint**  
+```{r eval=FALSE}
+beta_comb <- beta
+early_time_dnam <- beta_comb[,model_dnam$Day == 9]
+early_time_meta_dnam <- model_dnam[model_dnam$Day == 9,]
+
+dapc_treatment <- dapc(t(early_time_dnam),early_time_meta_dnam$treatment,n.pca=8,n.da=1)
+# PCs = 8 (accounts for ~ 80% of variation)
+# clusters = 1
+
+early_time_meta_dnam$coord<- unlist(dapc_treatment$ind.coord[,1])
+ggplot(early_time_meta_dnam,aes(coord,fill=as.factor(treatment),colour=as.factor(treatment))) + 
+  geom_density(alpha=.5,adjust=1) + xlim(-3,3) + 
+  labs(title="Discriminant Function for Treatment on Day 9 (based on 8 PCs)",
+       x="Discriminant function 1",
+       colour="Treatment",
+       fill="Treatment") +
+  theme_bw() +
+  scale_color_manual(values=c("deepskyblue2","firebrick1")) +
+  scale_fill_manual(values=c("deepskyblue2","firebrick1"))
+```
+
+**Mapping 
+Day 80 samples**  
+```{r eval=FALSE}
+late_time_dnam <- beta_comb[,model_dnam$Day == 80]
+late_time_meta_dnam <- model_dnam[model_dnam$Day == 80,]
+
+predict_values <- predict.dapc(dapc_treatment,t(late_time_dnam))
+
+late_time_meta_dnam$coord <-unlist(predict_values$ind.scores[,1])
+
+whole_meta_dnam<- rbind(early_time_meta_dnam,late_time_meta_dnam)
+ggplot(whole_meta_dnam,aes(coord,fill=as.factor(interaction(Day,treatment)),colour=as.factor(interaction(Day,treatment)))) + 
+  geom_density(alpha=0.1,adjust=1) + xlim(-3,3) + 
+  labs(x="Discriminant function 1",
+       colour="Day.Treatment",
+       fill="Day.Treatment") +
+  theme_bw() +
+  scale_color_manual(values=c("lightblue4","blue4","tomato","darkred")) +
+  scale_fill_manual(values=c("lightblue4","blue4","tomato1","darkred"))
+
+D9_400_dnam<- whole_meta_dnam[whole_meta_dnam$SFV == "09.400",]
+D9_400_Density_dnam <- density(D9_400_dnam$coord)
+D9_2800_dnam <- whole_meta_dnam[whole_meta_dnam$SFV == "09.2800",]
+D9_2800_Density_dnam <- density(D9_2800_dnam$coord)
+D80_400_dnam <- whole_meta_dnam[whole_meta_dnam$SFV == "80.400",]
+D80_400_Density_dnam <- density(D80_400_dnam$coord)
+D80_2800_dnam <- whole_meta_dnam[whole_meta_dnam$SFV == "80.2800",]
+D80_2800_Density_dnam <- density(D80_2800_dnam$coord)
+```
+### ONE STEP DAPC: DAPC based on combined time*treatment factor  
+  
+**Creating DF by treatment with first timepoint**  
+```{r eval=FALSE}
+dapc_all_dnam<-dapc(t(beta),model_dnam$SFV,n.pca=8,n.da=3)
+# PCs = 10
+# clusters = 3
+output <- data.frame(Trt=model_dnam$Treatment,Time=model_dnam$Time,dapc_all_dnam$ind.coord)
+
+(nogrouping_dnam <- ggplot(output,
+       aes(x=LD1,
+           y=LD2,fill=as.factor(interaction(Trt,Time)),
+           colour=as.factor(interaction(Trt,Time)),
+           shape=as.factor(interaction(Trt,Time)),
+           size=as.factor(interaction(Trt,Time)))) + 
+  geom_point(aes()) +  
+  labs(title="",
+       x="Discriminant function 1",
+       y="Discriminant function 2",
+       colour="Treatment",
+       fill="Treatment") +
+    theme_classic() +
+  scale_color_manual(values=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4])) +
+  scale_fill_manual(values=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4])) +
+  scale_shape_manual(values=c(16,16,10,10)) +
+  scale_size_manual(values=c(5,5,5,5)) +
+  labs(colour="Treatment",size="Treatment",shape="Treatment")) +
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=18)) 
+```
+  
+## DAPC PLot
+```{r}
+plot_grid(nogrouping_ge,nogrouping_dnam,labels = c("A","B"),label_size = 20)
+```
+  
+## FINAL FIGURE
+
+```{r eval=FALSE}
+png("/home/downeyam/Github/2017OAExp_Oysters/results/FiguresAndTables/FinalFig3_genomewideEval.png",
+    width = 20,height = 20,units = "cm",res = 200)
+
+# Creating multi panel plotting environment
+m <- matrix(c(1,2,3,3,4,5,6,6),nrow = 4,ncol = 2,byrow = TRUE)
+layout(mat = m,heights = c(0.4,0.04,0.4,0.05))
+par(mar = c(5,5,3,2))
+par(xpd=TRUE)
+
+# m <- matrix(c(1,2,3,3,4,5),nrow = 3,ncol = 2,byrow = TRUE)
+# layout(mat = m,heights = c(0.4,0.04,0.4))
+# par(mar = c(5,5,3,2))
+# par(xpd=TRUE)
+
+# Presets for panel letter position
+let_ge_pca <- c(-125,108)
+let_ge_dapc <- c(-11.8,3.7)
+let_dnam_pca <- c(-57,50)
+let_dnam_dapc <-c(-5,12.3)
+
+## GENE EXPRESSION PCA 
+pca <- prcomp(t(gc_qualityweights$E))
+eigs <- pca$sdev^2
+
+color_comb <- c(col_perm[1:4]) # colors for population 
+model$colors <- "" 
+model$colors[model$SFV == unique(model$SFV)[1]] <-  color_comb[2]
+model$colors[model$SFV == unique(model$SFV)[2]] <-  color_comb[1]
+model$colors[model$SFV == unique(model$SFV)[3]] <-  color_comb[4]
+model$colors[model$SFV == unique(model$SFV)[4]] <-  color_comb[3]
+model$pch <- 16
+model$pch[model$colors == color_comb[2] | model$colors == color_comb[4]] <- 10
+
+ordiplot(pca,type="n",
+         xlab=paste0("PC1 (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2 (",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
+
+orditorp(pca,display="sites",labels = FALSE,col=model$colors,cex = 2,pch = model$pch)
+
+ordispider(pca,model$SFV,col = color_comb,lwd=2.5)
+text(x = -5 ,y = 85,paste0("P_Treatment = ",round(out_gc$aov.tab$`Pr(>F)`[1],3),"*"),pos = 4) 
+text(x = -5 ,y = 77, 
+     paste0("P_Time = ",round(out_gc$aov.tab$`Pr(>F)`[2],5),"*"),pos=4) + 
+text(x = -5 ,y = 69, 
+     paste0("P_Interaction = ",round(out_gc$aov.tab$`Pr(>F)`[5],3)),pos=4) + 
+text(x=let_ge_pca[1],y=let_ge_pca[2],labels = "A",cex=2)
+
+## DNAm PCA 
+pca <- prcomp(t(beta))
+eigs <- pca$sdev^2
+
+color_comb <- c(col_perm[1],col_perm[2],col_perm[3],col_perm[4]) # colors for population 
+model_dnam$colors <- "" 
+model_dnam$colors[model_dnam$SFV == unique(model_dnam$SFV)[1]] <-  color_comb[2]
+model_dnam$colors[model_dnam$SFV == unique(model_dnam$SFV)[2]] <-  color_comb[1]
+model_dnam$colors[model_dnam$SFV == unique(model_dnam$SFV)[3]] <-  color_comb[4]
+model_dnam$colors[model_dnam$SFV == unique(model_dnam$SFV)[4]] <-  color_comb[3]
+model_dnam$pch <- 16
+model_dnam$pch[model_dnam$colors == color_comb[2] | model_dnam$colors == color_comb[4]] <- 10
+
+ordiplot(pca,type="n",
+         xlab=paste0("PC1 (",round(eigs[1] / sum(eigs)*100,1),"% Variance Explained)"),
+         ylab=paste0("PC2 (",round(eigs[2] / sum(eigs)*100,1),"% Variance Explained)"))
+
+orditorp(pca,display="sites",labels = FALSE,col=model_dnam$colors,cex = 2,pch = model_dnam$pch)
+ordispider(pca,model_dnam$SFV,col = color_comb,lwd=2.5)
+text(x = -5 ,y = -30, 
+     paste0("P_Treatment = ",round(out_dnam$aov.tab$`Pr(>F)`[1],3),"*"),pos = 4)
+text(x = -5 ,y = -35, 
+     paste0("P_Time = ",round(out_dnam$aov.tab$`Pr(>F)`[2],5),""),pos=4)
+text(x = -5 ,y = -40, 
+     paste0("P_Interaction = ",round(out_dnam$aov.tab$`Pr(>F)`[5],3)),pos=4)
+text(x=let_dnam_pca[1],y=let_dnam_pca[2],labels = "B",cex=2)
+
+## Single legend PCA
+par(mar = c(0,0,0,0))
+plot(1, type = "n", axes=FALSE, xlab="", ylab="")
+legend(x="center",inset=0,horiz = TRUE,
+       legend=c("Day 09 : Ambient","Day 09 : 2800 ","Day 80 : Ambient","Day 80 : 2800"),
+       col=c(col_perm[1],col_perm[3],col_perm[2],col_perm[4]),
+       pch=c(16,16,10,10),
+       cex = 1.3)
+
+## GENE EXPRESSION DAPC
+par(mar = c(5,5,3,2))
+plot(D9_400_Density, main="",xlim=c(-9,9),ylim=c(0,3.2),
+     xlab="Discriminant Function 1")
+polygon(D9_400_Density, col=alpha(col_perm[1],1), border=col_perm[1])
+polygon(D9_2800_Density, col=alpha(col_perm[3],1), border=col_perm[4])
+polygon(D80_400_Density, col=alpha(col_perm[2],1), 
+        border=col_perm[2],density = 20,cex=100)
+polygon(D80_2800_Density, col=alpha(col_perm[4],1),
+        border=col_perm[4],density = 20,angle=0,cex=5)
+text(x=let_ge_dapc[1],y=let_ge_dapc[2],labels = "C",cex=2)
+
+## DNAm DAPC 
+plot(D9_400_Density_dnam, main="",xlim=c(-4,3),ylim=c(0,11),
+     xlab="Discriminant Function 1")
+polygon(D9_400_Density_dnam, col=alpha(col_perm[1],1), border=col_perm[1])
+polygon(D9_2800_Density_dnam, col=alpha(col_perm[3],1), border=col_perm[3])
+polygon(D80_400_Density_dnam, col=alpha(col_perm[2],1), 
+        border=col_perm[2],density = 20,cex=100)
+polygon(D80_2800_Density_dnam, col=alpha(col_perm[4],1),
+        border=col_perm[4],density = 20,angle=0,cex=5)
+text(x=let_dnam_dapc[1],y=let_dnam_dapc[2],labels = "D",cex=2)
+
+## Single legend DAPC
+par(mar = c(0,0,0,0))
+plot(1, type = "n", axes=FALSE, xlab="", ylab="")
+legend(x="top",inset=0,horiz = TRUE,
+       legend=c("Day 09 : Ambient","Day 09 : 2800 ","Day 80 : Ambient","Day 80 : 2800"),
+       fill = c(alpha(col_perm[1],1),
+                alpha(col_perm[3],1),
+                alpha(col_perm[2],1),
+                alpha(col_perm[4],1)),
+       density = c(1000,1000,50,50),angle = c(0,0,45,0),
+       cex = 1.3)
+
+dev.off()
+
+```
+
+
+
