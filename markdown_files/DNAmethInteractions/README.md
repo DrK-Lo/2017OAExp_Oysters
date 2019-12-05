@@ -1,6 +1,6 @@
 README
 
-For visualizing DNA methylation interactions, significant CpGs were clustered into groups based on their scaled treatment means. Treatment means were scaled relative to the overall mean across 4 treatments for that CpG, so that whether the treatment tended to increase or decrease methylation could be visualized.
+For visualizing DNA methylation interactions, significant CpGs were clustered into groups based on their scaled treatment means. Treatment means were scaled relative to the overall mean across 4 treatments for that CpG, so that whether the treatment tended to increase or decrease methylation could be visualized. The matrix of scaled treatment means (nrows = number of CpGs, ncolumns = 4 treatments) was then clustered using the `hclust` function in R, and heatmaps were visualized with the R package `superheat`. (see below for more methods text on significance codes in the plots)
 
 # DATA
 
