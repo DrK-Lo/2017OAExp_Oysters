@@ -10,15 +10,15 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(kableExtra)
 library(dplyr)
+library(reshape2)
 library(VennDiagram)
 wd <- "/home/downeyam/Github/2017OAExp_Oysters"
-
+library(GSEABase)
 library(RColorBrewer)
-library("wesanderson")
-pal <- brewer.pal(n = 12, name = 'Dark2')
+pal <- brewer.pal(n = 8, name = 'Dark2')
 ```
 
-**Data**
+### Data
 ```{r}
 # Sample Information
 meta <- readRDS(paste0(wd,"/input_files/meta/metadata_20190811.RData"))
@@ -28,18 +28,22 @@ cds <- readRDS(paste0(wd,"/input_files/RNA/references/CDS_wGoTerms_GeneLOC.RData
 
 # Gene Expression 
 gc <- readRDS(paste0(wd,"/results/Transcriptomic/DGEListObj_withIndWeights_filterApproach2_plannedContrastMatrix.RData"))
-
+gc2 <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/Transcriptomic/gene_EBayesObj.RData")
 # Methylation Data
+meth_models <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/Final_DNAm_gene_BRMS_modelSummary.RData")
+meth_marg <- readRDS("/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/Final_DNAm_gene_BRMS_modelMarginalEffects.RData")
 d_meth <- readRDS(paste0(wd,"/results/DNAm/Final_DNAm_gene_BRMS_plannedComparisons.RData"))
 d_meta <- readRDS(paste0(wd,"/input_files/DNAm/CG_unstranded_summaryTable_geneOnly_5.RData"))
 d_beta <- readRDS(paste0(wd,"/input_files/DNAm/CG_unstranded_beta_geneOnly_5.RData"))
+d_beta <-  d_beta[,colnames(d_beta) != "17099"]
 
 LOC <- sub(".*Name=(.*?);.*","\\1",d_meta$attribute,perl=TRUE) # Extract LOC ID for each gene we have 
 ## Gene level summary information
 cpgMean_all <-  read.table(paste0(wd,"/results/DNAm/meanBetaPerFeature.txt"),header = FALSE, sep="\t",stringsAsFactors=FALSE, quote="")
+head(meth_models$Rhat)
 ```
 
-**Differential Methylation Summary Table**
+### Differential Methylation Summary Table
 
 Summarized CpGs that were significantly different after correction for all comparisons. Hypomethylation refers to CpGs that had significant lower methylation in our OA treatment compared to the ambient conditions or on day 80 compared to day 9. The opposity is the case (methylation is higher) if hypermethylated.  
 
@@ -68,7 +72,7 @@ kableExtra::kable(final_mat) %>%
   kableExtra::kable_styling()
 ```
 
-Basic Summary - Long Format
+### Basic Summary - Long Format
 ```{r}
 name <- colnames(d_meth$Significant)[1]
 pos <- which(d_meth$Significant[,1]=="*")
@@ -95,31 +99,185 @@ kable(head(sig_list)) %>%
   kable_styling()
 ```
 
-**Venn Diagram -  Initial Explanatory Variables (Trt, Time, Interaction)**
+### Looking at R hat to look for any issues with model convergence
 ```{r}
-dnam_sigTable <- d_meth$Significant
-head(dnam_sigTable)
-dnam_sigTable_PrimaryVariables <- dnam_sigTable[,1:5]
-sum_sig <- function(s){
-  return(which(s=="*"))
-}
-sig_positions <- function(x){
-  out <- lapply(x,FUN=sum_sig)
-  temp <- do.call(c,out)
-  return(unique(temp))
-}
-is.integer0 <- function(x)
-{
-  is.integer(x) && length(x) == 0L
-}
-val_test <- function(x){
-  if(is.integer0(x)){return(0)}else{return(x)}
-}
-sig_pos_trt <- sig_positions(list(dnam_sigTable_PrimaryVariables[,1],
-              dnam_sigTable_PrimaryVariables[,2]))
-sig_pos_time <- sig_positions(list(dnam_sigTable_PrimaryVariables[,3],
-              dnam_sigTable_PrimaryVariables[,4]))
-sig_pos_inter <- sig_positions(list(dnam_sigTable_PrimaryVariables[,5]))
+sum(rowMaxs(meth_models$Rhat)>1.1)
+# Two potentiall problematic loci
+
+# Lets look at the evid.ratio to see if they might be interesting
+d_meth$Evid.Ratio[which(rowMaxs(meth_models$Rhat)>1.1),1:4]
+d_meth$Post.Prob[which(rowMaxs(meth_models$Rhat)>1.1),1:5]
+#boxplot
+boxplot(unlist(d_beta[which(rowMaxs(meth_models$Rhat)>1.1),][1,])~meta$SFV)
+# Completely unmethylate loci
+# These loci were not significant anyways so they won't be considered for downstream analysis
+```
+There are TWO loci that failed based on the R hat value (Rhat >1,1), but these should be removed from anything downstream anyways because the loci are not significant and exhibit no methylation.
+
+
+### Looks at the Evidence Ratio (Bayes Factor) histograms
+```{r}
+library(matrixStats)
+library(fdrtool)
+par(mfrow=c(2,2))
+### EVID Ratios (log2)
+# Log2 Evid ration with critical threshold 2
+hist(log10(d_meth$Evid.Ratio[,1]),breaks=100,main="Treatment 400>2800",
+     xlab="log2(Evid.Ratio)")
+abline(v=2,col="red",lwd=3)
+hist(log10(d_meth$Evid.Ratio[,2]),breaks=100,main="Treatment 400<2800",
+      xlab="log2(Evid.Ratio)")
+abline(v=2,col="red",lwd=3)
+hist(log10(d_meth$Evid.Ratio[,3]),breaks=200,main="Time 9>80",
+      xlab="log2(Evid.Ratio)")
+abline(v=2,col="red",lwd=3)
+hist(log10(d_meth$Evid.Ratio[,4]),breaks=200,main="Time 9<80",
+      xlab="log2(Evid.Ratio)")
+abline(v=2,col="red",lwd=3)
+### Posterior Probability
+hist(-log(d_meth$Post.Prob[,1]),breaks=100,main="Treatment 400>2800",
+     xlab="-log(PosteriorProb)")
+hist(-log(d_meth$Post.Prob[,2]),breaks=100,main="Treatment 400<2800",
+      xlab="-log(PosteriorProb)")
+hist(-log(d_meth$Post.Prob[,3]),breaks=200,main="Time 9>80",
+      xlab="-log(PosteriorProb)")
+hist(-log(d_meth$Post.Prob[,4]),breaks=200,main="Time 9<80",
+      xlab="-log(PosteriorProb)")
+```
+We see that interesting spike in large Evid.Ratios when we look at the time specific hypotheses. This is what is driving up the number of significant CpGs by time. I will delve further into loci with these evid.ratios to see if I can find what is going on.  
+
+**FOLLOW UP**: That spike at 10000 represents a manual correction of the evidence ratio where the model failed at estimating the value. I will need to look further into this, but the initial rationale was that the model failing was more the result of potentially meaningful patterns (i.e. loci with certain treatments with DNAm fixed a 0) and so these loci deserved to be included. However, now looking at the distribution it seems we may be better off removing them since it severly inflated the number of significant loci, particularly across time.
+
+### Subset data to only include those that are significant  
+```{r}
+## Using posterior probability to select for significant cpgs
+alpha <- 20000
+sum((1-d_meth$Post.Prob[,1]) < (0.05/alpha))
+which((1-d_meth$Post.Prob[,1]) < (0.05/alpha))
+sum((1-d_meth$Post.Prob[,2]) < (0.05/alpha))
+which((1-d_meth$Post.Prob[,2]) < (0.05/alpha))
+sum((1-d_meth$Post.Prob[,3]) < (0.05/alpha))
+sum((1-d_meth$Post.Prob[,4]) < (0.05/alpha))
+## Using Evid.Ratio
+sum(log10(d_meth$Evid.Ratio[,1]) > 2)
+er_index1 <- which(log10(d_meth$Evid.Ratio[,1]) > 2)
+sum(log10(d_meth$Evid.Ratio[,2]) > 2)
+er_index2 <- which(log10(d_meth$Evid.Ratio[,2]) > 2)
+sum(log10(d_meth$Evid.Ratio[,3]) > 2)
+er_index3 <- which(log10(d_meth$Evid.Ratio[,3]) > 2)
+sum(log10(d_meth$Evid.Ratio[,4]) > 2)
+er_index4 <- which(log10(d_meth$Evid.Ratio[,4]) > 2)
+## Looking by credibility intervals
+sum(d_meth$CI.Lower[,1] > 0)
+ci_index1 <- which(d_meth$CI.Lower[,1] > 0)#trt
+sum(d_meth$CI.Upper[,2] < 0)
+ci_index2 <- which(d_meth$CI.Upper[,2] < 0)#trt
+sum(d_meth$CI.Lower[,3] > 0)
+ci_index3 <- which(d_meth$CI.Lower[,3] > 0)#time
+sum(d_meth$CI.Upper[,4] < 0)
+ci_index4 <- which(d_meth$CI.Upper[,4] < 0)#time
+ci_index5 <- which(d_meth$CI.Lower[,5]>0 | d_meth$CI.Upper[,5]<0)#interaction
+
+index1 <- er_index1[match(ci_index1,er_index1)]
+index2 <- er_index2[match(ci_index2,er_index2)]
+index_trt <- unique(index1,index2 )
+index3 <- er_index3[match(ci_index3,er_index3)]
+index4 <- er_index4[match(ci_index4,er_index4)]
+index_time <- unique(index3,index4)
+
+sig_design <- data.frame(rbind(cbind(index_trt,"Trt"),
+                    cbind(index_time,"Time"),
+                    cbind(ci_index5,"Interaction")))
+colnames(sig_design) <- c("index","comp")
+sig_design$index <- as.numeric(as.character(sig_design$index))
+sig_design$comp <- as.character(sig_design$comp)
+# This will transform long form data into matrix with n unique locations and rows equal to the number of primary comparisons (trt, time, interaction) = 1 is equal to significant for that variable.
+primary_index <- dcast(sig_design,index~comp,length)
+## Specific post hoc comparisons
+#EvidRatio
+colnames(d_meth$Evid.Ratio)
+er_index1.1 <- which(log10(d_meth$Evid.Ratio[,6]) > 2)
+er_index1.2 <- which(log10(d_meth$Evid.Ratio[,7]) > 2)
+er_index1.3 <- which(log10(d_meth$Evid.Ratio[,8]) > 2)
+er_index1.4 <- which(log10(d_meth$Evid.Ratio[,9]) > 2)
+er_index1.5 <- which(log10(d_meth$Evid.Ratio[,10]) > 2)
+er_index1.6 <- which(log10(d_meth$Evid.Ratio[,11]) > 2)
+er_index1.7 <- which(log10(d_meth$Evid.Ratio[,12]) > 2)
+er_index1.8 <- which(log10(d_meth$Evid.Ratio[,13]) > 2)
+er_index1.9 <- which(log10(d_meth$Evid.Ratio[,14]) > 2)
+er_index1.10 <- which(log10(d_meth$Evid.Ratio[,15]) > 2)
+er_index1.11 <- which(log10(d_meth$Evid.Ratio[,16]) > 2)
+er_index1.12 <- which(log10(d_meth$Evid.Ratio[,17]) > 2)
+#Credibility Interval
+colnames(d_meth$Estimate)
+ci_index1.1 <- which(d_meth$CI.Lower[,6] > 0)#trtC9_E9
+ci_index1.2 <- which(d_meth$CI.Upper[,7] < 0)#trtC9_E9
+ci_index1.3 <- which(d_meth$CI.Lower[,8] > 0)#trtC9_C80
+ci_index1.4 <- which(d_meth$CI.Upper[,9] < 0)#trtC9_C80
+ci_index1.5 <- which(d_meth$CI.Lower[,10] > 0)#trtC9_E80
+ci_index1.6 <- which(d_meth$CI.Upper[,11] < 0)#trtC9_E80
+ci_index1.7 <- which(d_meth$CI.Lower[,12] > 0)#trtE9_C80
+ci_index1.8 <- which(d_meth$CI.Upper[,13] < 0)#trtE9_C80
+ci_index1.9 <- which(d_meth$CI.Lower[,14] > 0)#trtE9_E80
+ci_index1.10 <- which(d_meth$CI.Upper[,15] < 0)#trtE9_E80
+ci_index1.11<- which(d_meth$CI.Lower[,16] > 0)#trtC80_E80
+ci_index1.12 <- which(d_meth$CI.Upper[,17] < 0)#trtC80_E80
+
+index1.1 <- Reduce(intersect, list(ci_index1.1,er_index1.1))
+index1.2 <- Reduce(intersect,list(ci_index1.2,er_index1.2)) 
+index1.3 <- Reduce(intersect,list(ci_index1.3,er_index1.3))
+index1.4 <- Reduce(intersect,list(ci_index1.4,er_index1.4))
+index1.5 <- Reduce(intersect,list(ci_index1.5,er_index1.5))
+index1.6 <- Reduce(intersect,list(ci_index1.6,er_index1.6))
+index1.7 <- Reduce(intersect,list(ci_index1.7,er_index1.7))
+index1.8 <- Reduce(intersect,list(ci_index1.8,er_index1.8))
+index1.9 <- Reduce(intersect,list(ci_index1.9,er_index1.9))
+index1.10 <- Reduce(intersect,list(ci_index1.10,er_index1.10))
+index1.11 <- Reduce(intersect,list(ci_index1.11,er_index1.11))
+index1.12 <- Reduce(intersect,list(ci_index1.12,er_index1.12))
+
+trtC9_E9 <- unique(index1.1,index1.2)
+trtC9_C80 <- unique(index1.3,index1.4)
+trtC9_E80 <- unique(index1.5,index1.6)
+trtE9_C80 <- unique(index1.7,index1.8)
+trtE9_E80 <- unique(index1.9,index1.10)
+trtC80_E80 <- unique(index1.11,index1.12)
+
+sig_design2 <- data.frame(rbind(
+  cbind(ci_index5,"Interaction"),
+  cbind(trtC9_E9,"trtC9_E9"),
+  cbind(trtC9_C80,"trtC9_C80"),
+  cbind(trtC9_E80,"trtC9_E80"),
+  cbind(trtE9_C80,"trtE9_C80"),
+  cbind(trtE9_E80,"trtE9_E80"),
+  cbind(trtC80_E80,"trtC80_E80")))
+                    
+colnames(sig_design2) <- c("index","comp")
+sig_design2$index <- as.numeric(as.character(sig_design2$index))
+sig_design2$comp <- as.character(sig_design2$comp)
+
+#This should match the 
+sum(d_meth$Significant[,5] == "*")
+ph_index_og <- dcast(sig_design2,index~comp,length)
+ph_index <- ph_index_og[ph_index_og$Interaction==1,]
+nrow(ph_index)
+out <- d_beta[ph_index$index,]
+sum(is.na(out))
+```
+
+```{r eval=FALSE}
+ID <-  d_meta$ID
+loci_names <- data.frame(ID=ID,index=1:length(ID))
+primary_index_save <- left_join(primary_index,loci_names)
+# Binary significant main effects dataframe
+saveRDS(primary_index_save,"/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/mainEffects_SignificantMatrix.RData")
+  ```
+
+### Venn Diagram -  Initial Explanatory Variables (Trt, Time, Interaction)
+```{r}
+sig_pos_trt <- primary_index$index[primary_index$Trt==1]
+sig_pos_time <- primary_index$index[primary_index$Time==1]
+sig_pos_inter <- primary_index$index[primary_index$Interaction==1]
 
 Complete_overlap <- Reduce(intersect, list(sig_pos_trt,sig_pos_time,sig_pos_inter))
 trt_time_overlap <- Reduce(intersect, list(sig_pos_trt,sig_pos_time))
@@ -127,47 +285,28 @@ trt_inter_overlap <- Reduce(intersect, list(sig_pos_trt,sig_pos_inter))
 time_inter_overlap <- Reduce(intersect, list(sig_pos_time,sig_pos_inter))
 
 grid.newpage()
-draw.triple.venn(area1 = 22, area2 = 20, area3 = 13, n12 = 11, n23 = 4, n13 = 5, 
-    n123 = 1, category = c("Dog People", "Cat People", "Lizard People"), lty = "blank", 
-    fill = c("skyblue", "pink1", "mediumorchid"))
-pal <- wes_palette()
-grid.newpage()
 draw.triple.venn(area1 = length(sig_pos_trt),
                  area2 = length(sig_pos_time),
                  area3 = length(sig_pos_inter),
-                 n12 = length(trt_time_overlap),
+                 n12 = 1, #length(trt_time_overlap),
                  n23 = length(time_inter_overlap),
-                 n13 = length(trt_inter_overlap),
-                 n123 = length(Complete_overlap),
+                 n13 = 1, #length(trt_inter_overlap),
+                 n123 = 1, #length(Complete_overlap),
                  category = c("Treatment", "Time", "Interaction"),
                  fill = c("white","white","white"),
                  lty = c(1,2,3),
                  alpha = 0.6,
-                 cex = 2,
-                 cat.pos = c(30,330,180),
-                 cat.dist = c(0.08,0.04,0.06),
-                 cat.cex = c(3,3,3),
-                 rotation = 1,
-                 rotation.degree = 180)
+                 cex = 2.5,
+                 cat.dist = c(0.07,0.06,0.04),
+                 cat.cex = c(2.8,2.8,2.8))
 ```
 
-**Venn Diagram -  Post Hoc Comparisons**
-
+### Venn Diagram -  Post Hoc Comparisons
 ```{r}
-dnam_sigTable_pH <- dnam_sigTable[dnam_sigTable[,5] == "*",6:ncol(dnam_sigTable)]
-#Subset for each post hoc comparison
-sig_pos_C9E9 <- sig_positions(list(dnam_sigTable_pH[,1],
-              dnam_sigTable_pH[,2]))
-sig_pos_C9C80 <- sig_positions(list(dnam_sigTable_pH[,3],
-              dnam_sigTable_pH[,4]))
-sig_pos_C9E80 <- sig_positions(list(dnam_sigTable_pH[,5],
-              dnam_sigTable_pH[,6]))
-sig_pos_E9C80 <- sig_positions(list(dnam_sigTable_pH[,7],
-              dnam_sigTable_pH[,8]))
-sig_pos_E9E80 <- sig_positions(list(dnam_sigTable_pH[,9],
-              dnam_sigTable_pH[,10]))
-sig_pos_C80E80 <- sig_positions(list(dnam_sigTable_pH[,11],
-              dnam_sigTable_pH[,12]))
+sig_pos_C9E9 <- ph_index$index[ph_index$trtC9_E9==1]
+sig_pos_C9C80 <- ph_index$index[ph_index$trtC9_C80==1]
+sig_pos_E9E80 <- ph_index$index[ph_index$trtE9_E80==1]
+sig_pos_C80E80 <- ph_index$index[ph_index$trtC80_E80==1]
 
 # Overlaps between different pairwise comparisons
 # All groups
@@ -208,61 +347,108 @@ draw.quad.venn(area1 = length(sig_pos_C9E9),
                fill = c("white"),
                cex = 2,
                cat.cex = 2.2)
-
 ```
 
-Significant Loci by Treatment
-```{r fig.width=12}
-# Short investigation of caherin, which had a significantly differentially methylated CpG by treatment
-# Row ID : 243889 - Significant by treatment - Cadherin - LOC111106820
-# Row ID : 3240 - Significant by treatment (day 9) - transmembrane - LOC111103288
-#LOC_pos <- sig_pos_C9E9[18]
-LOC_pos <- sig_pos_C80E80
-#LOC <- 3240
-# Gene / Exon Information
-gene_ID[match(LOC[LOC_pos],gene_ID$gene_id),]
-# CDS and Function annotation
-cds[match(LOC[LOC_pos],cds$gene_id),]
-# Confirm the ids match up with the gene expression data
-gc$genes[match(LOC[LOC_pos],gc$genes$GENEID),]
-# Subset gene expression data to the same number of individual and the DNA methylation data
-
-LOC_pos2 <-  sig_pos_C80E80[51] 
-gc$genes[match(LOC[LOC_pos2],gc$genes$GENEID),]
-
-temp <- gc$E[match(LOC[LOC_pos2],gc$genes$GENEID),colnames(gc$E) != "17099"]
-beta_temp <- d_beta[,colnames(d_beta) != "17099"]
-
-#Plots
-par(mfrow=c(1,3))
-boxplot(unlist(beta_temp[LOC_pos2,])~meta$SFV,ylim=c(0,1),
-        xlab="Day.Treatment",ylab="Prop. Methylation")
-boxplot(temp~meta$SFV,
-        xlab="Day.Treatment",ylab="log2 CPM")
-plot(unlist(beta_temp[LOC_pos2,])~temp,ylim=c(0,1),
-     ylab="Prop.Methylation",xlab="log2 CPM")
+### Significant CpGs by trt  
+```{r eval=FALSE}
+## Extract information about the significant treatment genes
+trt_indexes <- primary_index$index[primary_index$Trt==1] 
+gene_labels <- gc$genes[match(LOC[trt_indexes],gc$genes$GENEID),]
+cds_labels <- cds[match(LOC[trt_indexes],cds$gene_id),]
+write.csv(cbind(gene_labels,cds_labels),"/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/Final_diffMethlyation_Treatment_raw.csv")
 ```
 
-```{r}
-library(matrixStats)
-par(mfrow=c(1,1))
-hist(d_meth$Evid.Ratio)
+### Significant CpGs by trt - post hoc
+```{r eval=FALSE}
 
-d_meth_evidOrder <- d_meth$Evid.Ratio[rev(order(rowMaxs(d_meth$Evid.Ratio[,6:7]))),]
-head(d_meth_evidOrder)
-sum(rowMaxs(d_meth$Evid.Ratio[,6:7])>5000)
-d_beta_order <- d_beta[rev(order(rowMaxs(d_meth$Evid.Ratio[,6:7]))),]
-d_meta_order <- d_meta[rev(order(rowMaxs(d_meth$Evid.Ratio[,6:7]))),]
-LOC_order <- LOC[rev(order(rowMaxs(d_meth$Evid.Ratio[,6:7])))]
-pos <- 6
-cds[match(LOC_order[pos],cds$gene_id),]
-gene_ID[match(LOC_order[pos],gene_ID$gene_id),]
-gc$genes[match(LOC_order[pos],gc$genes$GENEID),]
-d_meta_order[pos,]
-boxplot(d_beta_order[pos,]~meta$SFV)
+ph_sig <- data.frame(rbind(
+  cbind(ci_index5,"Interaction"),
+  cbind(index1.1,"C9_E9_Hypo"),
+  cbind(index1.2,"C9_E9_Hyper"),
+  cbind(index1.11,"C80_E80_Hypo"),
+  cbind(index1.12,"C80_E80_Hyper")))
+                    
+colnames(ph_sig) <- c("index","comp")
+ph_sig$index <- as.numeric(as.character(ph_sig$index))
+ph_sig$comp <- as.character(ph_sig$comp)
+
+ph_index_trt <- dcast(ph_sig,index~comp,length)
+ph_index_trt <- ph_index_trt[ph_index_trt$Interaction==1,]
+colSums(ph_index_trt)
+ph_f <- ph_index_trt[rowSums(ph_index_trt[,2:5])>0,]
+ph_f <- ph_f[,-6]
+
+ph_f_09_index <- rowSums(ph_f[,4:5])>0
+ph_f_80_index <- rowSums(ph_f[,2:3])>0
+
+## Summarize methylation by treatment for significant loci
+d_beta_trt <- d_beta[ph_f$index,]
+d_beta_trt_09_C <- rowMeans(d_beta_trt[ph_f_09_index,meta$SFV == "09.400"])
+d_beta_trt_09_E <- rowMeans(d_beta_trt[ph_f_09_index,meta$SFV == "09.2800"])
+d_beta_trt_09_diff <- d_beta_trt_09_E-d_beta_trt_09_C
+d_beta_trt_09_sum <- data.frame(Timepoint="Day_9",
+                                index = ph_f$index[ph_f_09_index],
+                                Mean_Ambient = as.vector(d_beta_trt_09_C),
+                                Mean_OA = as.vector(d_beta_trt_09_E),
+                                Change = as.vector(d_beta_trt_09_diff))
+d_beta_trt_80_C <- rowMeans(d_beta_trt[ph_f_80_index,meta$SFV == "80.400"])
+d_beta_trt_80_E <- rowMeans(d_beta_trt[ph_f_80_index,meta$SFV == "80.2800"])
+d_beta_trt_80_diff <- d_beta_trt_80_E-d_beta_trt_80_C
+d_beta_trt_80_sum <- data.frame(Timepoint="Day_80",
+                                index = ph_f$index[ph_f_80_index],
+                                Mean_Ambient = as.vector(d_beta_trt_80_C),
+                                Mean_OA = as.vector(d_beta_trt_80_E),
+                                Change = as.vector(d_beta_trt_80_diff))
+d_beta_trt_sum <- rbind(d_beta_trt_09_sum,d_beta_trt_80_sum)
+#gene_labels_f <- gc$genes[match(LOC[d_beta_trt_sum$index],gc$genes$GENEID),]
+cds_labels_f <- cds[match(LOC[d_beta_trt_sum$index],cds$gene_id),]
+col <- c("protein_id","gene_id","Description","GO.SLIM","InterproScan.GO.ID")
+cds_labels_f_red <- subset(cds_labels_f,select=col)
+comb <- cbind(d_beta_trt_sum,cds_labels_f_red)
+
+# Separate out the go terms
+split_go <- strsplit(comb$GO.SLIM,split = ";")
+go_list <- matrix(ncol=2,nrow=length(unlist(split_go)))
+go_list <- data.frame(go_list)
+colnames(go_list) <- c("index","go_slim_raw")
+m <- 1
+for(i in 1:length(split_go)){
+  if(length(split_go[[i]])>0){
+    temp <- split_go[[i]]
+    for(j in 1:length(temp)){
+      go_list[m,1] <- comb$index[i]
+      go_list[m,2] <- temp[j]
+      m <- c(m+1)
+    }
+  }
+}
+library(stringr)
+go_list$go_slim_final <- str_sub(go_list$go_slim_raw,start = -10,end =-1)
+# Lets consider the most basic go term for each cpgs
+go_list_first <- go_list[!duplicated(go_list$index), ]
+
+#Get biological function
+myCollection <- GOCollection(go_list$go_slim_final)
+#fl <- system.file("extdata", "goslim_plant.obo", package="GSEABase")
+f1 <- "/home/downeyam/Github/2017OAExp_Oysters/input_files/go.obo"
+slim <- getOBOCollection(fl)
+goSlim_output_MF <- goSlim(myCollection, slim, "MF")
+goSlim_output_BP <- goSlim(myCollection, slim, "BP")
+goSlim_output_CC <- goSlim(myCollection, slim, "CC")
+go_MF <- data.frame(go_slim_final=rownames(goSlim_output_MF),MF_term=goSlim_output_MF$Term)
+go_BP <- data.frame(go_slim_final=rownames(goSlim_output_BP),BP_term=goSlim_output_BP$Term)
+go_CC <- data.frame(go_slim_final=rownames(goSlim_output_CC),CC_term=goSlim_output_CC$Term)
+library(dplyr)
+go_list_update <- left_join(go_list,go_MF)
+go_list_update <- left_join(go_list_update,go_BP)
+go_list_update <- left_join(go_list_update,go_CC)
+
+
+write.csv(label_comb,"/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/Final_diffMethlyation_PostHoc_raw.csv")
+
 ```
-
-**Subsetting significant genes and matching with gene annotations**
+  
+### Subsetting significant genes and matching with gene annotations - GOMWU
 ```{r eval=FALSE}
 #CpG info for
 cpg_sub <- data.frame(ID=d_meta$ID,gene_id=as.character(LOC),stringsAsFactors = FALSE) # Reduce CpG meta data dataframe
@@ -283,10 +469,10 @@ C9E9_down <- data.frame(ID=d_meta$ID,evid=d_meth$Evid.Ratio[,7],stringsAsFactors
 C80E80_up <- data.frame(ID=d_meta$ID,evid=d_meth$Evid.Ratio[,16],stringsAsFactors = FALSE)
 C80E80_down <- data.frame(ID=d_meta$ID,evid=d_meth$Evid.Ratio[,17],stringsAsFactors = FALSE)
 # Log transform EVID values
-C9E9_up_log <- data.frame(ID=d_meta$ID,evid=log(d_meth$Evid.Ratio[,6]),stringsAsFactors = FALSE)
-C9E9_down_log <- data.frame(ID=d_meta$ID,evid=log(d_meth$Evid.Ratio[,7]),stringsAsFactors = FALSE)
-C80E80_up_log <- data.frame(ID=d_meta$ID,evid=log(d_meth$Evid.Ratio[,16]),stringsAsFactors = FALSE)
-C80E80_down_log <- data.frame(ID=d_meta$ID,evid=log(d_meth$Evid.Ratio[,17]),stringsAsFactors = FALSE)
+C9E9_up_log <- data.frame(ID=d_meta$ID,evid=log2(d_meth$Evid.Ratio[,6]),stringsAsFactors = FALSE)
+C9E9_down_log <- data.frame(ID=d_meta$ID,evid=log2(d_meth$Evid.Ratio[,7]),stringsAsFactors = FALSE)
+C80E80_up_log <- data.frame(ID=d_meta$ID,evid=log2(d_meth$Evid.Ratio[,16]),stringsAsFactors = FALSE)
+C80E80_down_log <- data.frame(ID=d_meta$ID,evid=log2(d_meth$Evid.Ratio[,17]),stringsAsFactors = FALSE)
 
 ## Select only the largest EVID Ratio for an individual CpG per gene
 C9E9_up2 <- data.frame(ID=d_meta$ID,gene_id=as.character(LOC),evid=d_meth$Evid.Ratio[,6],stringsAsFactors = FALSE)
@@ -314,7 +500,7 @@ write.table(x = comb_red,file = "/home/downeyam/Github/2017OAExp_Oysters/results
 write.table(x = go_tab_unique,file = "/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/GOMWU_maxCpG_Goterms.tab",sep = "\t",row.names = FALSE)
 # EVID values for all cpgs
 write.csv(x = C9E9_up,file = "/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/GOMWU_allCpG_C9E9_UP.csv",row.names = FALSE)
-write.csv(x = C9E9_down,file = "/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/GOMWU_allCpG_C9E9_DOWN.csv",row.names = FALSE)
+write.csv(x = C9E9_down,file = "/home/downeyam/Github/2017OAExp_ Oysters/results/DNAm/GOMWU_allCpG_C9E9_DOWN.csv",row.names = FALSE)
 write.csv(x = C80E80_up,file = "/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/GOMWU_allCpG_C80E80_UP.csv",row.names = FALSE)
 write.csv(x = C80E80_down,file = "/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/GOMWU_allCpG_C80E80_DOWN.csv",row.names = FALSE)
 write.csv(x = C9E9_up_log,file = "/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/GOMWU_allCpG_C9E9_UP_log.csv",row.names = FALSE)
@@ -332,3 +518,62 @@ write.csv(x = C80E80_up_max_log,file = "/home/downeyam/Github/2017OAExp_Oysters/
 write.csv(x = C80E80_down_max_log,file = "/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/GOMWU_maxCpG_C80E80_DOWN_log.csv",row.names = FALSE)
 ```
 
+
+### Scripts for examining individual loci significant by Treatment
+```{r fig.width=12}
+# Short investigation of caherin, which had a significantly differentially methylated CpG by treatment
+
+### Different Row options
+# Row ID : 243889 - Significant by treatment - Cadherin - LOC111106820
+# Row ID : 3240 - Significant by treatment (day 9) - transmembrane - LOC111103288
+#LOC_pos <- sig_pos_C9E9[18]
+#LOC <- 3240
+
+# list of positions that were significant between trt at day 80
+LOC_pos <- primary_index$index[primary_index$Trt >0]
+# Single locus that was sig. diff between trt at day 80
+LOC_pos2 <-  LOC_pos[2] #LOC_pos[1]  
+
+
+### Code doesn't need to be altered just create an list of dataframe index values (LOC) based on the row positions within the planned comparisons dataframe (d_meth)
+# Gene / Exon Information
+gene_ID[match(LOC[LOC_pos],gene_ID$gene_id),]
+# CDS and Function annotation
+cds[match(LOC[LOC_pos],cds$gene_id),]
+# Confirm the ids match up with the gene expression data
+gc$genes[match(LOC[LOC_pos],gc$genes$GENEID),]
+# Subset gene expression data to the same number of individual and the DNA methylation data
+
+### Looks at target locus LOC_pos2 and prints out dnam and gene expression summary figure
+#Plots
+par(mfrow=c(1,3))
+boxplot(unlist(beta_temp[LOC_pos2,])~meta$SFV,ylim=c(0,1),
+        xlab="Day.Treatment",ylab="Prop. Methylation")
+boxplot(temp~meta$SFV,
+        xlab="Day.Treatment",ylab="log2 CPM")
+plot(unlist(beta_temp[LOC_pos2,])~temp,ylim=c(0,1),
+     ylab="Prop.Methylation",xlab="log2 CPM")
+temp.lm <- lm(unlist(beta_temp[LOC_pos2,])~ temp)
+lm.sum <- summary(temp.lm)
+abline(a=temp.lm[1],b=temp.lm[2])
+```
+
+### OUTDATED EQUATIONS
+```{r eval=FALSE}
+### Summary Functions  
+sum_sig <- function(s){
+  return(which(s=="*"))
+}
+sig_positions <- function(x){
+  out <- lapply(x,FUN=sum_sig)
+  temp <- do.call(c,out)
+  return(unique(temp))
+}
+is.integer0 <- function(x)
+{
+  is.integer(x) && length(x) == 0L
+}
+val_test <- function(x){
+  if(is.integer0(x)){return(0)}else{return(x)}
+}
+```

@@ -9,10 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## **DATA**
 
-**All CpGs**
-```{r}
+### Performing GO MWU analysis on cluster (to much for local machine)
+```{r eval=FALSE}
+#### All CpGs ####
 setwd("/shared_lab/20180226_RNAseq_2017OAExp/DNAm/scripts/GO_MWU")
 all_files <- list.files(pattern="GOMWU_allCpG")
 # Save annotation file name
@@ -21,10 +21,8 @@ input=paste0(all_files[-grep("Goterms",all_files)])
 goDatabase="go.obo" # download from http://www.geneontology.org/GO.downloads.ontology.shtml
 goDivision="BP" # either MF, or BP, or CC
 source("gomwu.functions.R")
-```
 
-**Max E Ratio for an individual cpg for each gene represented**
-```{r}
+#### Max E Ratio for an individual cpg for each gene represented ####
 setwd("/shared_lab/20180226_RNAseq_2017OAExp/DNAm/scripts/GO_MWU")
 all_files <- list.files(pattern="GOMWU_maxCpG")
 # Save annotation file name
@@ -33,10 +31,8 @@ input=paste0(all_files[-grep("Goterms",all_files)])
 goDatabase="go.obo" # download from http://www.geneontology.org/GO.downloads.ontology.shtml
 goDivision="BP" # either MF, or BP, or CC
 source("gomwu.functions.R")
-```
 
-**Diff Gene Expression Data**
-```{r}
+#### Diff Gene Expression Data ####
 setwd("/shared_lab/20180226_RNAseq_2017OAExp/DNAm/scripts/GO_MWU")
 all_files <- list.files(pattern="GOMWU_LogFoldChangeGE_")
 # Save annotation file name
@@ -45,12 +41,10 @@ input=paste0(all_files[-grep("Goterms",all_files)])
 goDatabase="go.obo" # download from http://www.geneontology.org/GO.downloads.ontology.shtml
 goDivision="BP" # either MF, or BP, or CC
 source("gomwu.functions.R")
-```
 
-## GO MWU functions  
+#### GO MWU functions  ####
 
-**Perform GO MWU**
-```{r}
+##Perform GO MWU
 for(i in 1:length(input)){
   # Calculating stats. It might take ~3 min for MF and BP. Do not rerun it if you just want to replot the data with different cutoffs, go straight to gomwuPlot. If you change any of the numeric values below, delete the files that were generated in previos runs first.
   gomwuStats(input[i], goDatabase, goAnnotations, goDivision,
@@ -61,10 +55,8 @@ for(i in 1:length(input)){
   )
   # do not continue if the printout shows that no GO terms pass 10% FDR.
 }
-```
 
-**Follow up plots - check if there are any that are significant**
-```{r}
+## Follow up plots - check if there are any that are significant
   results=gomwuPlot(input,goAnnotations,goDivision,
   	absValue=2,  # genes with the measure value exceeding this will be counted as "good genes".
   	level1=0.1, # FDR threshold for plotting. 
@@ -79,5 +71,14 @@ for(i in 1:length(input)){
   png(paste0(unlist(strsplit(input[i],split = "/|.csv"))[2],".png"))
   results
   dev.off()
+install.packages("car")
+library(car)
 ```
+
+### Analyzing Results  
+
+```{r}
+out <- read.csv("/home/downeyam/Github/2017OAExp_Oysters/results/DNAm/GOMWU_allCpG_C9E9_DOWN.csv")
+
+````
 
