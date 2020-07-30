@@ -6,4 +6,4 @@ See end of markdown for thoughts on changes.
 
 [Link to markdown](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/notebook/notebook_markdowns/pHComparison_2020Jul29.md)
 
-[Link to script]()
+[Link to script](https://github.com/epigeneticstoocean/2017OAExp_Oysters/blob/master/notebook/notebook_markdowns/pHComparison_2020Jul29.Rmd)
